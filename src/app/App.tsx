@@ -1,6 +1,8 @@
+import { AuthProvider } from '@/features/auth/AuthProvider'
 import { HomeScreen } from '@/features/home/HomeScreen'
 import { FocusScreen } from '@/features/timer/FocusScreen'
 import { ThemeProvider } from '@/shared/design-system'
+import { ToastProvider } from '@/shared/toast'
 
 import { AppShell } from './AppShell'
 import { useAppMode } from './useAppMode'
@@ -10,9 +12,13 @@ export function App() {
 
   return (
     <ThemeProvider>
-      <AppShell mode={mode} onModeChange={setMode}>
-        {mode === 'home' ? <HomeScreen /> : <FocusScreen />}
-      </AppShell>
+      <ToastProvider>
+        <AuthProvider>
+          <AppShell mode={mode} onModeChange={setMode}>
+            {mode === 'home' ? <HomeScreen /> : <FocusScreen />}
+          </AppShell>
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   )
 }

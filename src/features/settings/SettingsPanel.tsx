@@ -17,6 +17,7 @@ import type { AppMode } from '@/app/useAppMode'
 import type { BackgroundId } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
+import { AccountPage } from './pages/AccountPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ThemesPage } from './pages/ThemesPage'
 
@@ -191,6 +192,8 @@ export function SettingsPanel({
               selection={backgroundSelection}
               onSelect={onBackgroundSelect}
             />
+          ) : activePage === 'account' ? (
+            <AccountPage />
           ) : (
             <PlaceholderPage
               title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}

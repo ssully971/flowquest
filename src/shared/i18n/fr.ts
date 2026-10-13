@@ -57,6 +57,62 @@ export const fr = {
     modeHome: 'Accueil',
     modeFocus: 'Focus',
   },
+  auth: {
+    notConfigured:
+      'Les comptes ne sont pas encore configurés sur ce déploiement. Flowquest reste utilisable en mode invité : tes données restent sur cet appareil.',
+    loading: 'Vérification de ta session…',
+    fields: {
+      username: 'Pseudo',
+      email: 'E-mail',
+      password: 'Mot de passe',
+      passwordHint: '8 caractères minimum, avec une majuscule et un chiffre.',
+    },
+    errors: {
+      invalidUsername:
+        'Pseudo invalide : 3 à 20 caractères, minuscules, chiffres et underscore uniquement.',
+      invalidPassword:
+        'Le mot de passe doit faire au moins 8 caractères, avec une majuscule et un chiffre.',
+      invalidEmail: 'Adresse e-mail invalide.',
+    },
+    signIn: {
+      tab: 'Connexion',
+      submit: 'Se connecter',
+      submitting: 'Connexion…',
+      switchToSignUp: 'Pas encore de compte ? Crée-en un.',
+      orContinueWith: 'ou continuer avec',
+      google: 'Continuer avec Google',
+    },
+    signUp: {
+      tab: 'Inscription',
+      submit: 'Créer mon compte',
+      submitting: 'Création…',
+      switchToSignIn: 'Déjà un compte ? Connecte-toi.',
+      google: 'S’inscrire avec Google',
+      confirmationSent:
+        'Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse, puis connecte-toi.',
+    },
+    account: {
+      signedInAs: 'Connecté en tant que',
+      role: 'Rôle',
+      roleAdmin: 'Administrateur',
+      roleUser: 'Utilisateur',
+      usernameLabel: 'Pseudo',
+      usernameSave: 'Enregistrer',
+      usernameSaving: 'Enregistrement…',
+      signOut: 'Se déconnecter',
+      signingOut: 'Déconnexion…',
+    },
+    importPrompt: {
+      title: 'Importer tes données locales ?',
+      body: 'Tu avais déjà utilisé Flowquest en mode invité sur cet appareil. Veux-tu importer ce qui s’y trouve (réglages, minuteur en cours) dans ton nouveau compte ?',
+      confirm: 'Importer',
+      skip: 'Ignorer',
+      importing: 'Import en cours…',
+      success: 'Tes données locales ont été importées dans ton compte.',
+      error:
+        'L’import a échoué. Tes données locales restent disponibles, réessaie plus tard depuis Compte.',
+    },
+  },
   settings: {
     title: 'Réglages',
     close: 'Fermer les réglages',

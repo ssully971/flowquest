@@ -40,6 +40,7 @@ export interface Database {
           timezone?: string
           stats_visibility?: StatsVisibility
         }
+        Relationships: []
       }
       user_settings: {
         Row: {
@@ -57,6 +58,7 @@ export interface Database {
           schema_version?: number
           settings?: Record<string, unknown>
         }
+        Relationships: []
       }
       tasks: {
         Row: {
@@ -95,6 +97,7 @@ export interface Database {
           done?: boolean
           done_at?: string | null
         }
+        Relationships: []
       }
       focus_sessions: {
         Row: {
@@ -127,6 +130,7 @@ export interface Database {
           ended_at?: string | null
           completed?: boolean
         }
+        Relationships: []
       }
       timer_state: {
         Row: {
@@ -162,6 +166,14 @@ export interface Database {
           paused_total_ms?: number
           task_id?: string | null
         }
+        Relationships: []
+      }
+    }
+    Views: Record<string, never>
+    Functions: {
+      is_admin: {
+        Args: { uid?: string }
+        Returns: boolean
       }
     }
   }
