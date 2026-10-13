@@ -38,8 +38,11 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
         style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
       >
         <div className="flex items-center gap-3">
-          <IconButton icon={ListTodo} label={strings.common.tasks} disabled />
-          <IconButton icon={NotebookPen} label={strings.common.notes} disabled />
+          <IconButton
+            icon={Settings}
+            label={strings.common.settings}
+            onClick={() => setIsSettingsOpen(true)}
+          />
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-3">
@@ -56,11 +59,8 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
             onChange={onModeChange}
             options={MODE_OPTIONS}
           />
-          <IconButton
-            icon={Settings}
-            label={strings.common.settings}
-            onClick={() => setIsSettingsOpen(true)}
-          />
+          <IconButton icon={ListTodo} label={strings.common.tasks} disabled />
+          <IconButton icon={NotebookPen} label={strings.common.notes} disabled />
           <IconButton
             icon={fullscreen.isFullscreen ? Minimize2 : Maximize2}
             label={
