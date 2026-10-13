@@ -29,7 +29,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const CurrentBackground = getBackgroundDefinition(selection[mode]).Component
 
   return (
-    <div className="relative h-dvh overflow-hidden">
+    <div className="relative h-svh overflow-hidden">
       <CurrentBackground />
       <div className="absolute inset-0">{children}</div>
 

@@ -29,13 +29,13 @@ describe('AppShell — mise en page en calques (pas de décalage par la barre du
     expect(bottomBar).not.toBeNull()
   })
 
-  it('le conteneur racine utilise 100dvh', () => {
+  it('le conteneur racine utilise 100svh (hauteur garantie visible, même avec la barre Safari affichée)', () => {
     const { container } = render(
       <AppShell mode="home" onModeChange={vi.fn()}>
         <div>Contenu</div>
       </AppShell>,
     )
-    expect(container.firstElementChild?.className).toContain('h-dvh')
+    expect(container.firstElementChild?.className).toContain('h-svh')
   })
 })
 
