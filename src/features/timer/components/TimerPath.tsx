@@ -1,4 +1,4 @@
-const PATH_D = 'M8 36 Q 90 10, 180 36 T 352 36'
+const PATH_D = 'M2 10 L358 10'
 
 interface TimerPathProps {
   progress: number
@@ -8,12 +8,9 @@ export function TimerPath({ progress }: TimerPathProps) {
   const percent = Math.min(100, Math.max(0, progress * 100))
 
   return (
-    <div
-      className="mx-auto w-full max-w-md rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4"
-      aria-hidden="true"
-    >
-      <div className="relative h-[48px] w-full">
-        <svg viewBox="0 0 360 48" className="h-full w-full" preserveAspectRatio="none">
+    <div className="mx-auto w-full max-w-md" aria-hidden="true">
+      <div className="relative h-5 w-full">
+        <svg viewBox="0 0 360 20" className="h-full w-full" preserveAspectRatio="none">
           <path
             d={PATH_D}
             pathLength={100}
@@ -35,7 +32,7 @@ export function TimerPath({ progress }: TimerPathProps) {
           />
         </svg>
         <div
-          className="absolute left-0 top-0 h-3 w-3 rounded-full bg-[var(--accent)]"
+          className="absolute left-0 top-0 h-2 w-2 rounded-full bg-[var(--accent)]"
           style={{
             offsetPath: `path("${PATH_D}")`,
             offsetDistance: `${percent}%`,

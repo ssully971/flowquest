@@ -52,7 +52,7 @@ export function FocusScreen() {
           currentIsFocus={timer.segment === 'focus'}
         />
 
-        <div className="flex flex-col items-center gap-5">
+        <div className="flex w-full flex-col items-center gap-5">
           <TimerDisplay label={displayLabel} />
           <TimerPath progress={progress} />
         </div>
