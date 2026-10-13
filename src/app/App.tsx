@@ -1,3 +1,4 @@
+import { AdminGate } from '@/features/admin/AdminGate'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { HomeScreen } from '@/features/home/HomeScreen'
 import { FocusScreen } from '@/features/timer/FocusScreen'
@@ -9,14 +10,19 @@ import { useAppMode } from './useAppMode'
 
 export function App() {
   const [mode, setMode] = useAppMode()
+  const isAdminRoute = typeof window !== 'undefined' && window.location.pathname === '/admin'
 
   return (
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
-          <AppShell mode={mode} onModeChange={setMode}>
-            {mode === 'home' ? <HomeScreen /> : <FocusScreen />}
-          </AppShell>
+          {isAdminRoute ? (
+            <AdminGate />
+          ) : (
+            <AppShell mode={mode} onModeChange={setMode}>
+              {mode === 'home' ? <HomeScreen /> : <FocusScreen />}
+            </AppShell>
+          )}
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>

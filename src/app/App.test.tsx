@@ -44,4 +44,14 @@ describe('App', () => {
       expect(screen.queryByRole('dialog', { name: 'Réglages' })).not.toBeInTheDocument()
     })
   })
+
+  it('/admin affiche la garde de route au lieu du tableau de bord normal', () => {
+    window.history.pushState({}, '', '/admin')
+    render(<App />)
+
+    expect(screen.getByText('Accès réservé aux administrateurs.')).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: 'Accueil' })).not.toBeInTheDocument()
+
+    window.history.pushState({}, '', '/')
+  })
 })

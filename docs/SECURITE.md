@@ -42,9 +42,11 @@ sera ajoutée explicitement, jamais en assouplissant celle-ci par erreur.
 - La fonction `public.is_admin(uid uuid default auth.uid())` (migration `0003_is_admin.sql`)
   est `security definer` : elle peut lire `profiles.role` sans déclencher de récursion RLS,
   et sert de brique pour toute future politique réservée aux admins (contenu, modération...).
-- Côté interface, `/admin` est protégée par une garde de route qui appelle `is_admin()` ;
-  **cette garde est un confort d'navigation, pas une barrière de sécurité** — la vraie
-  barrière est RLS + `is_admin()` côté base.
+- Côté interface, `/admin` (`src/features/admin/AdminGate.tsx`) est protégée en lisant
+  `profile.role` (chargé via `profiles_select_own`, donc fiable : cette politique ne
+  renvoie jamais que la ligne du compte connecté lui-même). **Cette garde est un confort
+  de navigation, pas une barrière de sécurité** — la vraie barrière, pour toute future
+  table de contenu réservée aux admins, est RLS + `is_admin()` côté base.
 
 ### `user_settings`
 

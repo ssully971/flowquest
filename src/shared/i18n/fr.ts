@@ -3,6 +3,11 @@ export const fr = {
     name: 'Flowquest',
     tagline: 'La quête du flow.',
   },
+  admin: {
+    loading: 'Vérification de ton accès…',
+    denied: 'Accès réservé aux administrateurs.',
+    backHome: 'Retour à l’accueil',
+  },
   appearance: {
     label: 'Apparence',
     dark: 'Sombre',

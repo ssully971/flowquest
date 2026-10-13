@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { getDb } from '@/shared/storage/db'
 
@@ -8,16 +8,24 @@ import { onSessionRecorded } from './session-events'
 
 export function useDashboardStats(): DashboardStats | null {
   const [stats, setStats] = useState<DashboardStats | null>(null)
+  const unmountedRef = useRef(false)
 
   const refresh = useCallback(() => {
     void getDb()
       .then((db) => db.getAll('focusSessions'))
-      .then((sessions) => setStats(computeStats(sessions)))
+      .then((sessions) => {
+        if (!unmountedRef.current) setStats(computeStats(sessions))
+      })
   }, [])
 
   useEffect(() => {
+    unmountedRef.current = false
     refresh()
-    return onSessionRecorded(refresh)
+    const unsubscribe = onSessionRecorded(refresh)
+    return () => {
+      unmountedRef.current = true
+      unsubscribe()
+    }
   }, [refresh])
 
   return stats
