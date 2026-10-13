@@ -11,7 +11,7 @@ import {
   X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
 import type { BackgroundId } from '@/shared/design-system'
@@ -56,6 +56,9 @@ export function SettingsPanel({
   const [mounted, setMounted] = useState(open)
   const [entered, setEntered] = useState(false)
   const [activePage, setActivePage] = useState<PageId>('themes')
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
 
   if (open !== trackedOpen) {
     setTrackedOpen(open)
@@ -68,17 +71,48 @@ export function SettingsPanel({
 
   useEffect(() => {
     if (open) {
+      previousFocusRef.current = document.activeElement as HTMLElement
       const id = requestAnimationFrame(() => setEntered(true))
       return () => cancelAnimationFrame(id)
     }
+    previousFocusRef.current?.focus()
     const timeoutId = window.setTimeout(() => setMounted(false), 250)
     return () => window.clearTimeout(timeoutId)
   }, [open])
 
   useEffect(() => {
+    if (entered) closeButtonRef.current?.focus()
+  }, [entered])
+
+  useEffect(() => {
     if (!mounted) return
+
+    const getFocusable = () =>
+      Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      )
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        onClose()
+        return
+      }
+      if (event.key !== 'Tab') return
+
+      const focusable = getFocusable()
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
@@ -94,6 +128,7 @@ export function SettingsPanel({
         onClick={onClose}
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={strings.settings.title}
@@ -140,6 +175,7 @@ export function SettingsPanel({
 
         <div className="relative flex-1 overflow-y-auto p-6 sm:p-10">
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             aria-label={strings.settings.close}
