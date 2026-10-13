@@ -13,11 +13,19 @@ export class IndexedDbTimerStateRepository implements TimerStateRepository {
     return record?.data ?? null
   }
 
-  async save(state: TimerState): Promise<void> {
+  /** Comme load(), mais expose aussi updatedAt : utile pour comparer avec l'état distant. */
+  async loadWithMeta(): Promise<{ state: TimerState; updatedAt: number } | null> {
+    const db = await getDb()
+    const record = await db.get('timerState', RECORD_KEY)
+    if (!record) return null
+    return { state: record.data, updatedAt: record.updatedAt }
+  }
+
+  async save(state: TimerState, updatedAt: number = Date.now()): Promise<void> {
     const db = await getDb()
     await db.put(
       'timerState',
-      { schemaVersion: SCHEMA_VERSION, data: state, updatedAt: Date.now() },
+      { schemaVersion: SCHEMA_VERSION, data: state, updatedAt },
       RECORD_KEY,
     )
   }

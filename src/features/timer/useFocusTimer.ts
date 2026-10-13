@@ -1,15 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { useAuth } from '@/features/auth/useAuth'
+
 import type { SegmentKind, TimerSnapshot } from './engine/timer-engine'
 import { getDurationForSegment, POMODORO_DEFAULTS } from './durations'
 import { notifySegmentFinished, requestNotificationPermission } from './notifications'
 import { advancePomodoroCycle, createPomodoroCycle } from './pomodoro-cycle'
 import type { PomodoroCycleState } from './pomodoro-cycle'
 import { IndexedDbTimerStateRepository } from './storage/indexed-db-timer-state-repository'
+import { SupabaseTimerStateRepository } from './storage/supabase-timer-state-repository'
+import { SyncingTimerStateRepository } from './storage/syncing-timer-state-repository'
 import { TimerController } from './timer-controller'
 import { useTimerSnapshot } from './useTimerSnapshot'
 
-const repository = new IndexedDbTimerStateRepository()
+// Accesseur mutable lu dynamiquement par SyncingTimerStateRepository : le dépôt est un
+// singleton créé avant que l'état de connexion soit connu (voir l'effet ci-dessous qui
+// le tient à jour).
+let currentUserId: string | null = null
+const localRepository = new IndexedDbTimerStateRepository()
+const remoteRepository = new SupabaseTimerStateRepository()
+const repository = new SyncingTimerStateRepository(() => currentUserId)
 const cycleConfig = { sessionsBeforeLongBreak: POMODORO_DEFAULTS.sessionsBeforeLongBreak }
 
 export interface UseFocusTimerResult {
@@ -36,22 +46,32 @@ async function createSelectedController(segment: SegmentKind): Promise<TimerCont
   return controller
 }
 
+async function restoreController(): Promise<TimerController> {
+  const fallback = TimerController.createIdle(
+    repository,
+    'pomodoro',
+    'focus',
+    getDurationForSegment('focus'),
+  )
+  return TimerController.restore(repository, fallback.getState())
+}
+
 export function useFocusTimer(): UseFocusTimerResult {
+  const { status, user } = useAuth()
   const [controller, setController] = useState<TimerController | null>(null)
   const [cycle, setCycle] = useState<PomodoroCycleState>(() => createPomodoroCycle())
   const [isReady, setIsReady] = useState(false)
   const [snapshot, refresh] = useTimerSnapshot(controller)
   const settledEndedAtRef = useRef<number | null>(null)
+  const pulledForUserRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    currentUserId = status === 'authenticated' ? (user?.id ?? null) : null
+  }, [status, user])
 
   useEffect(() => {
     let cancelled = false
-    const fallback = TimerController.createIdle(
-      repository,
-      'pomodoro',
-      'focus',
-      getDurationForSegment('focus'),
-    )
-    TimerController.restore(repository, fallback.getState()).then((restored) => {
+    restoreController().then((restored) => {
       if (cancelled) return
       setController(restored)
       setCycle(createPomodoroCycle(restored.getState().segment))
@@ -61,6 +81,29 @@ export function useFocusTimer(): UseFocusTimerResult {
       cancelled = true
     }
   }, [])
+
+  // Reprise sur un autre appareil (§6.2 du cahier des charges) : à la connexion, si
+  // l'état distant est plus récent que l'état local, on l'applique. Dernier horodatage
+  // gagne — voir docs/SECURITE.md.
+  useEffect(() => {
+    if (status !== 'authenticated' || !user) return
+    if (pulledForUserRef.current === user.id) return
+    pulledForUserRef.current = user.id
+
+    void (async () => {
+      const [local, remote] = await Promise.all([
+        localRepository.loadWithMeta(),
+        remoteRepository.load(user.id),
+      ])
+      if (!remote) return
+      if (local && local.updatedAt >= remote.updatedAt) return
+
+      await localRepository.save(remote.state, remote.updatedAt)
+      const restored = await restoreController()
+      setController(restored)
+      setCycle(createPomodoroCycle(restored.getState().segment))
+    })()
+  }, [status, user])
 
   const skip = useCallback(() => {
     void (async () => {
