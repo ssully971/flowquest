@@ -34,7 +34,10 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
       <div className="relative flex min-h-svh flex-col">
         <div className="relative flex-1">{children}</div>
 
-        <div className="flex items-center justify-between gap-4 px-6 pb-6 sm:px-10">
+        <div
+          className="flex items-center justify-between gap-4 px-6 sm:px-10"
+          style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+        >
           <div className="flex items-center gap-3">
             <IconButton icon={ListTodo} label={strings.common.tasks} disabled />
             <IconButton icon={NotebookPen} label={strings.common.notes} disabled />
