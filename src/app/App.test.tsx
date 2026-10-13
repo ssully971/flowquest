@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 
@@ -36,6 +36,10 @@ describe('App', () => {
     expect(screen.getAllByText('Thèmes').length).toBeGreaterThan(0)
 
     await user.keyboard('{Escape}')
+    // Le démontage est piloté par la fin de l'animation CSS (transitionend), pas par un
+    // minuteur à durée fixe (voir SettingsPanel.tsx). jsdom ne joue aucune transition
+    // réelle : on simule donc la fin de l'animation comme le ferait un vrai navigateur.
+    fireEvent.transitionEnd(screen.getByRole('dialog', { name: 'Réglages' }))
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: 'Réglages' })).not.toBeInTheDocument()
     })

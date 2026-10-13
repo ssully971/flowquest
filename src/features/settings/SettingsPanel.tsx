@@ -19,6 +19,7 @@ import { strings } from '@/shared/i18n'
 
 import { AccountPage } from './pages/AccountPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { StatsPage } from './pages/StatsPage'
 import { ThemesPage } from './pages/ThemesPage'
 
 type PageId =
@@ -53,7 +54,12 @@ export function SettingsPanel({
   backgroundSelection,
   onBackgroundSelect,
 }: SettingsPanelProps) {
-  const [trackedOpen, setTrackedOpen] = useState(open)
+  // mounted suit `open` à l'ouverture, mais seulement à la fermeture complète (fin de
+  // l'animation de la boîte de dialogue) pour laisser le temps à la transition de
+  // glissement de jouer. Piloté par l'évènement transitionend plutôt qu'un
+  // setTimeout à durée fixe : un minuteur fixe peut se déclencher après coup si le
+  // panneau est rouvert entre-temps (course observée avec React 19 + StrictMode), et
+  // referme alors le panneau qu'on venait de rouvrir.
   const [mounted, setMounted] = useState(open)
   const [entered, setEntered] = useState(false)
   const [activePage, setActivePage] = useState<PageId>('themes')
@@ -61,13 +67,11 @@ export function SettingsPanel({
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
 
-  if (open !== trackedOpen) {
-    setTrackedOpen(open)
-    if (open) {
-      setMounted(true)
-    } else {
-      setEntered(false)
-    }
+  if (open && !mounted) {
+    setMounted(true)
+  }
+  if (!open && entered) {
+    setEntered(false)
   }
 
   useEffect(() => {
@@ -77,8 +81,6 @@ export function SettingsPanel({
       return () => cancelAnimationFrame(id)
     }
     previousFocusRef.current?.focus()
-    const timeoutId = window.setTimeout(() => setMounted(false), 250)
-    return () => window.clearTimeout(timeoutId)
   }, [open])
 
   useEffect(() => {
@@ -86,7 +88,7 @@ export function SettingsPanel({
   }, [entered])
 
   useEffect(() => {
-    if (!mounted) return
+    if (!open) return
 
     const getFocusable = () =>
       Array.from(
@@ -117,7 +119,11 @@ export function SettingsPanel({
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [mounted, onClose])
+  }, [open, onClose])
+
+  const handleDialogTransitionEnd = () => {
+    if (!open) setMounted(false)
+  }
 
   if (!mounted) return null
 
@@ -138,6 +144,7 @@ export function SettingsPanel({
           background: 'var(--panel-surface)',
           transform: entered ? 'translateX(0)' : 'translateX(-100%)',
         }}
+        onTransitionEnd={handleDialogTransitionEnd}
       >
         <nav
           className="flex shrink-0 flex-row overflow-x-auto border-b sm:w-[264px] sm:flex-col sm:overflow-x-visible sm:border-b-0 sm:border-r"
@@ -194,6 +201,8 @@ export function SettingsPanel({
             />
           ) : activePage === 'account' ? (
             <AccountPage />
+          ) : activePage === 'stats' ? (
+            <StatsPage />
           ) : (
             <PlaceholderPage
               title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}

@@ -145,5 +145,16 @@ export const fr = {
       },
       emptyCategory: 'Aucun fond dans cette catégorie pour l’instant.',
     },
+    stats: {
+      title: 'Stats',
+      today: 'Aujourd’hui',
+      thisWeek: 'Cette semaine',
+      currentStreak: 'Série actuelle',
+      longestStreak: 'Plus longue série',
+      dailyGoal: 'Objectif quotidien',
+      days: 'jours',
+      day: 'jour',
+      empty: 'Termine ta première session de focus pour voir tes statistiques ici.',
+    },
   },
 } as const

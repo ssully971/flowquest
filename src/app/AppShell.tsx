@@ -5,6 +5,8 @@ import { useState } from 'react'
 import { GuestImportPrompt } from '@/features/auth/components/GuestImportPrompt'
 import { SettingsPanel } from '@/features/settings/SettingsPanel'
 import { useSettingsSync } from '@/features/settings/useSettingsSync'
+import { useDashboardStats } from '@/features/stats/useDashboardStats'
+import { useSessionSync } from '@/features/stats/useSessionSync'
 import {
   IconButton,
   SegmentedControl,
@@ -35,6 +37,8 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   useSettingsSync({ appearance, setAppearance, backgrounds: selection, setBackground })
+  useSessionSync()
+  const stats = useDashboardStats()
 
   const CurrentBackground = getBackgroundDefinition(selection[mode]).Component
 
@@ -65,10 +69,10 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
         <div className="flex flex-wrap items-center justify-center gap-3">
           <div
             className="flex h-12 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 text-sm text-[var(--muted)]"
-            aria-label={`${strings.common.streak} : 0`}
+            aria-label={`${strings.common.streak} : ${stats?.currentStreakDays ?? 0}`}
           >
             <Flame size={18} strokeWidth={1.75} aria-hidden="true" />
-            <span>0</span>
+            <span>{stats?.currentStreakDays ?? 0}</span>
           </div>
           <SegmentedControl
             ariaLabel={strings.common.mode}

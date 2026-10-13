@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -6,9 +6,8 @@ import { ThemeProvider } from '@/shared/design-system'
 
 import { SettingsPanel } from './SettingsPanel'
 
-function renderPanel(open: boolean) {
-  const onClose = vi.fn()
-  render(
+function panel(open: boolean, onClose: () => void) {
+  return (
     <ThemeProvider>
       <button type="button">Déclencheur</button>
       <SettingsPanel
@@ -19,9 +18,14 @@ function renderPanel(open: boolean) {
         backgroundSelection={{ home: 'horizon', focus: 'horizon' }}
         onBackgroundSelect={vi.fn()}
       />
-    </ThemeProvider>,
+    </ThemeProvider>
   )
-  return { onClose }
+}
+
+function renderPanel(open: boolean) {
+  const onClose = vi.fn()
+  const view = render(panel(open, onClose))
+  return { onClose, rerender: (nextOpen: boolean) => view.rerender(panel(nextOpen, onClose)) }
 }
 
 beforeEach(() => {
@@ -60,6 +64,35 @@ describe('SettingsPanel — ouverture et fermeture', () => {
 
     await user.keyboard('{Escape}')
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it('reste démonté tant que la transition de fermeture n’est pas terminée, puis disparaît', async () => {
+    const { rerender } = renderPanel(true)
+    const dialog = await screen.findByRole('dialog', { name: 'Réglages' })
+
+    rerender(false)
+    // Toujours dans le DOM pendant l'animation de fermeture (ne doit pas disparaître
+    // instantanément, et surtout pas avant la fin réelle de la transition).
+    expect(screen.getByRole('dialog', { name: 'Réglages' })).toBeInTheDocument()
+
+    fireEvent.transitionEnd(dialog)
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Réglages' })).not.toBeInTheDocument()
+    })
+  })
+
+  it('une réouverture pendant l’animation de fermeture ne referme pas le panneau qui vient de se rouvrir (non-régression)', async () => {
+    const { rerender } = renderPanel(true)
+    const dialog = await screen.findByRole('dialog', { name: 'Réglages' })
+
+    rerender(false)
+    rerender(true)
+
+    // L'évènement de fin de transition de l'ANCIENNE fermeture (dont le panneau n'est
+    // plus censé tenir compte puisqu'il a été rouvert entre-temps) ne doit jamais faire
+    // disparaître le panneau rouvert.
+    fireEvent.transitionEnd(dialog)
+    expect(screen.getByRole('dialog', { name: 'Réglages' })).toBeInTheDocument()
   })
 })
 
