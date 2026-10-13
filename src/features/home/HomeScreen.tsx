@@ -26,8 +26,8 @@ export function HomeScreen() {
   const quote = getCurrentQuote()
 
   return (
-    <div className="relative flex h-full flex-col px-6 py-6 sm:px-10 sm:py-8">
-      <div className="flex items-start justify-between gap-6">
+    <div className="relative h-full">
+      <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-6 px-6 pt-6 sm:px-10 sm:pt-8">
         <p
           className="text-lg font-semibold text-[var(--text)]"
           style={{ fontFamily: 'var(--font-display)' }}
@@ -40,7 +40,7 @@ export function HomeScreen() {
         </figure>
       </div>
 
-      <div className="flex w-full flex-1 flex-col items-center justify-center gap-3 text-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center">
         <p
           className="w-full text-[28px] font-semibold text-[var(--text)]"
           style={{ fontFamily: 'var(--font-display)' }}

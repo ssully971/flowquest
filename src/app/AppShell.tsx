@@ -29,47 +29,45 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const CurrentBackground = getBackgroundDefinition(selection[mode]).Component
 
   return (
-    <div className="relative min-h-svh overflow-hidden">
+    <div className="relative h-dvh overflow-hidden">
       <CurrentBackground />
-      <div className="relative flex min-h-svh flex-col">
-        <div className="relative flex-1">{children}</div>
+      <div className="absolute inset-0">{children}</div>
 
-        <div
-          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 px-4 sm:flex-nowrap sm:justify-between sm:px-10"
-          style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
-        >
-          <div className="flex items-center gap-3">
-            <IconButton icon={ListTodo} label={strings.common.tasks} disabled />
-            <IconButton icon={NotebookPen} label={strings.common.notes} disabled />
-          </div>
+      <div
+        className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 px-4 sm:flex-nowrap sm:justify-between sm:px-10"
+        style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+      >
+        <div className="flex items-center gap-3">
+          <IconButton icon={ListTodo} label={strings.common.tasks} disabled />
+          <IconButton icon={NotebookPen} label={strings.common.notes} disabled />
+        </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <div
-              className="flex h-12 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 text-sm text-[var(--muted)]"
-              aria-label={`${strings.common.streak} : 0`}
-            >
-              <Flame size={18} strokeWidth={1.75} aria-hidden="true" />
-              <span>0</span>
-            </div>
-            <SegmentedControl
-              ariaLabel={strings.common.mode}
-              value={mode}
-              onChange={onModeChange}
-              options={MODE_OPTIONS}
-            />
-            <IconButton
-              icon={Settings}
-              label={strings.common.settings}
-              onClick={() => setIsSettingsOpen(true)}
-            />
-            <IconButton
-              icon={fullscreen.isFullscreen ? Minimize2 : Maximize2}
-              label={
-                fullscreen.isFullscreen ? strings.common.exitFullscreen : strings.common.fullscreen
-              }
-              onClick={fullscreen.toggle}
-            />
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <div
+            className="flex h-12 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 text-sm text-[var(--muted)]"
+            aria-label={`${strings.common.streak} : 0`}
+          >
+            <Flame size={18} strokeWidth={1.75} aria-hidden="true" />
+            <span>0</span>
           </div>
+          <SegmentedControl
+            ariaLabel={strings.common.mode}
+            value={mode}
+            onChange={onModeChange}
+            options={MODE_OPTIONS}
+          />
+          <IconButton
+            icon={Settings}
+            label={strings.common.settings}
+            onClick={() => setIsSettingsOpen(true)}
+          />
+          <IconButton
+            icon={fullscreen.isFullscreen ? Minimize2 : Maximize2}
+            label={
+              fullscreen.isFullscreen ? strings.common.exitFullscreen : strings.common.fullscreen
+            }
+            onClick={fullscreen.toggle}
+          />
         </div>
       </div>
 
