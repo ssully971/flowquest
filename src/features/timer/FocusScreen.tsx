@@ -32,7 +32,7 @@ export function FocusScreen() {
   }
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-10 px-4 text-center">
+    <div className="flex h-full flex-col items-center justify-center gap-10 px-4 pb-28 text-center sm:pb-32">
       <div className="w-full">
         <p
           className="text-[28px] font-semibold text-[var(--text)]"
