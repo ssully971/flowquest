@@ -53,10 +53,12 @@ export interface Database {
           user_id: string
           schema_version?: number
           settings: Record<string, unknown>
+          updated_at: string
         }
         Update: {
           schema_version?: number
           settings?: Record<string, unknown>
+          updated_at: string
         }
         Relationships: []
       }
@@ -155,6 +157,7 @@ export interface Database {
           duration_ms?: number | null
           paused_total_ms?: number
           task_id?: string | null
+          updated_at: string
         }
         Update: {
           mode?: TimerMode
@@ -165,6 +168,7 @@ export interface Database {
           duration_ms?: number | null
           paused_total_ms?: number
           task_id?: string | null
+          updated_at: string
         }
         Relationships: []
       }

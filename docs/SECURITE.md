@@ -87,6 +87,24 @@ existante n'aura besoin d'être recréée quand ces fonctionnalités arriveront.
 Une seule ligne par utilisateur (`user_id` est la clé primaire) : c'est ce qui permet de
 reprendre le minuteur en cours sur un autre appareil (§6.2 du cahier des charges).
 
+## Résolution de conflits (dernier horodatage gagne)
+
+`user_settings` et `timer_state` n'ont **pas** de trigger `set_updated_at` : c'est le
+client qui fournit `updated_at` à chaque écriture (l'heure de la modification locale,
+pas l'heure d'arrivée sur le serveur). Un trigger `reject_stale_write` (migration
+`0008_last_write_wins.sql`) ignore silencieusement une mise à jour dont `updated_at` est
+antérieur à la valeur déjà en base : si l'appareil A était hors ligne et renvoie un
+changement plus vieux qu'un changement déjà synchronisé depuis l'appareil B, celui de A
+est abandonné sans écraser celui de B. C'est volontairement différent de `profiles` et
+`tasks`, qui gardent un trigger `set_updated_at` classique (l'heure serveur suffit, il
+n'y a pas de scénario de synchronisation multi-appareil concurrente documenté pour eux
+dans cette phase).
+
+`focus_sessions` n'a pas ce mécanisme : chaque session a un `id` unique généré côté
+client à sa création, donc deux sessions ne s'écrasent jamais entre elles. La seule mise
+à jour possible porte sur la même ligne (la finaliser), jamais sur celle d'un autre
+appareil ou d'une autre session — c'est ce qui garantit qu'aucune session n'est perdue.
+
 ## Validation côté serveur
 
 - Les contraintes `check` sur `kind`, `mode`, `segment`, `status`, `role`, `stats_visibility`

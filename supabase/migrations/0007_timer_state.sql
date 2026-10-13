@@ -2,6 +2,10 @@
 -- Une seule ligne par utilisateur (clé primaire = user_id) : le minuteur en cours est unique.
 -- paused_at est une extension du schéma du §15 du cahier des charges, nécessaire pour
 -- recalculer correctement le temps restant pendant une pause (voir src/features/timer/engine).
+-- updated_at n'est PAS auto-rempli par un trigger ici (contrairement à profiles/tasks) :
+-- le client l'envoie lui-même à chaque écriture, pour que la résolution de conflit
+-- "dernier horodatage gagne" (migration 0008) compare le moment de la modification
+-- locale, pas l'heure d'arrivée sur le serveur.
 -- Idempotent : peut être recollée sans erreur dans l'éditeur SQL Supabase.
 
 create table if not exists public.timer_state (
@@ -16,11 +20,6 @@ create table if not exists public.timer_state (
   task_id uuid references public.tasks (id) on delete set null,
   updated_at timestamptz not null default now()
 );
-
-drop trigger if exists set_timer_state_updated_at on public.timer_state;
-create trigger set_timer_state_updated_at
-  before update on public.timer_state
-  for each row execute function public.set_updated_at();
 
 alter table public.timer_state enable row level security;
 

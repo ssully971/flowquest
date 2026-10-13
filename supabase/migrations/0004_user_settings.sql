@@ -1,5 +1,9 @@
 -- Réglages utilisateur (thèmes, horloge, minuteur, extras...), stockés en JSON versionné
 -- pour pouvoir migrer le format sans casser les clients plus anciens.
+-- updated_at n'est PAS auto-rempli par un trigger ici (contrairement à profiles/tasks) :
+-- le client l'envoie lui-même à chaque écriture, pour que la résolution de conflit
+-- "dernier horodatage gagne" (migration 0008) compare le moment de la modification
+-- locale, pas l'heure d'arrivée sur le serveur.
 -- Idempotent : peut être recollée sans erreur dans l'éditeur SQL Supabase.
 
 create table if not exists public.user_settings (
@@ -8,11 +12,6 @@ create table if not exists public.user_settings (
   settings jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
-
-drop trigger if exists set_user_settings_updated_at on public.user_settings;
-create trigger set_user_settings_updated_at
-  before update on public.user_settings
-  for each row execute function public.set_updated_at();
 
 alter table public.user_settings enable row level security;
 

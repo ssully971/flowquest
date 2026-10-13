@@ -3,7 +3,13 @@ import type { ReactNode } from 'react'
 import { useState } from 'react'
 
 import { SettingsPanel } from '@/features/settings/SettingsPanel'
-import { IconButton, SegmentedControl, getBackgroundDefinition } from '@/shared/design-system'
+import { useSettingsSync } from '@/features/settings/useSettingsSync'
+import {
+  IconButton,
+  SegmentedControl,
+  getBackgroundDefinition,
+  useTheme,
+} from '@/shared/design-system'
 import { useFullscreen } from '@/shared/hooks/useFullscreen'
 import { strings } from '@/shared/i18n'
 
@@ -24,7 +30,10 @@ const MODE_OPTIONS: { value: AppMode; label: string }[] = [
 export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const fullscreen = useFullscreen()
   const { selection, setBackground } = useBackgroundSettings()
+  const { appearance, setAppearance } = useTheme()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+
+  useSettingsSync({ appearance, setAppearance, backgrounds: selection, setBackground })
 
   const CurrentBackground = getBackgroundDefinition(selection[mode]).Component
 
