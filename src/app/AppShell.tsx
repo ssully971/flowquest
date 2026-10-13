@@ -2,6 +2,7 @@ import { Flame, ListTodo, Maximize2, Minimize2, NotebookPen, Settings } from 'lu
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 
+import { GuestImportPrompt } from '@/features/auth/components/GuestImportPrompt'
 import { SettingsPanel } from '@/features/settings/SettingsPanel'
 import { useSettingsSync } from '@/features/settings/useSettingsSync'
 import {
@@ -88,6 +89,8 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
         backgroundSelection={selection}
         onBackgroundSelect={setBackground}
       />
+
+      <GuestImportPrompt />
     </div>
   )
 }
