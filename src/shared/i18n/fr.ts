@@ -35,4 +35,26 @@ export const fr = {
       longBreakDone: 'Pause longue terminée.',
     },
   },
+  home: {
+    greeting: {
+      weekStart: 'La semaine commence',
+      weekendApproaching: 'Le week-end approche',
+      morning: 'Bonjour',
+      afternoon: 'Bon après-midi',
+      evening: 'Bonsoir',
+      night: 'Encore debout',
+      secondary: 'Prends un instant, puis lance ta session.',
+    },
+  },
+  common: {
+    tasks: 'Tâches',
+    notes: 'Bloc-notes',
+    streak: 'Série',
+    settings: 'Réglages',
+    fullscreen: 'Plein écran',
+    exitFullscreen: 'Quitter le plein écran',
+    mode: 'Mode',
+    modeHome: 'Accueil',
+    modeFocus: 'Focus',
+  },
 } as const

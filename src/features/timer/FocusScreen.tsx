@@ -1,6 +1,5 @@
 import { createPortal } from 'react-dom'
 
-import { HorizonBackground } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import { CycleDots } from './components/CycleDots'
@@ -8,21 +7,17 @@ import { SegmentTabs } from './components/SegmentTabs'
 import { TimerControls } from './components/TimerControls'
 import { TimerDisplay } from './components/TimerDisplay'
 import { TimerPath } from './components/TimerPath'
-import { POMODORO_DEFAULTS, getDurationForSegment } from './durations'
+import { getDurationForSegment, POMODORO_DEFAULTS } from './durations'
 import { formatCountdown } from './format'
-import { usePictureInPicture } from './usePictureInPicture'
 import { useFocusTimer } from './useFocusTimer'
+import { usePictureInPicture } from './usePictureInPicture'
 
 export function FocusScreen() {
   const timer = useFocusTimer()
   const pip = usePictureInPicture()
 
   if (!timer.isReady || !timer.snapshot) {
-    return (
-      <div className="relative min-h-svh overflow-hidden">
-        <HorizonBackground />
-      </div>
-    )
+    return <div className="h-full" />
   }
 
   const { snapshot } = timer
@@ -37,41 +32,38 @@ export function FocusScreen() {
   }
 
   return (
-    <div className="relative min-h-svh overflow-hidden">
-      <HorizonBackground />
-      <div className="relative flex min-h-svh flex-col items-center justify-center gap-10 px-4 py-10 text-center">
-        <div>
-          <p
-            className="text-[28px] font-semibold text-[var(--text)]"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            {strings.focus.question}
-          </p>
-          <p className="mt-1 text-sm text-[var(--muted)]">{strings.focus.noActiveTask}</p>
-        </div>
-
-        <SegmentTabs value={timer.segment} onChange={timer.selectSegment} />
-
-        <CycleDots
-          total={POMODORO_DEFAULTS.sessionsBeforeLongBreak}
-          completed={timer.cycle.completedFocusCount}
-          currentIsFocus={timer.segment === 'focus'}
-        />
-
-        <div className="flex flex-col items-center gap-6">
-          <TimerDisplay label={displayLabel} />
-          <TimerPath progress={progress} />
-        </div>
-
-        <TimerControls
-          status={snapshot.status}
-          onReset={timer.reset}
-          onPrimary={handlePrimary}
-          onSkip={timer.skip}
-          onPictureInPicture={pip.toggle}
-          pipAvailable={pip.isSupported}
-        />
+    <div className="flex h-full flex-col items-center justify-center gap-10 px-4 text-center">
+      <div>
+        <p
+          className="text-[28px] font-semibold text-[var(--text)]"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          {strings.focus.question}
+        </p>
+        <p className="mt-1 text-sm text-[var(--muted)]">{strings.focus.noActiveTask}</p>
       </div>
+
+      <SegmentTabs value={timer.segment} onChange={timer.selectSegment} />
+
+      <CycleDots
+        total={POMODORO_DEFAULTS.sessionsBeforeLongBreak}
+        completed={timer.cycle.completedFocusCount}
+        currentIsFocus={timer.segment === 'focus'}
+      />
+
+      <div className="flex flex-col items-center gap-6">
+        <TimerDisplay label={displayLabel} />
+        <TimerPath progress={progress} />
+      </div>
+
+      <TimerControls
+        status={snapshot.status}
+        onReset={timer.reset}
+        onPrimary={handlePrimary}
+        onSkip={timer.skip}
+        onPictureInPicture={pip.toggle}
+        pipAvailable={pip.isSupported}
+      />
 
       {pip.pipWindow
         ? createPortal(
