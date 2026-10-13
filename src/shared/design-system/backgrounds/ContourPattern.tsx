@@ -1,10 +1,19 @@
 let nextPatternId = 0
 
-export function ContourPattern() {
+interface ContourPatternProps {
+  opacity?: number
+}
+
+export function ContourPattern({ opacity = 1 }: ContourPatternProps) {
   const patternId = `flowquest-contour-${++nextPatternId}`
 
   return (
-    <svg aria-hidden="true" className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
+    <svg
+      aria-hidden="true"
+      className="absolute inset-0 h-full w-full"
+      preserveAspectRatio="none"
+      style={{ opacity }}
+    >
       <defs>
         <pattern id={patternId} width="240" height="120" patternUnits="userSpaceOnUse">
           <path
