@@ -1,11 +1,14 @@
 import { Flame, ListTodo, Maximize2, Minimize2, NotebookPen, Settings } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useState } from 'react'
 
-import { HorizonBackground, IconButton, SegmentedControl } from '@/shared/design-system'
+import { SettingsPanel } from '@/features/settings/SettingsPanel'
+import { IconButton, SegmentedControl, getBackgroundDefinition } from '@/shared/design-system'
 import { useFullscreen } from '@/shared/hooks/useFullscreen'
 import { strings } from '@/shared/i18n'
 
 import type { AppMode } from './useAppMode'
+import { useBackgroundSettings } from './useBackgroundSettings'
 
 interface AppShellProps {
   mode: AppMode
@@ -20,10 +23,14 @@ const MODE_OPTIONS: { value: AppMode; label: string }[] = [
 
 export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const fullscreen = useFullscreen()
+  const { selection, setBackground } = useBackgroundSettings()
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+
+  const CurrentBackground = getBackgroundDefinition(selection[mode]).Component
 
   return (
     <div className="relative min-h-svh overflow-hidden">
-      <HorizonBackground />
+      <CurrentBackground />
       <div className="relative flex min-h-svh flex-col">
         <div className="relative flex-1">{children}</div>
 
@@ -47,7 +54,11 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
               onChange={onModeChange}
               options={MODE_OPTIONS}
             />
-            <IconButton icon={Settings} label={strings.common.settings} disabled />
+            <IconButton
+              icon={Settings}
+              label={strings.common.settings}
+              onClick={() => setIsSettingsOpen(true)}
+            />
             <IconButton
               icon={fullscreen.isFullscreen ? Minimize2 : Maximize2}
               label={
@@ -58,6 +69,15 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
           </div>
         </div>
       </div>
+
+      <SettingsPanel
+        open={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        mode={mode}
+        onModeChange={onModeChange}
+        backgroundSelection={selection}
+        onBackgroundSelect={setBackground}
+      />
     </div>
   )
 }
