@@ -40,16 +40,16 @@ export function HomeScreen() {
         </figure>
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+      <div className="flex w-full flex-1 flex-col items-center justify-center gap-3 text-center">
         <p
-          className="text-[28px] font-semibold text-[var(--text)]"
+          className="w-full text-[28px] font-semibold text-[var(--text)]"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           {greeting.primary}
         </p>
-        <p className="text-sm text-[var(--muted)]">{greeting.secondary}</p>
+        <p className="w-full text-sm text-[var(--muted)]">{greeting.secondary}</p>
         <BigDigits label={formatClockLabel(now)} sizePx={208} />
-        <p className="text-sm text-[var(--muted)]">{formatLongDate(now)}</p>
+        <p className="w-full text-sm text-[var(--muted)]">{formatLongDate(now)}</p>
       </div>
     </div>
   )

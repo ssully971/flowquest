@@ -35,7 +35,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
         <div className="relative flex-1">{children}</div>
 
         <div
-          className="flex items-center justify-between gap-4 px-6 sm:px-10"
+          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 px-4 sm:flex-nowrap sm:justify-between sm:px-10"
           style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
         >
           <div className="flex items-center gap-3">
@@ -43,7 +43,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
             <IconButton icon={NotebookPen} label={strings.common.notes} disabled />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <div
               className="flex h-12 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 text-sm text-[var(--muted)]"
               aria-label={`${strings.common.streak} : 0`}
