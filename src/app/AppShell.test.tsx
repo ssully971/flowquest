@@ -39,8 +39,8 @@ describe('AppShell — mise en page en calques (pas de décalage par la barre du
   })
 })
 
-describe('AppShell — Réglages à gauche, Tâches/Notes à droite près du plein écran', () => {
-  it('Réglages est seul dans le groupe de gauche de la barre du bas', () => {
+describe('AppShell — Réglages et Plein écran à gauche, Tâches/Notes à droite', () => {
+  it('Réglages et Plein écran sont groupés ensemble à gauche de la barre du bas', () => {
     render(
       <AppShell mode="home" onModeChange={vi.fn()}>
         <div>Contenu</div>
@@ -49,11 +49,13 @@ describe('AppShell — Réglages à gauche, Tâches/Notes à droite près du ple
 
     const settingsButton = screen.getByRole('button', { name: 'Réglages' })
     const leftGroup = settingsButton.parentElement
-    expect(leftGroup?.children).toHaveLength(1)
-    expect(leftGroup?.firstElementChild).toBe(settingsButton)
+    const childLabels = Array.from(leftGroup?.children ?? []).map((el) =>
+      el.getAttribute('aria-label'),
+    )
+    expect(childLabels).toEqual(['Réglages', 'Plein écran'])
   })
 
-  it('Tâches et Bloc-notes sont juste avant le bouton plein écran, à droite', () => {
+  it('Tâches et Bloc-notes sont dans le groupe de droite', () => {
     render(
       <AppShell mode="home" onModeChange={vi.fn()}>
         <div>Contenu</div>
@@ -64,6 +66,6 @@ describe('AppShell — Réglages à gauche, Tâches/Notes à droite près du ple
     const childLabels = Array.from(rightGroup?.children ?? []).map((el) =>
       el.getAttribute('aria-label'),
     )
-    expect(childLabels.slice(-3)).toEqual(['Tâches', 'Bloc-notes', 'Plein écran'])
+    expect(childLabels.slice(-2)).toEqual(['Tâches', 'Bloc-notes'])
   })
 })

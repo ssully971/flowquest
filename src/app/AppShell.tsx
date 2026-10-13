@@ -43,6 +43,13 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
             label={strings.common.settings}
             onClick={() => setIsSettingsOpen(true)}
           />
+          <IconButton
+            icon={fullscreen.isFullscreen ? Minimize2 : Maximize2}
+            label={
+              fullscreen.isFullscreen ? strings.common.exitFullscreen : strings.common.fullscreen
+            }
+            onClick={fullscreen.toggle}
+          />
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-3">
@@ -61,13 +68,6 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
           />
           <IconButton icon={ListTodo} label={strings.common.tasks} disabled />
           <IconButton icon={NotebookPen} label={strings.common.notes} disabled />
-          <IconButton
-            icon={fullscreen.isFullscreen ? Minimize2 : Maximize2}
-            label={
-              fullscreen.isFullscreen ? strings.common.exitFullscreen : strings.common.fullscreen
-            }
-            onClick={fullscreen.toggle}
-          />
         </div>
       </div>
 
