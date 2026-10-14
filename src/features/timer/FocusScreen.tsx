@@ -32,38 +32,40 @@ export function FocusScreen() {
   }
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-10 px-4 text-center">
-      <div className="w-full">
-        <p
-          className="text-[28px] font-semibold text-[var(--text)]"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
-          {strings.focus.question}
-        </p>
-        <p className="mt-1 text-sm text-[var(--muted)]">{strings.focus.noActiveTask}</p>
+    <div className="h-full overflow-y-auto">
+      <div className="flex min-h-full flex-col items-center justify-center gap-6 px-4 py-8 pb-24 text-center sm:gap-7 sm:pb-28">
+        <div className="w-full">
+          <p
+            className="text-[28px] font-semibold text-[var(--text)]"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            {strings.focus.question}
+          </p>
+          <p className="mt-1 text-sm text-[var(--muted)]">{strings.focus.noActiveTask}</p>
+        </div>
+
+        <SegmentTabs value={timer.segment} onChange={timer.selectSegment} />
+
+        <CycleDots
+          total={POMODORO_DEFAULTS.sessionsBeforeLongBreak}
+          completed={timer.cycle.completedFocusCount}
+          currentIsFocus={timer.segment === 'focus'}
+        />
+
+        <div className="flex w-full flex-col items-center gap-5">
+          <TimerDisplay label={displayLabel} />
+          <TimerPath progress={progress} />
+        </div>
+
+        <TimerControls
+          status={snapshot.status}
+          onReset={timer.reset}
+          onPrimary={handlePrimary}
+          onSkip={timer.skip}
+          onPictureInPicture={pip.toggle}
+          pipAvailable={pip.isSupported}
+        />
       </div>
-
-      <SegmentTabs value={timer.segment} onChange={timer.selectSegment} />
-
-      <CycleDots
-        total={POMODORO_DEFAULTS.sessionsBeforeLongBreak}
-        completed={timer.cycle.completedFocusCount}
-        currentIsFocus={timer.segment === 'focus'}
-      />
-
-      <div className="flex flex-col items-center gap-6">
-        <TimerDisplay label={displayLabel} />
-        <TimerPath progress={progress} />
-      </div>
-
-      <TimerControls
-        status={snapshot.status}
-        onReset={timer.reset}
-        onPrimary={handlePrimary}
-        onSkip={timer.skip}
-        onPictureInPicture={pip.toggle}
-        pipAvailable={pip.isSupported}
-      />
 
       {pip.pipWindow
         ? createPortal(

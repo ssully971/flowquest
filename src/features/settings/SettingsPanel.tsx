@@ -11,13 +11,15 @@ import {
   X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
 import type { BackgroundId } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
+import { AccountPage } from './pages/AccountPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { StatsPage } from './pages/StatsPage'
 import { ThemesPage } from './pages/ThemesPage'
 
 type PageId =
@@ -52,37 +54,76 @@ export function SettingsPanel({
   backgroundSelection,
   onBackgroundSelect,
 }: SettingsPanelProps) {
-  const [trackedOpen, setTrackedOpen] = useState(open)
+  // mounted suit `open` à l'ouverture, mais seulement à la fermeture complète (fin de
+  // l'animation de la boîte de dialogue) pour laisser le temps à la transition de
+  // glissement de jouer. Piloté par l'évènement transitionend plutôt qu'un
+  // setTimeout à durée fixe : un minuteur fixe peut se déclencher après coup si le
+  // panneau est rouvert entre-temps (course observée avec React 19 + StrictMode), et
+  // referme alors le panneau qu'on venait de rouvrir.
   const [mounted, setMounted] = useState(open)
   const [entered, setEntered] = useState(false)
   const [activePage, setActivePage] = useState<PageId>('themes')
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
 
-  if (open !== trackedOpen) {
-    setTrackedOpen(open)
-    if (open) {
-      setMounted(true)
-    } else {
-      setEntered(false)
-    }
+  if (open && !mounted) {
+    setMounted(true)
+  }
+  if (!open && entered) {
+    setEntered(false)
   }
 
   useEffect(() => {
     if (open) {
+      previousFocusRef.current = document.activeElement as HTMLElement
       const id = requestAnimationFrame(() => setEntered(true))
       return () => cancelAnimationFrame(id)
     }
-    const timeoutId = window.setTimeout(() => setMounted(false), 250)
-    return () => window.clearTimeout(timeoutId)
+    previousFocusRef.current?.focus()
   }, [open])
 
   useEffect(() => {
-    if (!mounted) return
+    if (entered) closeButtonRef.current?.focus()
+  }, [entered])
+
+  useEffect(() => {
+    if (!open) return
+
+    const getFocusable = () =>
+      Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      )
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        onClose()
+        return
+      }
+      if (event.key !== 'Tab') return
+
+      const focusable = getFocusable()
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [mounted, onClose])
+  }, [open, onClose])
+
+  const handleDialogTransitionEnd = () => {
+    if (!open) setMounted(false)
+  }
 
   if (!mounted) return null
 
@@ -94,6 +135,7 @@ export function SettingsPanel({
         onClick={onClose}
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={strings.settings.title}
@@ -102,6 +144,7 @@ export function SettingsPanel({
           background: 'var(--panel-surface)',
           transform: entered ? 'translateX(0)' : 'translateX(-100%)',
         }}
+        onTransitionEnd={handleDialogTransitionEnd}
       >
         <nav
           className="flex shrink-0 flex-row overflow-x-auto border-b sm:w-[264px] sm:flex-col sm:overflow-x-visible sm:border-b-0 sm:border-r"
@@ -140,6 +183,7 @@ export function SettingsPanel({
 
         <div className="relative flex-1 overflow-y-auto p-6 sm:p-10">
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             aria-label={strings.settings.close}
@@ -155,6 +199,10 @@ export function SettingsPanel({
               selection={backgroundSelection}
               onSelect={onBackgroundSelect}
             />
+          ) : activePage === 'account' ? (
+            <AccountPage />
+          ) : activePage === 'stats' ? (
+            <StatsPage />
           ) : (
             <PlaceholderPage
               title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}

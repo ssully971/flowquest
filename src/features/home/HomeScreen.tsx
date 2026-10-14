@@ -26,21 +26,23 @@ export function HomeScreen() {
   const quote = getCurrentQuote()
 
   return (
-    <div className="relative flex h-full flex-col px-6 py-6 sm:px-10 sm:py-8">
-      <div className="flex items-start justify-between gap-6">
+    <div className="relative h-full">
+      <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-8 px-6 pt-8 sm:px-14 sm:pt-16">
         <p
-          className="text-lg font-semibold text-[var(--text)]"
+          className="text-[32px] font-semibold leading-none text-[var(--text)] sm:text-[36px]"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           {strings.app.name}
         </p>
-        <figure className="max-w-xs text-right">
-          <blockquote className="text-sm text-[var(--text)]">“{quote.text}”</blockquote>
-          <figcaption className="mt-1 text-xs text-[var(--muted)]">{quote.author}</figcaption>
+        <figure className="max-w-sm pt-1.5 text-right sm:max-w-md sm:pt-2">
+          <blockquote className="text-[18px] leading-snug text-[var(--text)] sm:text-[20px]">
+            “{quote.text}”
+          </blockquote>
+          <figcaption className="mt-1.5 text-sm text-[var(--muted)]">{quote.author}</figcaption>
         </figure>
       </div>
 
-      <div className="flex w-full flex-1 flex-col items-center justify-center gap-3 text-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center">
         <p
           className="w-full text-[28px] font-semibold text-[var(--text)]"
           style={{ fontFamily: 'var(--font-display)' }}
