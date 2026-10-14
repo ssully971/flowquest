@@ -11,5 +11,8 @@ export function translateAuthError(message: string): string {
     return 'Confirme ton adresse e-mail avant de te connecter (vérifie ta boîte mail).'
   }
   if (message.includes('rate limit')) return 'Trop de tentatives, réessaie dans quelques minutes.'
+  if (message.includes('function') && message.includes('does not exist')) {
+    return 'Les migrations Supabase ne semblent pas toutes appliquées (voir docs/DIAGNOSTIC-SUPABASE.md).'
+  }
   return 'Une erreur est survenue. Réessaie dans un instant.'
 }

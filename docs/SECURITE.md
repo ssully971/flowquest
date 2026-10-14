@@ -31,6 +31,13 @@ classement, §10 du cahier des charges) sont hors périmètre de cette phase. Qu
 arriveront, une politique SELECT plus large (ou une vue limitée à `username`/`avatar_url`)
 sera ajoutée explicitement, jamais en assouplissant celle-ci par erreur.
 
+**Filet de sécurité `ensure_profile()`** (migration `0009_ensure_profile.sql`, SECURITY
+DEFINER) : si la ligne `profiles` d'un utilisateur connecté manque (compte créé avant que
+le trigger `handle_new_user` n'existe, ou tout autre aléa), le client l'appelle en repli
+pour créer la ligne manquante — jamais une autre que celle de `auth.uid()`, lu uniquement
+depuis le jeton de la requête, jamais depuis un paramètre. `docs/DIAGNOSTIC-SUPABASE.md`
+donne la procédure de vérification manuelle.
+
 ### Rôle admin
 
 - `profiles.role` a un trigger `prevent_role_self_escalation` (migration `0002_profiles.sql`)

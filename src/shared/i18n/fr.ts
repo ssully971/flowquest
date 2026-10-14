@@ -107,6 +107,10 @@ export const fr = {
       signOut: 'Se déconnecter',
       signingOut: 'Déconnexion…',
     },
+    profile: {
+      loading: 'Chargement de ton profil…',
+      retry: 'Réessayer',
+    },
     importPrompt: {
       title: 'Importer tes données locales ?',
       body: 'Tu avais déjà utilisé Flowquest en mode invité sur cet appareil. Veux-tu importer ce qui s’y trouve (réglages, minuteur en cours) dans ton nouveau compte ?',

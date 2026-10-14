@@ -6,7 +6,7 @@ import { isSupabaseConfigured, supabase } from '@/shared/supabase/client'
 import { useToast } from '@/shared/toast'
 
 import { AuthContext } from './auth-context'
-import type { AuthStatus, Profile, SignUpResult } from './auth-context'
+import type { AuthStatus, Profile, ProfileState, SignUpResult } from './auth-context'
 import { translateAuthError } from './auth-errors'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -15,19 +15,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [profileState, setProfileState] = useState<ProfileState>('idle')
+  const [profileError, setProfileError] = useState<string | null>(null)
 
   const loadProfile = useCallback(
     async (userId: string) => {
       if (!supabase) return
+      setProfileState('loading')
+      setProfileError(null)
+
       const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single()
-      if (error) {
-        showToast({
-          type: 'error',
-          message: 'Impossible de charger ton profil. Réessaie plus tard.',
-        })
+      if (!error && data) {
+        setProfile(data)
+        setProfileState('loaded')
         return
       }
-      setProfile(data)
+
+      // La ligne profiles peut manquer (compte créé avant que le trigger de création
+      // automatique n'existe, ou tout autre aléa) : on la crée via une fonction SQL
+      // sécurisée avant d'abandonner, pour ne jamais rendre la session inutilisable.
+      const { data: ensured, error: ensureError } = await supabase.rpc('ensure_profile')
+      if (!ensureError && ensured) {
+        setProfile(ensured)
+        setProfileState('loaded')
+        return
+      }
+
+      const message = ensureError
+        ? translateAuthError(ensureError.message)
+        : 'Impossible de charger ton profil. Réessaie plus tard.'
+      setProfileError(message)
+      setProfileState('error')
+      showToast({ type: 'error', message })
     },
     [showToast],
   )
@@ -41,9 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session)
       setUser(data.session?.user ?? null)
       if (data.session?.user) {
-        void loadProfile(data.session.user.id).then(() => {
-          if (!cancelled) setStatus('authenticated')
-        })
+        void loadProfile(data.session.user.id)
+        setStatus('authenticated')
       } else {
         setStatus('guest')
       }
@@ -57,6 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setStatus('authenticated')
       } else {
         setProfile(null)
+        setProfileState('idle')
+        setProfileError(null)
         setStatus('guest')
       }
     })
@@ -66,6 +86,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       listener.subscription.unsubscribe()
     }
   }, [loadProfile])
+
+  const retryLoadProfile = useCallback(() => {
+    if (user) void loadProfile(user.id)
+  }, [user, loadProfile])
 
   const signUpWithEmail = useCallback(
     async (email: string, password: string, username: string): Promise<SignUpResult> => {
@@ -143,6 +167,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       session,
       profile,
+      profileState,
+      profileError,
+      retryLoadProfile,
       signUpWithEmail,
       signInWithEmail,
       signInWithGoogle,
@@ -154,6 +181,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       session,
       profile,
+      profileState,
+      profileError,
+      retryLoadProfile,
       signUpWithEmail,
       signInWithEmail,
       signInWithGoogle,

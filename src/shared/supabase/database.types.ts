@@ -179,6 +179,10 @@ export interface Database {
         Args: { uid?: string }
         Returns: boolean
       }
+      ensure_profile: {
+        Args: Record<string, never>
+        Returns: Database['public']['Tables']['profiles']['Row']
+      }
     }
   }
 }
