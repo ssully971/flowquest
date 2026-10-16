@@ -21,12 +21,22 @@ export interface FocusSessionRecord {
   syncedAt: number | null
 }
 
-export type SyncTable = 'user_settings' | 'timer_state' | 'focus_sessions'
+export interface TaskRecord {
+  id: string
+  title: string
+  position: number
+  done: boolean
+  doneAt: number | null
+  createdAt: number
+  updatedAt: number
+}
+
+export type SyncTable = 'user_settings' | 'timer_state' | 'focus_sessions' | 'tasks' | 'notes'
 
 export interface QueuedWrite {
   id: string
   table: SyncTable
-  operation: 'upsert' | 'insert'
+  operation: 'upsert' | 'delete'
   payload: Record<string, unknown>
   createdAt: number
 }
@@ -45,6 +55,15 @@ interface FlowquestDB extends DBSchema {
     value: FocusSessionRecord
     indexes: { startedAt: number }
   }
+  tasks: {
+    key: string
+    value: TaskRecord
+    indexes: { position: number }
+  }
+  notes: {
+    key: string
+    value: StoredRecord<string>
+  }
   syncQueue: {
     key: string
     value: QueuedWrite
@@ -52,7 +71,7 @@ interface FlowquestDB extends DBSchema {
 }
 
 const DB_NAME = 'flowquest'
-const DB_VERSION = 2
+const DB_VERSION = 4
 
 let dbPromise: Promise<IDBPDatabase<FlowquestDB>> | null = null
 
@@ -69,6 +88,13 @@ export function getDb(): Promise<IDBPDatabase<FlowquestDB>> {
         if (!db.objectStoreNames.contains('focusSessions')) {
           const store = db.createObjectStore('focusSessions', { keyPath: 'id' })
           store.createIndex('startedAt', 'startedAt')
+        }
+        if (!db.objectStoreNames.contains('tasks')) {
+          const store = db.createObjectStore('tasks', { keyPath: 'id' })
+          store.createIndex('position', 'position')
+        }
+        if (!db.objectStoreNames.contains('notes')) {
+          db.createObjectStore('notes')
         }
         if (!db.objectStoreNames.contains('syncQueue')) {
           db.createObjectStore('syncQueue', { keyPath: 'id' })

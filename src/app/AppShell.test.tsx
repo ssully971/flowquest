@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/AuthProvider'
+import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
 import { ThemeProvider } from '@/shared/design-system'
 import { ToastProvider } from '@/shared/toast'
 
@@ -13,9 +14,11 @@ function renderAppShell(children: ReactNode) {
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
-          <AppShell mode="home" onModeChange={vi.fn()}>
-            {children}
-          </AppShell>
+          <ActiveTaskProvider>
+            <AppShell mode="home" onModeChange={vi.fn()}>
+              {children}
+            </AppShell>
+          </ActiveTaskProvider>
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>,
@@ -50,21 +53,18 @@ describe('AppShell — Réglages et Plein écran à gauche, Tâches/Notes à dro
   it('Réglages et Plein écran sont groupés ensemble à gauche de la barre du bas', () => {
     renderAppShell(<div>Contenu</div>)
 
-    const settingsButton = screen.getByRole('button', { name: 'Réglages' })
-    const leftGroup = settingsButton.parentElement
-    const childLabels = Array.from(leftGroup?.children ?? []).map((el) =>
-      el.getAttribute('aria-label'),
-    )
+    const leftGroup = screen.getByTestId('left-button-group')
+    const childLabels = Array.from(leftGroup.children).map((el) => el.getAttribute('aria-label'))
     expect(childLabels).toEqual(['Réglages', 'Plein écran'])
   })
 
   it('Tâches et Bloc-notes sont dans le groupe de droite', () => {
     renderAppShell(<div>Contenu</div>)
 
-    const rightGroup = screen.getByRole('button', { name: 'Tâches' }).parentElement
-    const childLabels = Array.from(rightGroup?.children ?? []).map((el) =>
+    const rightGroup = screen.getByTestId('right-button-group')
+    const labels = Array.from(rightGroup.querySelectorAll('[aria-label]')).map((el) =>
       el.getAttribute('aria-label'),
     )
-    expect(childLabels.slice(-2)).toEqual(['Tâches', 'Bloc-notes'])
+    expect(labels.slice(-2)).toEqual(['Tâches', 'Bloc-notes'])
   })
 })

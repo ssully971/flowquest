@@ -7,7 +7,7 @@ import { useAuth } from '@/features/auth/useAuth'
 import { strings } from '@/shared/i18n'
 
 export function AccountPage() {
-  const { status, isSupabaseConfigured } = useAuth()
+  const { status, isSupabaseConfigured, profileState, profileError, retryLoadProfile } = useAuth()
   const [tab, setTab] = useState<'signIn' | 'signUp'>('signIn')
 
   return (
@@ -24,7 +24,24 @@ export function AccountPage() {
       ) : status === 'loading' ? (
         <p className="text-sm text-[var(--panel-muted)]">{strings.auth.loading}</p>
       ) : status === 'authenticated' ? (
-        <AccountSummary />
+        profileState === 'error' ? (
+          <div className="flex max-w-sm flex-col gap-3 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] p-5">
+            <p role="alert" className="text-sm text-[var(--panel-text)]">
+              {profileError}
+            </p>
+            <button
+              type="button"
+              onClick={retryLoadProfile}
+              className="h-10 w-fit rounded-xl border border-[var(--panel-line)] px-4 text-sm font-medium text-[var(--panel-text)] transition-colors duration-200 hover:bg-[var(--panel-line)]"
+            >
+              {strings.auth.profile.retry}
+            </button>
+          </div>
+        ) : profileState === 'loaded' ? (
+          <AccountSummary />
+        ) : (
+          <p className="text-sm text-[var(--panel-muted)]">{strings.auth.profile.loading}</p>
+        )
       ) : (
         <div className="flex flex-col gap-6">
           <div className="inline-flex w-fit items-center gap-1 rounded-full border border-[var(--panel-line)] p-1">

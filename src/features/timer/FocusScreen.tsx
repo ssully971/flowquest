@@ -1,5 +1,7 @@
 import { createPortal } from 'react-dom'
 
+import { useActiveTask } from '@/features/tasks/active-task-context'
+import { useTasks } from '@/features/tasks/useTasks'
 import { strings } from '@/shared/i18n'
 
 import { CycleDots } from './components/CycleDots'
@@ -15,6 +17,9 @@ import { usePictureInPicture } from './usePictureInPicture'
 export function FocusScreen() {
   const timer = useFocusTimer()
   const pip = usePictureInPicture()
+  const { activeTaskId } = useActiveTask()
+  const { tasks } = useTasks()
+  const activeTask = tasks.find((task) => task.id === activeTaskId) ?? null
 
   if (!timer.isReady || !timer.snapshot) {
     return <div className="h-full" />
@@ -41,7 +46,9 @@ export function FocusScreen() {
           >
             {strings.focus.question}
           </p>
-          <p className="mt-1 text-sm text-[var(--muted)]">{strings.focus.noActiveTask}</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            {activeTask ? activeTask.title : strings.focus.noActiveTask}
+          </p>
         </div>
 
         <SegmentTabs value={timer.segment} onChange={timer.selectSegment} />

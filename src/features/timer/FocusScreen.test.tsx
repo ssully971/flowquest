@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/AuthProvider'
+import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
 import { ToastProvider } from '@/shared/toast'
 
 import { FocusScreen } from './FocusScreen'
@@ -10,7 +11,9 @@ function renderFocusScreen() {
   return render(
     <ToastProvider>
       <AuthProvider>
-        <FocusScreen />
+        <ActiveTaskProvider>
+          <FocusScreen />
+        </ActiveTaskProvider>
       </AuthProvider>
     </ToastProvider>,
   )
