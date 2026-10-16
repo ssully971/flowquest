@@ -44,6 +44,8 @@ interface SettingsPanelProps {
   onModeChange: (mode: AppMode) => void
   backgroundSelection: Record<AppMode, BackgroundId>
   onBackgroundSelect: (mode: AppMode, id: BackgroundId) => void
+  dailyGoalMinutes: number
+  onDailyGoalChange: (minutes: number) => void
 }
 
 export function SettingsPanel({
@@ -53,6 +55,8 @@ export function SettingsPanel({
   onModeChange,
   backgroundSelection,
   onBackgroundSelect,
+  dailyGoalMinutes,
+  onDailyGoalChange,
 }: SettingsPanelProps) {
   // mounted suit `open` à l'ouverture, mais seulement à la fermeture complète (fin de
   // l'animation de la boîte de dialogue) pour laisser le temps à la transition de
@@ -202,7 +206,7 @@ export function SettingsPanel({
           ) : activePage === 'account' ? (
             <AccountPage />
           ) : activePage === 'stats' ? (
-            <StatsPage />
+            <StatsPage dailyGoalMinutes={dailyGoalMinutes} onDailyGoalChange={onDailyGoalChange} />
           ) : (
             <PlaceholderPage
               title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}

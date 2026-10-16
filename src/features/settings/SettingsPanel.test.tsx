@@ -17,6 +17,8 @@ function panel(open: boolean, onClose: () => void) {
         onModeChange={vi.fn()}
         backgroundSelection={{ home: 'horizon', focus: 'horizon' }}
         onBackgroundSelect={vi.fn()}
+        dailyGoalMinutes={120}
+        onDailyGoalChange={vi.fn()}
       />
     </ThemeProvider>
   )

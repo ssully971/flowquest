@@ -6,6 +6,7 @@ import { GuestImportPrompt } from '@/features/auth/components/GuestImportPrompt'
 import { useCurrentUserSync } from '@/features/auth/useCurrentUserSync'
 import { SettingsPanel } from '@/features/settings/SettingsPanel'
 import { useSettingsSync } from '@/features/settings/useSettingsSync'
+import { useDailyGoal } from '@/features/stats/useDailyGoal'
 import { useDashboardStats } from '@/features/stats/useDashboardStats'
 import { useSessionSync } from '@/features/stats/useSessionSync'
 import { NotesPanel } from '@/features/notes/components/NotesPanel'
@@ -40,6 +41,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const { selection, setBackground } = useBackgroundSettings()
   const { appearance, setAppearance } = useTheme()
   const { activeTaskId, setActiveTaskId } = useActiveTask()
+  const { dailyGoalMinutes, setDailyGoalMinutes } = useDailyGoal()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isTasksOpen, setIsTasksOpen] = useState(false)
   const [isNotesOpen, setIsNotesOpen] = useState(false)
@@ -52,10 +54,12 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
     setBackground,
     activeTaskId,
     setActiveTaskId,
+    dailyGoalMinutes,
+    setDailyGoalMinutes,
   })
   useSessionSync()
   useTaskSync()
-  const stats = useDashboardStats()
+  const stats = useDashboardStats(dailyGoalMinutes)
 
   const CurrentBackground = getBackgroundDefinition(selection[mode]).Component
 
@@ -128,6 +132,8 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
         onModeChange={onModeChange}
         backgroundSelection={selection}
         onBackgroundSelect={setBackground}
+        dailyGoalMinutes={dailyGoalMinutes}
+        onDailyGoalChange={setDailyGoalMinutes}
       />
 
       <GuestImportPrompt />

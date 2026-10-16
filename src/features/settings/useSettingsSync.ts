@@ -18,6 +18,8 @@ interface UseSettingsSyncParams {
   setBackground: (mode: AppMode, id: BackgroundId) => void
   activeTaskId: string | null
   setActiveTaskId: (id: string | null) => void
+  dailyGoalMinutes: number
+  setDailyGoalMinutes: (minutes: number) => void
 }
 
 /**
@@ -33,18 +35,20 @@ export function useSettingsSync({
   setBackground,
   activeTaskId,
   setActiveTaskId,
+  dailyGoalMinutes,
+  setDailyGoalMinutes,
 }: UseSettingsSyncParams): void {
   const { status, user } = useAuth()
   const pulledForUserRef = useRef<string | null>(null)
 
   useEffect(() => {
-    const settings: AppSettings = { appearance, backgrounds, activeTaskId }
+    const settings: AppSettings = { appearance, backgrounds, activeTaskId, dailyGoalMinutes }
     const updatedAt = Date.now()
     void localRepo.save(settings, updatedAt)
     if (status === 'authenticated' && user) {
       void remoteRepo.save(user.id, settings, updatedAt)
     }
-  }, [appearance, backgrounds, activeTaskId, status, user])
+  }, [appearance, backgrounds, activeTaskId, dailyGoalMinutes, status, user])
 
   useEffect(() => {
     if (status !== 'authenticated' || !user) return
@@ -61,6 +65,7 @@ export function useSettingsSync({
         setBackground(mode, remote.settings.backgrounds[mode])
       }
       setActiveTaskId(remote.settings.activeTaskId)
+      setDailyGoalMinutes(remote.settings.dailyGoalMinutes)
     })()
-  }, [status, user, setAppearance, setBackground, setActiveTaskId])
+  }, [status, user, setAppearance, setBackground, setActiveTaskId, setDailyGoalMinutes])
 }

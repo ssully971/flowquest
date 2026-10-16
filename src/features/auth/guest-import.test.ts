@@ -46,7 +46,12 @@ describe('hasLocalGuestData — ne propose l’import que s’il y a vraiment qu
     const { IndexedDbSettingsRepository } =
       await import('@/features/settings/storage/indexed-db-settings-repository')
     await new IndexedDbSettingsRepository().save(
-      { appearance: 'dark', backgrounds: { home: 'brume', focus: 'horizon' }, activeTaskId: null },
+      {
+        appearance: 'dark',
+        backgrounds: { home: 'brume', focus: 'horizon' },
+        activeTaskId: null,
+        dailyGoalMinutes: 120,
+      },
       Date.now(),
     )
 
@@ -85,7 +90,12 @@ describe('importGuestDataToAccount — pousse les données locales vers le compt
     const { IndexedDbTimerStateRepository } =
       await import('@/features/timer/storage/indexed-db-timer-state-repository')
     await new IndexedDbSettingsRepository().save(
-      { appearance: 'dark', backgrounds: { home: 'brume', focus: 'horizon' }, activeTaskId: null },
+      {
+        appearance: 'dark',
+        backgrounds: { home: 'brume', focus: 'horizon' },
+        activeTaskId: null,
+        dailyGoalMinutes: 120,
+      },
       Date.now(),
     )
     await new IndexedDbTimerStateRepository().save({

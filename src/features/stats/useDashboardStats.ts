@@ -6,7 +6,7 @@ import { computeStats } from './compute-stats'
 import type { DashboardStats } from './compute-stats'
 import { onSessionRecorded } from './session-events'
 
-export function useDashboardStats(): DashboardStats | null {
+export function useDashboardStats(dailyGoalMinutes?: number): DashboardStats | null {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const unmountedRef = useRef(false)
 
@@ -14,9 +14,9 @@ export function useDashboardStats(): DashboardStats | null {
     void getDb()
       .then((db) => db.getAll('focusSessions'))
       .then((sessions) => {
-        if (!unmountedRef.current) setStats(computeStats(sessions))
+        if (!unmountedRef.current) setStats(computeStats(sessions, Date.now(), dailyGoalMinutes))
       })
-  }, [])
+  }, [dailyGoalMinutes])
 
   useEffect(() => {
     unmountedRef.current = false

@@ -21,6 +21,7 @@ describe('IndexedDbSettingsRepository — persistance locale des réglages', () 
       appearance: 'dark' as const,
       backgrounds: { home: 'aubergine' as const, focus: 'brume' as const },
       activeTaskId: null,
+      dailyGoalMinutes: 90,
     }
 
     await repo.save(settings, 1_700_000_000_000)
