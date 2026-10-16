@@ -8,6 +8,7 @@ import { SettingsPanel } from '@/features/settings/SettingsPanel'
 import { useSettingsSync } from '@/features/settings/useSettingsSync'
 import { useDashboardStats } from '@/features/stats/useDashboardStats'
 import { useSessionSync } from '@/features/stats/useSessionSync'
+import { NotesPanel } from '@/features/notes/components/NotesPanel'
 import { useActiveTask } from '@/features/tasks/active-task-context'
 import { TasksPanel } from '@/features/tasks/components/TasksPanel'
 import { useTaskSync } from '@/features/tasks/useTaskSync'
@@ -41,6 +42,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const { activeTaskId, setActiveTaskId } = useActiveTask()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isTasksOpen, setIsTasksOpen] = useState(false)
+  const [isNotesOpen, setIsNotesOpen] = useState(false)
 
   useCurrentUserSync()
   useSettingsSync({
@@ -107,7 +109,15 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
             />
             <TasksPanel open={isTasksOpen} onClose={() => setIsTasksOpen(false)} />
           </div>
-          <IconButton icon={NotebookPen} label={strings.common.notes} disabled />
+          <div className="relative">
+            <IconButton
+              icon={NotebookPen}
+              label={strings.common.notes}
+              aria-expanded={isNotesOpen}
+              onClick={() => setIsNotesOpen((prev) => !prev)}
+            />
+            <NotesPanel open={isNotesOpen} onClose={() => setIsNotesOpen(false)} />
+          </div>
         </div>
       </div>
 

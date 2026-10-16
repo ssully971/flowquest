@@ -172,6 +172,23 @@ export interface Database {
         }
         Relationships: []
       }
+      notes: {
+        Row: {
+          user_id: string
+          content: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          content: string
+          updated_at: string
+        }
+        Update: {
+          content?: string
+          updated_at: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {

@@ -25,6 +25,15 @@ export const fr = {
     editLabel: 'Titre de la tâche',
     close: 'Fermer les tâches',
   },
+  notes: {
+    title: 'Bloc-notes',
+    placeholder: 'Écris une note rapide…',
+    close: 'Fermer le bloc-notes',
+    words: 'mots',
+    characters: 'caractères',
+    saved: 'Enregistré',
+    saving: 'Enregistrement…',
+  },
   appearance: {
     label: 'Apparence',
     dark: 'Sombre',

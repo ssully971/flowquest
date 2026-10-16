@@ -14,7 +14,7 @@ describe('App', () => {
 
     expect(screen.getByRole('radio', { name: 'Accueil' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByRole('button', { name: 'Tâches' })).toBeEnabled()
-    expect(screen.getByRole('button', { name: 'Bloc-notes' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Bloc-notes' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Réglages' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Plein écran' })).toBeEnabled()
   })
@@ -29,6 +29,17 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Ajouter' }))
 
     expect(await screen.findByText('Réviser le cours de biologie')).toBeInTheDocument()
+  })
+
+  it('ouvre le bloc-notes et enregistre automatiquement le texte saisi', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Bloc-notes' }))
+    const textarea = await screen.findByPlaceholderText('Écris une note rapide…')
+    await user.type(textarea, 'Idée de session')
+
+    expect(textarea).toHaveValue('Idée de session')
   })
 
   it('bascule vers Focus et affiche le minuteur une fois restauré', async () => {

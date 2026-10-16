@@ -31,7 +31,7 @@ export interface TaskRecord {
   updatedAt: number
 }
 
-export type SyncTable = 'user_settings' | 'timer_state' | 'focus_sessions' | 'tasks'
+export type SyncTable = 'user_settings' | 'timer_state' | 'focus_sessions' | 'tasks' | 'notes'
 
 export interface QueuedWrite {
   id: string
@@ -60,6 +60,10 @@ interface FlowquestDB extends DBSchema {
     value: TaskRecord
     indexes: { position: number }
   }
+  notes: {
+    key: string
+    value: StoredRecord<string>
+  }
   syncQueue: {
     key: string
     value: QueuedWrite
@@ -67,7 +71,7 @@ interface FlowquestDB extends DBSchema {
 }
 
 const DB_NAME = 'flowquest'
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 let dbPromise: Promise<IDBPDatabase<FlowquestDB>> | null = null
 
@@ -88,6 +92,9 @@ export function getDb(): Promise<IDBPDatabase<FlowquestDB>> {
         if (!db.objectStoreNames.contains('tasks')) {
           const store = db.createObjectStore('tasks', { keyPath: 'id' })
           store.createIndex('position', 'position')
+        }
+        if (!db.objectStoreNames.contains('notes')) {
+          db.createObjectStore('notes')
         }
         if (!db.objectStoreNames.contains('syncQueue')) {
           db.createObjectStore('syncQueue', { keyPath: 'id' })

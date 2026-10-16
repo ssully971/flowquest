@@ -85,6 +85,12 @@ async function sendToSupabase(entry: QueuedWrite): Promise<{ message: string } |
         .upsert(entry.payload as Database['public']['Tables']['tasks']['Insert'])
       return error
     }
+    case 'notes': {
+      const { error } = await supabase
+        .from('notes')
+        .upsert(entry.payload as Database['public']['Tables']['notes']['Insert'])
+      return error
+    }
     default:
       return null
   }
