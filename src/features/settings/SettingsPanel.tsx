@@ -14,11 +14,13 @@ import type { LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
+import type { ClockSettings } from '@/features/home/clock-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
 import type { BackgroundId } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import { AccountPage } from './pages/AccountPage'
+import { ClockPage } from './pages/ClockPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { StatsPage } from './pages/StatsPage'
 import { ThemesPage } from './pages/ThemesPage'
@@ -50,6 +52,8 @@ interface SettingsPanelProps {
   onDailyGoalChange: (minutes: number) => void
   timerSettings: TimerSettings
   onTimerSettingsChange: (settings: TimerSettings) => void
+  clockSettings: ClockSettings
+  onClockSettingsChange: (settings: ClockSettings) => void
 }
 
 export function SettingsPanel({
@@ -63,6 +67,8 @@ export function SettingsPanel({
   onDailyGoalChange,
   timerSettings,
   onTimerSettingsChange,
+  clockSettings,
+  onClockSettingsChange,
 }: SettingsPanelProps) {
   // mounted suit `open` à l'ouverture, mais seulement à la fermeture complète (fin de
   // l'animation de la boîte de dialogue) pour laisser le temps à la transition de
@@ -215,6 +221,8 @@ export function SettingsPanel({
             <StatsPage dailyGoalMinutes={dailyGoalMinutes} onDailyGoalChange={onDailyGoalChange} />
           ) : activePage === 'timer' ? (
             <TimerPage settings={timerSettings} onChange={onTimerSettingsChange} />
+          ) : activePage === 'clock' ? (
+            <ClockPage settings={clockSettings} onChange={onClockSettingsChange} />
           ) : (
             <PlaceholderPage
               title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}

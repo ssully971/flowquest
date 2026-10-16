@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
 import { useAuth } from '@/features/auth/useAuth'
+import type { ClockSettings } from '@/features/home/clock-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
 import type { Appearance, BackgroundId } from '@/shared/design-system'
 
@@ -23,6 +24,8 @@ interface UseSettingsSyncParams {
   setDailyGoalMinutes: (minutes: number) => void
   timerSettings: TimerSettings
   setTimerSettings: (settings: TimerSettings) => void
+  clockSettings: ClockSettings
+  setClockSettings: (settings: ClockSettings) => void
 }
 
 /**
@@ -42,6 +45,8 @@ export function useSettingsSync({
   setDailyGoalMinutes,
   timerSettings,
   setTimerSettings,
+  clockSettings,
+  setClockSettings,
 }: UseSettingsSyncParams): void {
   const { status, user } = useAuth()
   const pulledForUserRef = useRef<string | null>(null)
@@ -53,13 +58,23 @@ export function useSettingsSync({
       activeTaskId,
       dailyGoalMinutes,
       timerSettings,
+      clockSettings,
     }
     const updatedAt = Date.now()
     void localRepo.save(settings, updatedAt)
     if (status === 'authenticated' && user) {
       void remoteRepo.save(user.id, settings, updatedAt)
     }
-  }, [appearance, backgrounds, activeTaskId, dailyGoalMinutes, timerSettings, status, user])
+  }, [
+    appearance,
+    backgrounds,
+    activeTaskId,
+    dailyGoalMinutes,
+    timerSettings,
+    clockSettings,
+    status,
+    user,
+  ])
 
   useEffect(() => {
     if (status !== 'authenticated' || !user) return
@@ -78,6 +93,7 @@ export function useSettingsSync({
       setActiveTaskId(remote.settings.activeTaskId)
       setDailyGoalMinutes(remote.settings.dailyGoalMinutes)
       setTimerSettings(remote.settings.timerSettings)
+      setClockSettings(remote.settings.clockSettings)
     })()
   }, [
     status,
@@ -87,5 +103,6 @@ export function useSettingsSync({
     setActiveTaskId,
     setDailyGoalMinutes,
     setTimerSettings,
+    setClockSettings,
   ])
 }

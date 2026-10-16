@@ -4,6 +4,7 @@ import { useState } from 'react'
 
 import { GuestImportPrompt } from '@/features/auth/components/GuestImportPrompt'
 import { useCurrentUserSync } from '@/features/auth/useCurrentUserSync'
+import { useClockSettings } from '@/features/home/clock-settings-context'
 import { SettingsPanel } from '@/features/settings/SettingsPanel'
 import { useSettingsSync } from '@/features/settings/useSettingsSync'
 import { useDailyGoal } from '@/features/stats/useDailyGoal'
@@ -44,6 +45,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const { activeTaskId, setActiveTaskId } = useActiveTask()
   const { dailyGoalMinutes, setDailyGoalMinutes } = useDailyGoal()
   const { settings: timerSettings, setSettings: setTimerSettings } = useTimerSettings()
+  const { settings: clockSettings, setSettings: setClockSettings } = useClockSettings()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isTasksOpen, setIsTasksOpen] = useState(false)
   const [isNotesOpen, setIsNotesOpen] = useState(false)
@@ -60,6 +62,8 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
     setDailyGoalMinutes,
     timerSettings,
     setTimerSettings,
+    clockSettings,
+    setClockSettings,
   })
   useSessionSync()
   useTaskSync()
@@ -140,6 +144,8 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
         onDailyGoalChange={setDailyGoalMinutes}
         timerSettings={timerSettings}
         onTimerSettingsChange={setTimerSettings}
+        clockSettings={clockSettings}
+        onClockSettingsChange={setClockSettings}
       />
 
       <GuestImportPrompt />

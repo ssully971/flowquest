@@ -1,6 +1,8 @@
 import type { Appearance } from '@/shared/design-system'
 import type { AppMode } from '@/app/useAppMode'
 import type { BackgroundId } from '@/shared/design-system'
+import { DEFAULT_CLOCK_SETTINGS } from '@/features/home/clock-settings'
+import type { ClockSettings } from '@/features/home/clock-settings'
 import { DEFAULT_DAILY_GOAL_MINUTES } from '@/features/stats/compute-stats'
 import { DEFAULT_TIMER_SETTINGS } from '@/features/timer/timer-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
@@ -13,6 +15,7 @@ export interface AppSettings {
   activeTaskId: string | null
   dailyGoalMinutes: number
   timerSettings: TimerSettings
+  clockSettings: ClockSettings
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -21,4 +24,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   activeTaskId: null,
   dailyGoalMinutes: DEFAULT_DAILY_GOAL_MINUTES,
   timerSettings: DEFAULT_TIMER_SETTINGS,
+  clockSettings: DEFAULT_CLOCK_SETTINGS,
 }

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/AuthProvider'
+import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
 import { TimerSettingsProvider } from '@/features/timer/TimerSettingsProvider'
 import { ThemeProvider } from '@/shared/design-system'
@@ -17,9 +18,11 @@ function renderAppShell(children: ReactNode) {
         <AuthProvider>
           <ActiveTaskProvider>
             <TimerSettingsProvider>
-              <AppShell mode="home" onModeChange={vi.fn()}>
-                {children}
-              </AppShell>
+              <ClockSettingsProvider>
+                <AppShell mode="home" onModeChange={vi.fn()}>
+                  {children}
+                </AppShell>
+              </ClockSettingsProvider>
             </TimerSettingsProvider>
           </ActiveTaskProvider>
         </AuthProvider>

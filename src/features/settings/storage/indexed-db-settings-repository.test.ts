@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { DEFAULT_CLOCK_SETTINGS } from '@/features/home/clock-settings'
 import { DEFAULT_TIMER_SETTINGS } from '@/features/timer/timer-settings'
 import { getDb } from '@/shared/storage/db'
 
@@ -24,6 +25,7 @@ describe('IndexedDbSettingsRepository — persistance locale des réglages', () 
       activeTaskId: null,
       dailyGoalMinutes: 90,
       timerSettings: DEFAULT_TIMER_SETTINGS,
+      clockSettings: DEFAULT_CLOCK_SETTINGS,
     }
 
     await repo.save(settings, 1_700_000_000_000)

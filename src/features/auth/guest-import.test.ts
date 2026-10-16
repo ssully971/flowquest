@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { DEFAULT_CLOCK_SETTINGS } from '@/features/home/clock-settings'
 import { DEFAULT_TIMER_SETTINGS } from '@/features/timer/timer-settings'
 import { getDb } from '@/shared/storage/db'
 
@@ -53,6 +54,7 @@ describe('hasLocalGuestData — ne propose l’import que s’il y a vraiment qu
         activeTaskId: null,
         dailyGoalMinutes: 120,
         timerSettings: DEFAULT_TIMER_SETTINGS,
+        clockSettings: DEFAULT_CLOCK_SETTINGS,
       },
       Date.now(),
     )
@@ -98,6 +100,7 @@ describe('importGuestDataToAccount — pousse les données locales vers le compt
         activeTaskId: null,
         dailyGoalMinutes: 120,
         timerSettings: DEFAULT_TIMER_SETTINGS,
+        clockSettings: DEFAULT_CLOCK_SETTINGS,
       },
       Date.now(),
     )
