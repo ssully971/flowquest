@@ -7,6 +7,7 @@ import type { QuotesSettings } from '@/features/home/quotes-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
 import type { Appearance, BackgroundId } from '@/shared/design-system'
 
+import type { ExtrasSettings } from './extras-settings'
 import { IndexedDbSettingsRepository } from './storage/indexed-db-settings-repository'
 import { SupabaseSettingsRepository } from './storage/supabase-settings-repository'
 import type { AppSettings } from './types'
@@ -29,6 +30,8 @@ interface UseSettingsSyncParams {
   setClockSettings: (settings: ClockSettings) => void
   quotesSettings: QuotesSettings
   setQuotesSettings: (settings: QuotesSettings) => void
+  extrasSettings: ExtrasSettings
+  setExtrasSettings: (settings: ExtrasSettings) => void
 }
 
 /**
@@ -52,6 +55,8 @@ export function useSettingsSync({
   setClockSettings,
   quotesSettings,
   setQuotesSettings,
+  extrasSettings,
+  setExtrasSettings,
 }: UseSettingsSyncParams): void {
   const { status, user } = useAuth()
   const pulledForUserRef = useRef<string | null>(null)
@@ -65,6 +70,7 @@ export function useSettingsSync({
       timerSettings,
       clockSettings,
       quotesSettings,
+      extrasSettings,
     }
     const updatedAt = Date.now()
     void localRepo.save(settings, updatedAt)
@@ -79,6 +85,7 @@ export function useSettingsSync({
     timerSettings,
     clockSettings,
     quotesSettings,
+    extrasSettings,
     status,
     user,
   ])
@@ -102,6 +109,7 @@ export function useSettingsSync({
       setTimerSettings(remote.settings.timerSettings)
       setClockSettings(remote.settings.clockSettings)
       setQuotesSettings(remote.settings.quotesSettings)
+      setExtrasSettings(remote.settings.extrasSettings)
     })()
   }, [
     status,
@@ -113,5 +121,6 @@ export function useSettingsSync({
     setTimerSettings,
     setClockSettings,
     setQuotesSettings,
+    setExtrasSettings,
   ])
 }

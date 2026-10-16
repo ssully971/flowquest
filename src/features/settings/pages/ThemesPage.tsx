@@ -29,16 +29,32 @@ interface ThemesPageProps {
   onModeChange: (mode: AppMode) => void
   selection: Record<AppMode, BackgroundId>
   onSelect: (mode: AppMode, id: BackgroundId) => void
+  disableAnimatedThemes?: boolean
 }
 
-export function ThemesPage({ mode, onModeChange, selection, onSelect }: ThemesPageProps) {
+export function ThemesPage({
+  mode,
+  onModeChange,
+  selection,
+  onSelect,
+  disableAnimatedThemes = false,
+}: ThemesPageProps) {
   const { appearance, setAppearance } = useTheme()
   const [category, setCategory] = useState<BackgroundCategory | 'all'>('all')
+
+  const categories = disableAnimatedThemes
+    ? CATEGORY_ORDER.filter((cat) => cat !== 'animated')
+    : CATEGORY_ORDER
+  const availableBackgrounds = disableAnimatedThemes
+    ? BACKGROUNDS.filter((bg) => bg.category !== 'animated')
+    : BACKGROUNDS
 
   const currentId = selection[mode]
   const current = getBackgroundDefinition(currentId)
   const filtered =
-    category === 'all' ? BACKGROUNDS : BACKGROUNDS.filter((bg) => bg.category === category)
+    category === 'all'
+      ? availableBackgrounds
+      : availableBackgrounds.filter((bg) => bg.category === category)
 
   return (
     <div className="flex flex-col gap-8">
@@ -102,7 +118,7 @@ export function ThemesPage({ mode, onModeChange, selection, onSelect }: ThemesPa
             active={category === 'all'}
             onClick={() => setCategory('all')}
           />
-          {CATEGORY_ORDER.map((cat) => (
+          {categories.map((cat) => (
             <CategoryChip
               key={cat}
               label={strings.settings.themes.categories[cat]}

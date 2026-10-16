@@ -253,5 +253,21 @@ export const fr = {
       categoryFocus: 'Concentration',
       preview: 'Aperçu',
     },
+    extras: {
+      title: 'Extras',
+      displayName: 'Nom affiché',
+      displayNamePlaceholder: 'Ton prénom (optionnel)',
+      disableAnimatedThemes: 'Désactiver les thèmes animés',
+      disableAnimatedThemesHint:
+        'Utile sur les appareils lents. Coupe aussi les animations de l’horloge.',
+      cleanMode: 'Mode épuré',
+      cleanModeHint: 'Masque la citation et le sous-texte de la salutation sur l’accueil.',
+      preventSleep: 'Empêcher la mise en veille',
+      preventSleepHint: 'L’écran reste allumé pendant une session de focus en cours.',
+      preventSleepUnsupported: 'Non pris en charge par ce navigateur.',
+      themeRandomizer: 'Thème aléatoire à chaque chargement',
+      themeRandomizerHint: 'Change de fond au hasard à chaque ouverture de l’application.',
+      defaultSettingsTab: 'Onglet des réglages ouvert par défaut',
+    },
   },
 } as const

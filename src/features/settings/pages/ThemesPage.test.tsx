@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/shared/design-system'
 
 import { ThemesPage } from './ThemesPage'
 
-function renderThemesPage(onSelect = vi.fn()) {
+function renderThemesPage(onSelect = vi.fn(), disableAnimatedThemes = false) {
   return {
     onSelect,
     ...render(
@@ -16,6 +16,7 @@ function renderThemesPage(onSelect = vi.fn()) {
           onModeChange={vi.fn()}
           selection={{ home: 'horizon', focus: 'horizon' }}
           onSelect={onSelect}
+          disableAnimatedThemes={disableAnimatedThemes}
         />
       </ThemeProvider>,
     ),
@@ -58,5 +59,18 @@ describe('ThemesPage — bibliothèque de fonds par catégorie', () => {
   it('le fond actuel du mode s’affiche dans l’aperçu', () => {
     renderThemesPage()
     expect(screen.getByText('Aperçu')).toBeInTheDocument()
+  })
+})
+
+describe('ThemesPage — désactiver les thèmes animés (§7.6 Extras)', () => {
+  it('masque la catégorie Animé et ses fonds quand désactivé', () => {
+    renderThemesPage(vi.fn(), true)
+    expect(screen.queryByRole('button', { name: 'Animé' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Respiration/ })).not.toBeInTheDocument()
+  })
+
+  it('affiche la catégorie Animé par défaut', () => {
+    renderThemesPage(vi.fn(), false)
+    expect(screen.getByRole('button', { name: 'Animé' })).toBeInTheDocument()
   })
 })

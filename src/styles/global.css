@@ -73,3 +73,13 @@ h3 {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* §7.6 : "Désactiver les thèmes animés (appareils lents)", réglage manuel distinct de
+   prefers-reduced-motion (coche aussi les fonds animés ET les animations de l'horloge,
+   utile sur un appareil lent même sans préférence système d'accessibilité). */
+:root[data-disable-animated-themes='true'] *,
+:root[data-disable-animated-themes='true'] *::before,
+:root[data-disable-animated-themes='true'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+}

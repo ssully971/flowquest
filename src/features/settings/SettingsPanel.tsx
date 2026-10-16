@@ -20,16 +20,18 @@ import type { TimerSettings } from '@/features/timer/timer-settings'
 import type { BackgroundId } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
+import type { ExtrasSettings } from './extras-settings'
+import type { SettingsPageId } from './page-id'
 import { AccountPage } from './pages/AccountPage'
 import { ClockPage } from './pages/ClockPage'
+import { ExtrasPage } from './pages/ExtrasPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { QuotesPage } from './pages/QuotesPage'
 import { StatsPage } from './pages/StatsPage'
 import { ThemesPage } from './pages/ThemesPage'
 import { TimerPage } from './pages/TimerPage'
 
-type PageId =
-  'themes' | 'clock' | 'timer' | 'stats' | 'quotes' | 'extras' | 'account' | 'support' | 'changelog'
+type PageId = SettingsPageId
 
 const NAV_ITEMS: { id: PageId; label: string; icon: LucideIcon }[] = [
   { id: 'themes', label: strings.settings.nav.themes, icon: Palette },
@@ -58,6 +60,8 @@ interface SettingsPanelProps {
   onClockSettingsChange: (settings: ClockSettings) => void
   quotesSettings: QuotesSettings
   onQuotesSettingsChange: (settings: QuotesSettings) => void
+  extrasSettings: ExtrasSettings
+  onExtrasSettingsChange: (settings: ExtrasSettings) => void
 }
 
 export function SettingsPanel({
@@ -75,6 +79,8 @@ export function SettingsPanel({
   onClockSettingsChange,
   quotesSettings,
   onQuotesSettingsChange,
+  extrasSettings,
+  onExtrasSettingsChange,
 }: SettingsPanelProps) {
   // mounted suit `open` à l'ouverture, mais seulement à la fermeture complète (fin de
   // l'animation de la boîte de dialogue) pour laisser le temps à la transition de
@@ -84,13 +90,14 @@ export function SettingsPanel({
   // referme alors le panneau qu'on venait de rouvrir.
   const [mounted, setMounted] = useState(open)
   const [entered, setEntered] = useState(false)
-  const [activePage, setActivePage] = useState<PageId>('themes')
+  const [activePage, setActivePage] = useState<PageId>(() => extrasSettings.defaultSettingsTab)
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
 
   if (open && !mounted) {
     setMounted(true)
+    setActivePage(extrasSettings.defaultSettingsTab)
   }
   if (!open && entered) {
     setEntered(false)
@@ -220,6 +227,7 @@ export function SettingsPanel({
               onModeChange={onModeChange}
               selection={backgroundSelection}
               onSelect={onBackgroundSelect}
+              disableAnimatedThemes={extrasSettings.disableAnimatedThemes}
             />
           ) : activePage === 'account' ? (
             <AccountPage />
@@ -231,6 +239,8 @@ export function SettingsPanel({
             <ClockPage settings={clockSettings} onChange={onClockSettingsChange} />
           ) : activePage === 'quotes' ? (
             <QuotesPage settings={quotesSettings} onChange={onQuotesSettingsChange} />
+          ) : activePage === 'extras' ? (
+            <ExtrasPage settings={extrasSettings} onChange={onExtrasSettingsChange} />
           ) : (
             <PlaceholderPage
               title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}

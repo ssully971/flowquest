@@ -2,9 +2,11 @@ import { createPortal } from 'react-dom'
 
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
 import { useQuote } from '@/features/home/useQuote'
+import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { useActiveTask } from '@/features/tasks/active-task-context'
 import { useTasks } from '@/features/tasks/useTasks'
 import { useCurrentTime } from '@/shared/hooks/useCurrentTime'
+import { useWakeLock } from '@/shared/hooks/useWakeLock'
 import { strings } from '@/shared/i18n'
 
 import { CycleDots } from './components/CycleDots'
@@ -26,8 +28,10 @@ export function FocusScreen() {
   const { tasks } = useTasks()
   const { settings: timerSettings } = useTimerSettings()
   const { settings: quotesSettings } = useQuotesSettings()
+  const { settings: extrasSettings } = useExtrasSettings()
   const now = useCurrentTime(60_000)
   const quote = useQuote(now)
+  useWakeLock(extrasSettings.preventSleep && timer.snapshot?.status === 'running')
   const activeTask = tasks.find((task) => task.id === activeTaskId) ?? null
 
   if (!timer.isReady || !timer.snapshot) {

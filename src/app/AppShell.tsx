@@ -1,11 +1,12 @@
 import { Flame, ListTodo, Maximize2, Minimize2, NotebookPen, Settings } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { GuestImportPrompt } from '@/features/auth/components/GuestImportPrompt'
 import { useCurrentUserSync } from '@/features/auth/useCurrentUserSync'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
+import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { SettingsPanel } from '@/features/settings/SettingsPanel'
 import { useSettingsSync } from '@/features/settings/useSettingsSync'
 import { useDailyGoal } from '@/features/stats/useDailyGoal'
@@ -17,6 +18,7 @@ import { TasksPanel } from '@/features/tasks/components/TasksPanel'
 import { useTaskSync } from '@/features/tasks/useTaskSync'
 import { useTimerSettings } from '@/features/timer/timer-settings-context'
 import {
+  BACKGROUNDS,
   IconButton,
   SegmentedControl,
   getBackgroundDefinition,
@@ -48,6 +50,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const { settings: timerSettings, setSettings: setTimerSettings } = useTimerSettings()
   const { settings: clockSettings, setSettings: setClockSettings } = useClockSettings()
   const { settings: quotesSettings, setSettings: setQuotesSettings } = useQuotesSettings()
+  const { settings: extrasSettings, setSettings: setExtrasSettings } = useExtrasSettings()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isTasksOpen, setIsTasksOpen] = useState(false)
   const [isNotesOpen, setIsNotesOpen] = useState(false)
@@ -68,10 +71,31 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
     setClockSettings,
     quotesSettings,
     setQuotesSettings,
+    extrasSettings,
+    setExtrasSettings,
   })
   useSessionSync()
   useTaskSync()
   const stats = useDashboardStats(dailyGoalMinutes)
+
+  // §7.6 : coupe les animations (thèmes et horloge) pour les appareils lents.
+  useEffect(() => {
+    document.documentElement.dataset.disableAnimatedThemes = String(
+      extrasSettings.disableAnimatedThemes,
+    )
+  }, [extrasSettings.disableAnimatedThemes])
+
+  // §7.6 : thème aléatoire à chaque chargement de l'application (pas à chaque réglage).
+  useEffect(() => {
+    if (!extrasSettings.themeRandomizer) return
+    const pool = extrasSettings.disableAnimatedThemes
+      ? BACKGROUNDS.filter((bg) => bg.category !== 'animated')
+      : BACKGROUNDS
+    const randomId = () => pool[Math.floor(Math.random() * pool.length)].id
+    setBackground('home', randomId())
+    setBackground('focus', randomId())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const CurrentBackground = getBackgroundDefinition(selection[mode]).Component
 
@@ -152,6 +176,8 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
         onClockSettingsChange={setClockSettings}
         quotesSettings={quotesSettings}
         onQuotesSettingsChange={setQuotesSettings}
+        extrasSettings={extrasSettings}
+        onExtrasSettingsChange={setExtrasSettings}
       />
 
       <GuestImportPrompt />

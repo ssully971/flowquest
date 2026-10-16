@@ -3,6 +3,7 @@ import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
 import { HomeScreen } from '@/features/home/HomeScreen'
 import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
+import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
 import { FocusScreen } from '@/features/timer/FocusScreen'
 import { TimerSettingsProvider } from '@/features/timer/TimerSettingsProvider'
@@ -24,13 +25,15 @@ export function App() {
             <TimerSettingsProvider>
               <ClockSettingsProvider>
                 <QuotesSettingsProvider>
-                  {isAdminRoute ? (
-                    <AdminGate />
-                  ) : (
-                    <AppShell mode={mode} onModeChange={setMode}>
-                      {mode === 'home' ? <HomeScreen /> : <FocusScreen />}
-                    </AppShell>
-                  )}
+                  <ExtrasSettingsProvider>
+                    {isAdminRoute ? (
+                      <AdminGate />
+                    ) : (
+                      <AppShell mode={mode} onModeChange={setMode}>
+                        {mode === 'home' ? <HomeScreen /> : <FocusScreen />}
+                      </AppShell>
+                    )}
+                  </ExtrasSettingsProvider>
                 </QuotesSettingsProvider>
               </ClockSettingsProvider>
             </TimerSettingsProvider>

@@ -4,12 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DEFAULT_CLOCK_SETTINGS } from '@/features/home/clock-settings'
 import { DEFAULT_QUOTES_SETTINGS } from '@/features/home/quotes-settings'
+import { DEFAULT_EXTRAS_SETTINGS } from '@/features/settings/extras-settings'
 import { DEFAULT_TIMER_SETTINGS } from '@/features/timer/timer-settings'
 import { ThemeProvider } from '@/shared/design-system'
 
 import { SettingsPanel } from './SettingsPanel'
 
-function panel(open: boolean, onClose: () => void) {
+function panel(open: boolean, onClose: () => void, extrasSettings = DEFAULT_EXTRAS_SETTINGS) {
   return (
     <ThemeProvider>
       <button type="button">Déclencheur</button>
@@ -28,15 +29,20 @@ function panel(open: boolean, onClose: () => void) {
         onClockSettingsChange={vi.fn()}
         quotesSettings={DEFAULT_QUOTES_SETTINGS}
         onQuotesSettingsChange={vi.fn()}
+        extrasSettings={extrasSettings}
+        onExtrasSettingsChange={vi.fn()}
       />
     </ThemeProvider>
   )
 }
 
-function renderPanel(open: boolean) {
+function renderPanel(open: boolean, extrasSettings = DEFAULT_EXTRAS_SETTINGS) {
   const onClose = vi.fn()
-  const view = render(panel(open, onClose))
-  return { onClose, rerender: (nextOpen: boolean) => view.rerender(panel(nextOpen, onClose)) }
+  const view = render(panel(open, onClose, extrasSettings))
+  return {
+    onClose,
+    rerender: (nextOpen: boolean) => view.rerender(panel(nextOpen, onClose, extrasSettings)),
+  }
 }
 
 beforeEach(() => {
@@ -139,5 +145,42 @@ describe('SettingsPanel — piège de focus clavier', () => {
 
     await user.tab({ shift: true })
     expect(document.activeElement).toBe(focusable[focusable.length - 1])
+  })
+})
+
+describe('SettingsPanel — onglet ouvert par défaut (§7.6 Extras)', () => {
+  it('ouvre sur Thèmes par défaut quand aucun onglet par défaut n’est configuré', async () => {
+    renderPanel(true)
+    await screen.findByRole('dialog')
+    expect(screen.getAllByText('Thèmes').length).toBeGreaterThan(0)
+  })
+
+  it('ouvre sur l’onglet configuré dans Extras', async () => {
+    renderPanel(true, { ...DEFAULT_EXTRAS_SETTINGS, defaultSettingsTab: 'stats' })
+    await screen.findByRole('dialog')
+    expect(
+      screen.getByText('Termine ta première session de focus pour voir tes statistiques ici.'),
+    ).toBeInTheDocument()
+  })
+
+  it('revient sur l’onglet par défaut à chaque réouverture, même après avoir changé d’onglet', async () => {
+    const user = userEvent.setup()
+    const { rerender } = renderPanel(true, {
+      ...DEFAULT_EXTRAS_SETTINGS,
+      defaultSettingsTab: 'themes',
+    })
+    await screen.findByRole('dialog')
+
+    await user.click(screen.getByRole('button', { name: 'Minuteur' }))
+    expect(screen.getByText('Durée de focus')).toBeInTheDocument()
+
+    rerender(false)
+    const dialog = screen.getByRole('dialog', { name: 'Réglages' })
+    fireEvent.transitionEnd(dialog)
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    rerender(true)
+    await screen.findByRole('dialog')
+    expect(screen.getAllByText('Thèmes').length).toBeGreaterThan(0)
   })
 })

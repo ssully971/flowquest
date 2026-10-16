@@ -1,3 +1,4 @@
+import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { BigDigits } from '@/shared/design-system'
 import { useCurrentTime } from '@/shared/hooks/useCurrentTime'
 import { strings } from '@/shared/i18n'
@@ -40,10 +41,13 @@ export function HomeScreen() {
   const now = useCurrentTime()
   const { settings: clockSettings } = useClockSettings()
   const { settings: quotesSettings } = useQuotesSettings()
-  const greeting = getGreeting(now)
+  const { settings: extrasSettings } = useExtrasSettings()
+  const greeting = getGreeting(now, extrasSettings.displayName || undefined)
   const quote = useQuote(now)
   const clock = formatClockParts(now, clockSettings.format, clockSettings.showSeconds)
   const styleCss = CLOCK_STYLE_CSS[clockSettings.style]
+  const showQuote = quotesSettings.showOnHome && !extrasSettings.cleanMode
+  const showGreetingSecondary = !extrasSettings.cleanMode
 
   return (
     <div className="relative h-full">
@@ -54,7 +58,7 @@ export function HomeScreen() {
         >
           {strings.app.name}
         </p>
-        {quotesSettings.showOnHome ? (
+        {showQuote ? (
           <figure className="max-w-sm pt-1.5 text-right sm:max-w-md sm:pt-2">
             <blockquote className="text-[18px] leading-snug text-[var(--text)] sm:text-[20px]">
               “{quote.text}”
@@ -73,7 +77,9 @@ export function HomeScreen() {
             >
               {greeting.primary}
             </p>
-            <p className="w-full text-sm text-[var(--muted)]">{greeting.secondary}</p>
+            {showGreetingSecondary ? (
+              <p className="w-full text-sm text-[var(--muted)]">{greeting.secondary}</p>
+            ) : null}
           </>
         ) : null}
         <BigDigits

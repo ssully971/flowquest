@@ -9,6 +9,9 @@ import { DEFAULT_DAILY_GOAL_MINUTES } from '@/features/stats/compute-stats'
 import { DEFAULT_TIMER_SETTINGS } from '@/features/timer/timer-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
 
+import { DEFAULT_EXTRAS_SETTINGS } from './extras-settings'
+import type { ExtrasSettings } from './extras-settings'
+
 export const SETTINGS_SCHEMA_VERSION = 1
 
 export interface AppSettings {
@@ -19,6 +22,7 @@ export interface AppSettings {
   timerSettings: TimerSettings
   clockSettings: ClockSettings
   quotesSettings: QuotesSettings
+  extrasSettings: ExtrasSettings
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -29,4 +33,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   timerSettings: DEFAULT_TIMER_SETTINGS,
   clockSettings: DEFAULT_CLOCK_SETTINGS,
   quotesSettings: DEFAULT_QUOTES_SETTINGS,
+  extrasSettings: DEFAULT_EXTRAS_SETTINGS,
 }

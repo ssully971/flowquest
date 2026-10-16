@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DEFAULT_CLOCK_SETTINGS } from '@/features/home/clock-settings'
 import { DEFAULT_QUOTES_SETTINGS } from '@/features/home/quotes-settings'
+import { DEFAULT_EXTRAS_SETTINGS } from '@/features/settings/extras-settings'
 import { DEFAULT_TIMER_SETTINGS } from '@/features/timer/timer-settings'
 import { getDb } from '@/shared/storage/db'
 
@@ -57,6 +58,7 @@ describe('hasLocalGuestData — ne propose l’import que s’il y a vraiment qu
         timerSettings: DEFAULT_TIMER_SETTINGS,
         clockSettings: DEFAULT_CLOCK_SETTINGS,
         quotesSettings: DEFAULT_QUOTES_SETTINGS,
+        extrasSettings: DEFAULT_EXTRAS_SETTINGS,
       },
       Date.now(),
     )
@@ -104,6 +106,7 @@ describe('importGuestDataToAccount — pousse les données locales vers le compt
         timerSettings: DEFAULT_TIMER_SETTINGS,
         clockSettings: DEFAULT_CLOCK_SETTINGS,
         quotesSettings: DEFAULT_QUOTES_SETTINGS,
+        extrasSettings: DEFAULT_EXTRAS_SETTINGS,
       },
       Date.now(),
     )
