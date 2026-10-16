@@ -4,11 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CLOCK_SETTINGS } from './clock-settings'
 import { ClockSettingsProvider } from './ClockSettingsProvider'
 import { HomeScreen } from './HomeScreen'
+import { QuotesSettingsProvider } from './QuotesSettingsProvider'
 
 function renderHomeScreen() {
   return render(
     <ClockSettingsProvider>
-      <HomeScreen />
+      <QuotesSettingsProvider>
+        <HomeScreen />
+      </QuotesSettingsProvider>
     </ClockSettingsProvider>,
   )
 }
@@ -31,11 +34,12 @@ describe('HomeScreen — nom et citation agrandis, marges généreuses', () => {
   })
 
   it('la citation est affichée autour de 18-20px avec une largeur confortable', () => {
-    renderHomeScreen()
-    const quote = screen.getByText(/La vie est brève/)
-    expect(quote.className).toContain('text-[18px]')
-    expect(quote.className).toContain('sm:text-[20px]')
-    expect(quote.closest('figure')?.className).toMatch(/max-w-(sm|md)/)
+    const { container } = renderHomeScreen()
+    const quote = container.querySelector('blockquote')
+    expect(quote).not.toBeNull()
+    expect(quote?.className).toContain('text-[18px]')
+    expect(quote?.className).toContain('sm:text-[20px]')
+    expect(quote?.closest('figure')?.className).toMatch(/max-w-(sm|md)/)
   })
 })
 

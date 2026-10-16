@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
 import type { ClockSettings } from '@/features/home/clock-settings'
+import type { QuotesSettings } from '@/features/home/quotes-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
 import type { BackgroundId } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
@@ -22,6 +23,7 @@ import { strings } from '@/shared/i18n'
 import { AccountPage } from './pages/AccountPage'
 import { ClockPage } from './pages/ClockPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { QuotesPage } from './pages/QuotesPage'
 import { StatsPage } from './pages/StatsPage'
 import { ThemesPage } from './pages/ThemesPage'
 import { TimerPage } from './pages/TimerPage'
@@ -54,6 +56,8 @@ interface SettingsPanelProps {
   onTimerSettingsChange: (settings: TimerSettings) => void
   clockSettings: ClockSettings
   onClockSettingsChange: (settings: ClockSettings) => void
+  quotesSettings: QuotesSettings
+  onQuotesSettingsChange: (settings: QuotesSettings) => void
 }
 
 export function SettingsPanel({
@@ -69,6 +73,8 @@ export function SettingsPanel({
   onTimerSettingsChange,
   clockSettings,
   onClockSettingsChange,
+  quotesSettings,
+  onQuotesSettingsChange,
 }: SettingsPanelProps) {
   // mounted suit `open` à l'ouverture, mais seulement à la fermeture complète (fin de
   // l'animation de la boîte de dialogue) pour laisser le temps à la transition de
@@ -223,6 +229,8 @@ export function SettingsPanel({
             <TimerPage settings={timerSettings} onChange={onTimerSettingsChange} />
           ) : activePage === 'clock' ? (
             <ClockPage settings={clockSettings} onChange={onClockSettingsChange} />
+          ) : activePage === 'quotes' ? (
+            <QuotesPage settings={quotesSettings} onChange={onQuotesSettingsChange} />
           ) : (
             <PlaceholderPage
               title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}

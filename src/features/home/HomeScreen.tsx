@@ -5,7 +5,8 @@ import { strings } from '@/shared/i18n'
 import { CLOCK_SIZE_SCALE, CLOCK_STYLE_CSS } from './clock-settings'
 import { useClockSettings } from './clock-settings-context'
 import { getGreeting } from './greeting'
-import { getCurrentQuote } from './quotes'
+import { useQuotesSettings } from './quotes-settings-context'
+import { useQuote } from './useQuote'
 
 interface ClockParts {
   label: string
@@ -38,8 +39,9 @@ function formatLongDate(date: Date): string {
 export function HomeScreen() {
   const now = useCurrentTime()
   const { settings: clockSettings } = useClockSettings()
+  const { settings: quotesSettings } = useQuotesSettings()
   const greeting = getGreeting(now)
-  const quote = getCurrentQuote()
+  const quote = useQuote(now)
   const clock = formatClockParts(now, clockSettings.format, clockSettings.showSeconds)
   const styleCss = CLOCK_STYLE_CSS[clockSettings.style]
 
@@ -52,12 +54,14 @@ export function HomeScreen() {
         >
           {strings.app.name}
         </p>
-        <figure className="max-w-sm pt-1.5 text-right sm:max-w-md sm:pt-2">
-          <blockquote className="text-[18px] leading-snug text-[var(--text)] sm:text-[20px]">
-            “{quote.text}”
-          </blockquote>
-          <figcaption className="mt-1.5 text-sm text-[var(--muted)]">{quote.author}</figcaption>
-        </figure>
+        {quotesSettings.showOnHome ? (
+          <figure className="max-w-sm pt-1.5 text-right sm:max-w-md sm:pt-2">
+            <blockquote className="text-[18px] leading-snug text-[var(--text)] sm:text-[20px]">
+              “{quote.text}”
+            </blockquote>
+            <figcaption className="mt-1.5 text-sm text-[var(--muted)]">{quote.author}</figcaption>
+          </figure>
+        ) : null}
       </div>
 
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center">

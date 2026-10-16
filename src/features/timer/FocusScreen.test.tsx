@@ -1,8 +1,9 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
+import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
 import { ToastProvider } from '@/shared/toast'
 
@@ -16,7 +17,9 @@ function renderFocusScreen() {
         <ActiveTaskProvider>
           <TimerSettingsProvider>
             <ClockSettingsProvider>
-              <FocusScreen />
+              <QuotesSettingsProvider>
+                <FocusScreen />
+              </QuotesSettingsProvider>
             </ClockSettingsProvider>
           </TimerSettingsProvider>
         </ActiveTaskProvider>
@@ -46,5 +49,32 @@ describe('FocusScreen — ne chevauche jamais la barre du bas commune et ne masq
     const question = await screen.findByText('Sur quoi te concentres-tu ?')
     const root = question.closest('div[class*="flex"][class*="flex-col"]')
     expect(root?.className).toContain('min-h-full')
+  })
+})
+
+describe('FocusScreen — citation optionnelle (masquée par défaut)', () => {
+  afterEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('ne montre aucune citation tant que « Afficher en mode Focus » n’est pas activé', async () => {
+    renderFocusScreen()
+    await screen.findByText('Sur quoi te concentres-tu ?')
+    expect(document.querySelector('blockquote')).toBeNull()
+  })
+
+  it('montre une citation quand « Afficher en mode Focus » est activé', async () => {
+    window.localStorage.setItem(
+      'flowquest.quotesSettings',
+      JSON.stringify({
+        showOnHome: true,
+        showOnFocus: true,
+        rotation: 'daily',
+        category: 'all',
+      }),
+    )
+    renderFocusScreen()
+    await screen.findByText('Sur quoi te concentres-tu ?')
+    expect(document.querySelector('blockquote')).not.toBeNull()
   })
 })

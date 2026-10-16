@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import type { AppMode } from '@/app/useAppMode'
 import { useAuth } from '@/features/auth/useAuth'
 import type { ClockSettings } from '@/features/home/clock-settings'
+import type { QuotesSettings } from '@/features/home/quotes-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
 import type { Appearance, BackgroundId } from '@/shared/design-system'
 
@@ -26,6 +27,8 @@ interface UseSettingsSyncParams {
   setTimerSettings: (settings: TimerSettings) => void
   clockSettings: ClockSettings
   setClockSettings: (settings: ClockSettings) => void
+  quotesSettings: QuotesSettings
+  setQuotesSettings: (settings: QuotesSettings) => void
 }
 
 /**
@@ -47,6 +50,8 @@ export function useSettingsSync({
   setTimerSettings,
   clockSettings,
   setClockSettings,
+  quotesSettings,
+  setQuotesSettings,
 }: UseSettingsSyncParams): void {
   const { status, user } = useAuth()
   const pulledForUserRef = useRef<string | null>(null)
@@ -59,6 +64,7 @@ export function useSettingsSync({
       dailyGoalMinutes,
       timerSettings,
       clockSettings,
+      quotesSettings,
     }
     const updatedAt = Date.now()
     void localRepo.save(settings, updatedAt)
@@ -72,6 +78,7 @@ export function useSettingsSync({
     dailyGoalMinutes,
     timerSettings,
     clockSettings,
+    quotesSettings,
     status,
     user,
   ])
@@ -94,6 +101,7 @@ export function useSettingsSync({
       setDailyGoalMinutes(remote.settings.dailyGoalMinutes)
       setTimerSettings(remote.settings.timerSettings)
       setClockSettings(remote.settings.clockSettings)
+      setQuotesSettings(remote.settings.quotesSettings)
     })()
   }, [
     status,
@@ -104,5 +112,6 @@ export function useSettingsSync({
     setDailyGoalMinutes,
     setTimerSettings,
     setClockSettings,
+    setQuotesSettings,
   ])
 }

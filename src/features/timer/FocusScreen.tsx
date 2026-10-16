@@ -1,7 +1,10 @@
 import { createPortal } from 'react-dom'
 
+import { useQuotesSettings } from '@/features/home/quotes-settings-context'
+import { useQuote } from '@/features/home/useQuote'
 import { useActiveTask } from '@/features/tasks/active-task-context'
 import { useTasks } from '@/features/tasks/useTasks'
+import { useCurrentTime } from '@/shared/hooks/useCurrentTime'
 import { strings } from '@/shared/i18n'
 
 import { CycleDots } from './components/CycleDots'
@@ -22,6 +25,9 @@ export function FocusScreen() {
   const { activeTaskId } = useActiveTask()
   const { tasks } = useTasks()
   const { settings: timerSettings } = useTimerSettings()
+  const { settings: quotesSettings } = useQuotesSettings()
+  const now = useCurrentTime(60_000)
+  const quote = useQuote(now)
   const activeTask = tasks.find((task) => task.id === activeTaskId) ?? null
 
   if (!timer.isReady || !timer.snapshot) {
@@ -53,6 +59,13 @@ export function FocusScreen() {
             {activeTask ? activeTask.title : strings.focus.noActiveTask}
           </p>
         </div>
+
+        {quotesSettings.showOnFocus ? (
+          <figure className="max-w-sm">
+            <blockquote className="text-sm italic text-[var(--muted)]">“{quote.text}”</blockquote>
+            <figcaption className="mt-1 text-xs text-[var(--muted)]">{quote.author}</figcaption>
+          </figure>
+        ) : null}
 
         <SegmentTabs value={timer.segment} onChange={timer.selectSegment} />
 

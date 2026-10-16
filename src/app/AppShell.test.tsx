@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
+import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
 import { TimerSettingsProvider } from '@/features/timer/TimerSettingsProvider'
 import { ThemeProvider } from '@/shared/design-system'
@@ -19,9 +20,11 @@ function renderAppShell(children: ReactNode) {
           <ActiveTaskProvider>
             <TimerSettingsProvider>
               <ClockSettingsProvider>
-                <AppShell mode="home" onModeChange={vi.fn()}>
-                  {children}
-                </AppShell>
+                <QuotesSettingsProvider>
+                  <AppShell mode="home" onModeChange={vi.fn()}>
+                    {children}
+                  </AppShell>
+                </QuotesSettingsProvider>
               </ClockSettingsProvider>
             </TimerSettingsProvider>
           </ActiveTaskProvider>

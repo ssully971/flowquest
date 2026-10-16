@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DEFAULT_CLOCK_SETTINGS } from '@/features/home/clock-settings'
+import { DEFAULT_QUOTES_SETTINGS } from '@/features/home/quotes-settings'
 import { DEFAULT_TIMER_SETTINGS } from '@/features/timer/timer-settings'
 import { ThemeProvider } from '@/shared/design-system'
 
@@ -25,6 +26,8 @@ function panel(open: boolean, onClose: () => void) {
         onTimerSettingsChange={vi.fn()}
         clockSettings={DEFAULT_CLOCK_SETTINGS}
         onClockSettingsChange={vi.fn()}
+        quotesSettings={DEFAULT_QUOTES_SETTINGS}
+        onQuotesSettingsChange={vi.fn()}
       />
     </ThemeProvider>
   )

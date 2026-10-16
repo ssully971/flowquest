@@ -240,5 +240,18 @@ export const fr = {
         handwritten: 'Handwritten',
       },
     },
+    quotes: {
+      title: 'Citations',
+      showOnHome: 'Afficher sur l’accueil',
+      showOnFocus: 'Afficher en mode Focus',
+      rotation: 'Rotation',
+      rotationDaily: 'Une fois par jour',
+      rotationEveryLoad: 'À chaque chargement',
+      category: 'Catégorie',
+      categoryAll: 'Toutes',
+      categoryMedicine: 'Médecine',
+      categoryFocus: 'Concentration',
+      preview: 'Aperçu',
+    },
   },
 } as const
