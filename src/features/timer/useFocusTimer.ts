@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { getCurrentUserId, setCurrentUserId } from '@/features/auth/current-user'
+import { getCurrentUserId } from '@/features/auth/current-user'
 import { useAuth } from '@/features/auth/useAuth'
 
 import type { SegmentKind, TimerSnapshot } from './engine/timer-engine'
@@ -62,10 +62,6 @@ export function useFocusTimer(): UseFocusTimerResult {
   const [snapshot, refresh] = useTimerSnapshot(controller)
   const settledEndedAtRef = useRef<number | null>(null)
   const pulledForUserRef = useRef<string | null>(null)
-
-  useEffect(() => {
-    setCurrentUserId(status === 'authenticated' ? (user?.id ?? null) : null)
-  }, [status, user])
 
   useEffect(() => {
     let cancelled = false

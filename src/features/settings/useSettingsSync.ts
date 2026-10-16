@@ -16,6 +16,8 @@ interface UseSettingsSyncParams {
   setAppearance: (value: Appearance) => void
   backgrounds: Record<AppMode, BackgroundId>
   setBackground: (mode: AppMode, id: BackgroundId) => void
+  activeTaskId: string | null
+  setActiveTaskId: (id: string | null) => void
 }
 
 /**
@@ -29,18 +31,20 @@ export function useSettingsSync({
   setAppearance,
   backgrounds,
   setBackground,
+  activeTaskId,
+  setActiveTaskId,
 }: UseSettingsSyncParams): void {
   const { status, user } = useAuth()
   const pulledForUserRef = useRef<string | null>(null)
 
   useEffect(() => {
-    const settings: AppSettings = { appearance, backgrounds }
+    const settings: AppSettings = { appearance, backgrounds, activeTaskId }
     const updatedAt = Date.now()
     void localRepo.save(settings, updatedAt)
     if (status === 'authenticated' && user) {
       void remoteRepo.save(user.id, settings, updatedAt)
     }
-  }, [appearance, backgrounds, status, user])
+  }, [appearance, backgrounds, activeTaskId, status, user])
 
   useEffect(() => {
     if (status !== 'authenticated' || !user) return
@@ -56,6 +60,7 @@ export function useSettingsSync({
       for (const mode of Object.keys(remote.settings.backgrounds) as AppMode[]) {
         setBackground(mode, remote.settings.backgrounds[mode])
       }
+      setActiveTaskId(remote.settings.activeTaskId)
     })()
-  }, [status, user, setAppearance, setBackground])
+  }, [status, user, setAppearance, setBackground, setActiveTaskId])
 }

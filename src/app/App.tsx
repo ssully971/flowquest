@@ -1,6 +1,7 @@
 import { AdminGate } from '@/features/admin/AdminGate'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { HomeScreen } from '@/features/home/HomeScreen'
+import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
 import { FocusScreen } from '@/features/timer/FocusScreen'
 import { ThemeProvider } from '@/shared/design-system'
 import { ToastProvider } from '@/shared/toast'
@@ -16,13 +17,15 @@ export function App() {
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
-          {isAdminRoute ? (
-            <AdminGate />
-          ) : (
-            <AppShell mode={mode} onModeChange={setMode}>
-              {mode === 'home' ? <HomeScreen /> : <FocusScreen />}
-            </AppShell>
-          )}
+          <ActiveTaskProvider>
+            {isAdminRoute ? (
+              <AdminGate />
+            ) : (
+              <AppShell mode={mode} onModeChange={setMode}>
+                {mode === 'home' ? <HomeScreen /> : <FocusScreen />}
+              </AppShell>
+            )}
+          </ActiveTaskProvider>
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>
