@@ -7,14 +7,23 @@ export const POMODORO_DEFAULTS = {
   sessionsBeforeLongBreak: 4,
 } as const
 
-export function getDurationForSegment(segment: SegmentKind): number {
+export interface PomodoroDurationsMs {
+  focusMs: number
+  shortBreakMs: number
+  longBreakMs: number
+}
+
+export function getDurationForSegment(
+  segment: SegmentKind,
+  durations: PomodoroDurationsMs = POMODORO_DEFAULTS,
+): number {
   switch (segment) {
     case 'focus':
-      return POMODORO_DEFAULTS.focusMs
+      return durations.focusMs
     case 'short_break':
-      return POMODORO_DEFAULTS.shortBreakMs
+      return durations.shortBreakMs
     case 'long_break':
-      return POMODORO_DEFAULTS.longBreakMs
+      return durations.longBreakMs
     case 'countdown':
     case 'stopwatch':
       throw new Error(`Durée non définie pour le segment ${segment}`)

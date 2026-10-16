@@ -6,13 +6,16 @@ import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
 import { ToastProvider } from '@/shared/toast'
 
 import { FocusScreen } from './FocusScreen'
+import { TimerSettingsProvider } from './TimerSettingsProvider'
 
 function renderFocusScreen() {
   return render(
     <ToastProvider>
       <AuthProvider>
         <ActiveTaskProvider>
-          <FocusScreen />
+          <TimerSettingsProvider>
+            <FocusScreen />
+          </TimerSettingsProvider>
         </ActiveTaskProvider>
       </AuthProvider>
     </ToastProvider>,

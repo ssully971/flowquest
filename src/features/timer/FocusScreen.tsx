@@ -9,8 +9,10 @@ import { SegmentTabs } from './components/SegmentTabs'
 import { TimerControls } from './components/TimerControls'
 import { TimerDisplay } from './components/TimerDisplay'
 import { TimerPath } from './components/TimerPath'
-import { getDurationForSegment, POMODORO_DEFAULTS } from './durations'
+import { getDurationForSegment } from './durations'
 import { formatCountdown } from './format'
+import { toDurationsMs } from './timer-settings'
+import { useTimerSettings } from './timer-settings-context'
 import { useFocusTimer } from './useFocusTimer'
 import { usePictureInPicture } from './usePictureInPicture'
 
@@ -19,6 +21,7 @@ export function FocusScreen() {
   const pip = usePictureInPicture()
   const { activeTaskId } = useActiveTask()
   const { tasks } = useTasks()
+  const { settings: timerSettings } = useTimerSettings()
   const activeTask = tasks.find((task) => task.id === activeTaskId) ?? null
 
   if (!timer.isReady || !timer.snapshot) {
@@ -26,7 +29,7 @@ export function FocusScreen() {
   }
 
   const { snapshot } = timer
-  const durationMs = getDurationForSegment(timer.segment)
+  const durationMs = getDurationForSegment(timer.segment, toDurationsMs(timerSettings))
   const progress = durationMs > 0 ? Math.min(1, snapshot.elapsedMs / durationMs) : 0
   const displayLabel = formatCountdown(snapshot.remainingMs ?? 0)
 
@@ -54,7 +57,7 @@ export function FocusScreen() {
         <SegmentTabs value={timer.segment} onChange={timer.selectSegment} />
 
         <CycleDots
-          total={POMODORO_DEFAULTS.sessionsBeforeLongBreak}
+          total={timerSettings.sessionsBeforeLongBreak}
           completed={timer.cycle.completedFocusCount}
           currentIsFocus={timer.segment === 'focus'}
         />

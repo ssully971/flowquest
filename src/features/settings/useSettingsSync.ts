@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
 import { useAuth } from '@/features/auth/useAuth'
+import type { TimerSettings } from '@/features/timer/timer-settings'
 import type { Appearance, BackgroundId } from '@/shared/design-system'
 
 import { IndexedDbSettingsRepository } from './storage/indexed-db-settings-repository'
@@ -20,6 +21,8 @@ interface UseSettingsSyncParams {
   setActiveTaskId: (id: string | null) => void
   dailyGoalMinutes: number
   setDailyGoalMinutes: (minutes: number) => void
+  timerSettings: TimerSettings
+  setTimerSettings: (settings: TimerSettings) => void
 }
 
 /**
@@ -37,18 +40,26 @@ export function useSettingsSync({
   setActiveTaskId,
   dailyGoalMinutes,
   setDailyGoalMinutes,
+  timerSettings,
+  setTimerSettings,
 }: UseSettingsSyncParams): void {
   const { status, user } = useAuth()
   const pulledForUserRef = useRef<string | null>(null)
 
   useEffect(() => {
-    const settings: AppSettings = { appearance, backgrounds, activeTaskId, dailyGoalMinutes }
+    const settings: AppSettings = {
+      appearance,
+      backgrounds,
+      activeTaskId,
+      dailyGoalMinutes,
+      timerSettings,
+    }
     const updatedAt = Date.now()
     void localRepo.save(settings, updatedAt)
     if (status === 'authenticated' && user) {
       void remoteRepo.save(user.id, settings, updatedAt)
     }
-  }, [appearance, backgrounds, activeTaskId, dailyGoalMinutes, status, user])
+  }, [appearance, backgrounds, activeTaskId, dailyGoalMinutes, timerSettings, status, user])
 
   useEffect(() => {
     if (status !== 'authenticated' || !user) return
@@ -66,6 +77,15 @@ export function useSettingsSync({
       }
       setActiveTaskId(remote.settings.activeTaskId)
       setDailyGoalMinutes(remote.settings.dailyGoalMinutes)
+      setTimerSettings(remote.settings.timerSettings)
     })()
-  }, [status, user, setAppearance, setBackground, setActiveTaskId, setDailyGoalMinutes])
+  }, [
+    status,
+    user,
+    setAppearance,
+    setBackground,
+    setActiveTaskId,
+    setDailyGoalMinutes,
+    setTimerSettings,
+  ])
 }

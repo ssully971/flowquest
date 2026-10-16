@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { DEFAULT_TIMER_SETTINGS } from '@/features/timer/timer-settings'
 import { getDb } from '@/shared/storage/db'
 
 const upsertMock = vi.fn()
@@ -51,6 +52,7 @@ describe('hasLocalGuestData — ne propose l’import que s’il y a vraiment qu
         backgrounds: { home: 'brume', focus: 'horizon' },
         activeTaskId: null,
         dailyGoalMinutes: 120,
+        timerSettings: DEFAULT_TIMER_SETTINGS,
       },
       Date.now(),
     )
@@ -95,6 +97,7 @@ describe('importGuestDataToAccount — pousse les données locales vers le compt
         backgrounds: { home: 'brume', focus: 'horizon' },
         activeTaskId: null,
         dailyGoalMinutes: 120,
+        timerSettings: DEFAULT_TIMER_SETTINGS,
       },
       Date.now(),
     )

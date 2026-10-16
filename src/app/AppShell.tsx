@@ -13,6 +13,7 @@ import { NotesPanel } from '@/features/notes/components/NotesPanel'
 import { useActiveTask } from '@/features/tasks/active-task-context'
 import { TasksPanel } from '@/features/tasks/components/TasksPanel'
 import { useTaskSync } from '@/features/tasks/useTaskSync'
+import { useTimerSettings } from '@/features/timer/timer-settings-context'
 import {
   IconButton,
   SegmentedControl,
@@ -42,6 +43,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const { appearance, setAppearance } = useTheme()
   const { activeTaskId, setActiveTaskId } = useActiveTask()
   const { dailyGoalMinutes, setDailyGoalMinutes } = useDailyGoal()
+  const { settings: timerSettings, setSettings: setTimerSettings } = useTimerSettings()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isTasksOpen, setIsTasksOpen] = useState(false)
   const [isNotesOpen, setIsNotesOpen] = useState(false)
@@ -56,6 +58,8 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
     setActiveTaskId,
     dailyGoalMinutes,
     setDailyGoalMinutes,
+    timerSettings,
+    setTimerSettings,
   })
   useSessionSync()
   useTaskSync()
@@ -134,6 +138,8 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
         onBackgroundSelect={setBackground}
         dailyGoalMinutes={dailyGoalMinutes}
         onDailyGoalChange={setDailyGoalMinutes}
+        timerSettings={timerSettings}
+        onTimerSettingsChange={setTimerSettings}
       />
 
       <GuestImportPrompt />

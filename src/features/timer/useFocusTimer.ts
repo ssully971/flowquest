@@ -4,7 +4,8 @@ import { getCurrentUserId } from '@/features/auth/current-user'
 import { useAuth } from '@/features/auth/useAuth'
 
 import type { SegmentKind, TimerSnapshot } from './engine/timer-engine'
-import { getDurationForSegment, POMODORO_DEFAULTS } from './durations'
+import { getDurationForSegment } from './durations'
+import type { PomodoroDurationsMs } from './durations'
 import { notifySegmentFinished, requestNotificationPermission } from './notifications'
 import { advancePomodoroCycle, createPomodoroCycle } from './pomodoro-cycle'
 import type { PomodoroCycleState } from './pomodoro-cycle'
@@ -13,12 +14,13 @@ import { IndexedDbTimerStateRepository } from './storage/indexed-db-timer-state-
 import { SupabaseTimerStateRepository } from './storage/supabase-timer-state-repository'
 import { SyncingTimerStateRepository } from './storage/syncing-timer-state-repository'
 import { TimerController } from './timer-controller'
+import { toDurationsMs } from './timer-settings'
+import { useTimerSettings } from './timer-settings-context'
 import { useTimerSnapshot } from './useTimerSnapshot'
 
 const localRepository = new IndexedDbTimerStateRepository()
 const remoteRepository = new SupabaseTimerStateRepository()
 const repository = new SyncingTimerStateRepository(getCurrentUserId)
-const cycleConfig = { sessionsBeforeLongBreak: POMODORO_DEFAULTS.sessionsBeforeLongBreak }
 
 export interface UseFocusTimerResult {
   isReady: boolean
@@ -33,39 +35,48 @@ export interface UseFocusTimerResult {
   skip: () => void
 }
 
-async function createSelectedController(segment: SegmentKind): Promise<TimerController> {
+async function createSelectedController(
+  segment: SegmentKind,
+  durationsMs: PomodoroDurationsMs,
+): Promise<TimerController> {
   const controller = TimerController.createIdle(
     repository,
     'pomodoro',
     segment,
-    getDurationForSegment(segment),
+    getDurationForSegment(segment, durationsMs),
   )
   await controller.reset()
   return controller
 }
 
-async function restoreController(): Promise<TimerController> {
+async function restoreController(durationsMs: PomodoroDurationsMs): Promise<TimerController> {
   const fallback = TimerController.createIdle(
     repository,
     'pomodoro',
     'focus',
-    getDurationForSegment('focus'),
+    getDurationForSegment('focus', durationsMs),
   )
   return TimerController.restore(repository, fallback.getState())
 }
 
 export function useFocusTimer(): UseFocusTimerResult {
   const { status, user } = useAuth()
+  const { settings: timerSettings } = useTimerSettings()
   const [controller, setController] = useState<TimerController | null>(null)
   const [cycle, setCycle] = useState<PomodoroCycleState>(() => createPomodoroCycle())
   const [isReady, setIsReady] = useState(false)
   const [snapshot, refresh] = useTimerSnapshot(controller)
   const settledEndedAtRef = useRef<number | null>(null)
   const pulledForUserRef = useRef<string | null>(null)
+  const timerSettingsRef = useRef(timerSettings)
+
+  useEffect(() => {
+    timerSettingsRef.current = timerSettings
+  }, [timerSettings])
 
   useEffect(() => {
     let cancelled = false
-    restoreController().then((restored) => {
+    restoreController(toDurationsMs(timerSettingsRef.current)).then((restored) => {
       if (cancelled) return
       setController(restored)
       setCycle(createPomodoroCycle(restored.getState().segment))
@@ -93,19 +104,24 @@ export function useFocusTimer(): UseFocusTimerResult {
       if (local && local.updatedAt >= remote.updatedAt) return
 
       await localRepository.save(remote.state, remote.updatedAt)
-      const restored = await restoreController()
+      const restored = await restoreController(toDurationsMs(timerSettingsRef.current))
       setController(restored)
       setCycle(createPomodoroCycle(restored.getState().segment))
     })()
   }, [status, user])
 
   /** Avance au segment suivant sans rien enregistrer : les appelants décident eux-mêmes
-   * si la session qui se termine doit être consignée (terminée ou abandonnée). */
+   * si la session qui se termine doit être consignée (terminée ou abandonnée). Renvoie le
+   * nouveau contrôleur pour permettre un démarrage automatique immédiat si activé. */
   const advanceToNext = useCallback(async () => {
-    const next = advancePomodoroCycle(cycle, cycleConfig)
-    const nextController = await createSelectedController(next.segment)
+    const config = timerSettingsRef.current
+    const next = advancePomodoroCycle(cycle, {
+      sessionsBeforeLongBreak: config.sessionsBeforeLongBreak,
+    })
+    const nextController = await createSelectedController(next.segment, toDurationsMs(config))
     setCycle(next)
     setController(nextController)
+    return nextController
   }, [cycle])
 
   const skip = useCallback(() => {
@@ -127,8 +143,14 @@ export function useFocusTimer(): UseFocusTimerResult {
     if (settledEndedAtRef.current === snapshot.endedAt) return
     settledEndedAtRef.current = snapshot.endedAt
     notifySegmentFinished(controller.getState().segment)
-    void recordSession(controller.getState(), snapshot.endedAt, true).then(() => advanceToNext())
-  }, [controller, snapshot, advanceToNext])
+    void recordSession(controller.getState(), snapshot.endedAt, true)
+      .then(() => advanceToNext())
+      .then((nextController) => {
+        if (!timerSettingsRef.current.autoStartNext) return
+        requestNotificationPermission()
+        void nextController.start().then(refresh)
+      })
+  }, [controller, snapshot, advanceToNext, refresh])
 
   const selectSegment = useCallback(
     (segment: SegmentKind) => {
@@ -140,7 +162,10 @@ export function useFocusTimer(): UseFocusTimerResult {
             await recordSession(state, Date.now(), false)
           }
         }
-        const nextController = await createSelectedController(segment)
+        const nextController = await createSelectedController(
+          segment,
+          toDurationsMs(timerSettingsRef.current),
+        )
         setCycle(createPomodoroCycle(segment))
         setController(nextController)
       })()

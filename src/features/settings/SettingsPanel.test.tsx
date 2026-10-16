@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { DEFAULT_TIMER_SETTINGS } from '@/features/timer/timer-settings'
 import { ThemeProvider } from '@/shared/design-system'
 
 import { SettingsPanel } from './SettingsPanel'
@@ -19,6 +20,8 @@ function panel(open: boolean, onClose: () => void) {
         onBackgroundSelect={vi.fn()}
         dailyGoalMinutes={120}
         onDailyGoalChange={vi.fn()}
+        timerSettings={DEFAULT_TIMER_SETTINGS}
+        onTimerSettingsChange={vi.fn()}
       />
     </ThemeProvider>
   )

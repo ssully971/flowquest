@@ -31,10 +31,15 @@ export function useNote(): UseNoteResult {
   const pulledForUserRef = useRef<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
     void localRepo.load().then((stored) => {
+      if (cancelled) return
       setContentState(stored?.content ?? '')
       setIsLoaded(true)
     })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -42,13 +47,17 @@ export function useNote(): UseNoteResult {
     if (pulledForUserRef.current === user.id) return
     pulledForUserRef.current = user.id
 
+    let cancelled = false
     void (async () => {
       const [local, remote] = await Promise.all([localRepo.load(), remoteRepo.load(user.id)])
-      if (!remote) return
+      if (cancelled || !remote) return
       if (local && local.updatedAt >= remote.updatedAt) return
       setContentState(remote.content)
       await localRepo.save(remote.content, remote.updatedAt)
     })()
+    return () => {
+      cancelled = true
+    }
   }, [status, user])
 
   useEffect(() => {

@@ -194,5 +194,17 @@ export const fr = {
       day: 'jour',
       empty: 'Termine ta première session de focus pour voir tes statistiques ici.',
     },
+    timer: {
+      title: 'Minuteur',
+      focusDuration: 'Durée de focus',
+      shortBreakDuration: 'Pause courte',
+      longBreakDuration: 'Pause longue',
+      sessionsBeforeLongBreak: 'Sessions avant la pause longue',
+      autoStartNext: 'Démarrage automatique du segment suivant',
+      autoStartNextHint:
+        'À la fin d’un segment, le suivant démarre seul, sans attendre que tu appuies sur Démarrer.',
+      decrease: 'Diminuer',
+      increase: 'Augmenter',
+    },
   },
 } as const

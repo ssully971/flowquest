@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
+import { TimerSettingsProvider } from '@/features/timer/TimerSettingsProvider'
 import { ThemeProvider } from '@/shared/design-system'
 import { ToastProvider } from '@/shared/toast'
 
@@ -15,9 +16,11 @@ function renderAppShell(children: ReactNode) {
       <ToastProvider>
         <AuthProvider>
           <ActiveTaskProvider>
-            <AppShell mode="home" onModeChange={vi.fn()}>
-              {children}
-            </AppShell>
+            <TimerSettingsProvider>
+              <AppShell mode="home" onModeChange={vi.fn()}>
+                {children}
+              </AppShell>
+            </TimerSettingsProvider>
           </ActiveTaskProvider>
         </AuthProvider>
       </ToastProvider>
