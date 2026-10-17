@@ -142,12 +142,18 @@ export function useFocusTimer(): UseFocusTimerResult {
     if (snapshot.status !== 'completed' || snapshot.endedAt === null) return
     if (settledEndedAtRef.current === snapshot.endedAt) return
     settledEndedAtRef.current = snapshot.endedAt
-    notifySegmentFinished(controller.getState().segment)
+    const config = timerSettingsRef.current
+    notifySegmentFinished(controller.getState().segment, {
+      soundEnabled: config.soundEnabled,
+      notificationsEnabled: config.notificationsEnabled,
+      alertSoundId: config.alertSoundId,
+      alertVolume: config.alertVolume,
+    })
     void recordSession(controller.getState(), snapshot.endedAt, true)
       .then(() => advanceToNext())
       .then((nextController) => {
         if (!timerSettingsRef.current.autoStartNext) return
-        requestNotificationPermission()
+        if (timerSettingsRef.current.notificationsEnabled) requestNotificationPermission()
         void nextController.start().then(refresh)
       })
   }, [controller, snapshot, advanceToNext, refresh])
@@ -174,7 +180,7 @@ export function useFocusTimer(): UseFocusTimerResult {
   )
 
   const start = useCallback(() => {
-    requestNotificationPermission()
+    if (timerSettingsRef.current.notificationsEnabled) requestNotificationPermission()
     void controller?.start().then(refresh)
   }, [controller, refresh])
 

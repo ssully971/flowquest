@@ -1,3 +1,4 @@
+import { ALERT_SOUNDS } from './alert-sounds'
 import { POMODORO_DEFAULTS } from './durations'
 import type { PomodoroDurationsMs } from './durations'
 import { TALLY_ICON_SETS } from './tally-icon-set'
@@ -14,6 +15,10 @@ export interface TimerSettings {
   showTaskInPip: boolean
   displayStyle: TimerDisplayStyle
   tallyIconSet: TallyIconSet
+  soundEnabled: boolean
+  notificationsEnabled: boolean
+  alertSoundId: string
+  alertVolume: number
 }
 
 export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
@@ -25,6 +30,10 @@ export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
   showTaskInPip: true,
   displayStyle: 'default',
   tallyIconSet: 'dots',
+  soundEnabled: true,
+  notificationsEnabled: true,
+  alertSoundId: ALERT_SOUNDS[0].id,
+  alertVolume: 0.7,
 }
 
 export { TIMER_DISPLAY_STYLES, TALLY_ICON_SETS }

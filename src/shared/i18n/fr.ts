@@ -328,6 +328,22 @@ export const fr = {
         hearts: 'Cœurs',
         pills: 'Pilules',
       },
+      alertsTitle: 'Alertes de fin de session',
+      soundEnabled: 'Son',
+      soundEnabledHint: 'Joue un son à la fin de chaque session.',
+      notificationsEnabled: 'Notifications',
+      notificationsEnabledHint:
+        'Affiche une notification (et le titre de l’onglet clignote si l’onglet n’est pas actif).',
+      alertSound: 'Son d’alerte',
+      preview: 'Écouter',
+      volume: 'Volume',
+      alertSounds: {
+        carillon: 'Carillon',
+        cloche: 'Cloche',
+        marimba: 'Marimba',
+        doux: 'Doux',
+        classique: 'Classique',
+      },
     },
     clock: {
       title: 'Horloge',

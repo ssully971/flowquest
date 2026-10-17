@@ -10,6 +10,7 @@ import type { TimerSettings } from '@/features/timer/timer-settings'
 import { SettingsToggleRow } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
+import { AlertSoundSettings } from './AlertSoundSettings'
 import { TallyIconSetPicker } from './TallyIconSetPicker'
 import { TimerDisplayStylePicker } from './TimerDisplayStylePicker'
 
@@ -139,6 +140,8 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
         checked={settings.showTaskInPip}
         onToggle={() => onChange({ ...settings, showTaskInPip: !settings.showTaskInPip })}
       />
+
+      <AlertSoundSettings settings={settings} onChange={onChange} />
     </div>
   )
 }
