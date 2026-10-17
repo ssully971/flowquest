@@ -28,6 +28,7 @@ import { ExtrasPage } from './pages/ExtrasPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { QuotesPage } from './pages/QuotesPage'
 import { StatsPage } from './pages/StatsPage'
+import { SupportPage } from './pages/SupportPage'
 import { ThemesPage } from './pages/ThemesPage'
 import { TimerPage } from './pages/TimerPage'
 
@@ -241,6 +242,8 @@ export function SettingsPanel({
             <QuotesPage settings={quotesSettings} onChange={onQuotesSettingsChange} />
           ) : activePage === 'extras' ? (
             <ExtrasPage settings={extrasSettings} onChange={onExtrasSettingsChange} />
+          ) : activePage === 'support' ? (
+            <SupportPage />
           ) : (
             <PlaceholderPage
               title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}
