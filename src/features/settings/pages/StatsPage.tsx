@@ -1,5 +1,7 @@
 import { Minus, Plus } from 'lucide-react'
+import { useState } from 'react'
 
+import type { StatsPeriod } from '@/features/stats/compute-stats'
 import {
   DAILY_GOAL_STEP_MINUTES,
   MAX_DAILY_GOAL_MINUTES,
@@ -7,11 +9,13 @@ import {
 } from '@/features/stats/useDailyGoal'
 import { useDailyFocusHistory } from '@/features/stats/useDailyFocusHistory'
 import { useDashboardStats } from '@/features/stats/useDashboardStats'
+import { usePeriodStats } from '@/features/stats/usePeriodStats'
 import { formatFocusDuration } from '@/features/stats/format'
 import { strings } from '@/shared/i18n'
 
 import { FocusCalendar } from './stats/FocusCalendar'
 import { FocusTrend } from './stats/FocusTrend'
+import { PeriodStatCards } from './stats/PeriodStatCards'
 
 const CALENDAR_DAYS = 84
 
@@ -32,6 +36,8 @@ interface StatsPageProps {
 export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProps) {
   const stats = useDashboardStats(dailyGoalMinutes)
   const calendarDays = useDailyFocusHistory(CALENDAR_DAYS, dailyGoalMinutes)
+  const [period, setPeriod] = useState<StatsPeriod>('week')
+  const periodStats = usePeriodStats(period)
   const s = strings.settings.stats
 
   const hasAnyData =
@@ -86,18 +92,20 @@ export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProp
       {!hasAnyData ? (
         <p className="max-w-sm text-sm text-[var(--panel-muted)]">{s.empty}</p>
       ) : (
-        <div className="grid max-w-md grid-cols-2 gap-3">
-          <StatCard label={s.today} value={formatFocusDuration(stats.todayFocusSeconds)} />
-          <StatCard label={s.thisWeek} value={formatFocusDuration(stats.weekFocusSeconds)} />
-          <StatCard
-            label={s.currentStreak}
-            value={`${stats.currentStreakDays} ${stats.currentStreakDays === 1 ? s.day : s.days}`}
-          />
-          <StatCard
-            label={s.longestStreak}
-            value={`${stats.longestStreakDays} ${stats.longestStreakDays === 1 ? s.day : s.days}`}
-          />
-        </div>
+        <>
+          <div className="grid max-w-md grid-cols-2 gap-3">
+            <StatCard
+              label={s.currentStreak}
+              value={`${stats.currentStreakDays} ${stats.currentStreakDays === 1 ? s.day : s.days}`}
+            />
+            <StatCard
+              label={s.longestStreak}
+              value={`${stats.longestStreakDays} ${stats.longestStreakDays === 1 ? s.day : s.days}`}
+            />
+          </div>
+
+          <PeriodStatCards period={period} onPeriodChange={setPeriod} stats={periodStats} />
+        </>
       )}
 
       {calendarDays ? (
