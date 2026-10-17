@@ -7,6 +7,12 @@ export const fr = {
     loading: 'Vérification de ton accès…',
     denied: 'Accès réservé aux administrateurs.',
     backHome: 'Retour à l’accueil',
+    title: 'Admin',
+    tabs: {
+      quotes: 'Citations',
+      changelog: 'Nouveautés',
+      support: 'Support',
+    },
   },
   backup: {
     title: 'Sauvegarde locale',
