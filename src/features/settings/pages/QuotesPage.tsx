@@ -1,6 +1,7 @@
 import { pickDailyQuote } from '@/features/home/quotes'
 import type { QuoteCategory } from '@/features/home/quotes'
 import type { QuotesSettings } from '@/features/home/quotes-settings'
+import { useQuotePool } from '@/features/home/useQuotePool'
 import { SegmentedControl, SettingsToggleRow } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
@@ -11,7 +12,8 @@ interface QuotesPageProps {
 
 export function QuotesPage({ settings, onChange }: QuotesPageProps) {
   const s = strings.settings.quotes
-  const preview = pickDailyQuote(settings.category)
+  const pool = useQuotePool()
+  const preview = pickDailyQuote(settings.category, new Date(), pool)
 
   return (
     <div className="flex flex-col gap-6">
