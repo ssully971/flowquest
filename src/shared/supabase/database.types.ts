@@ -211,6 +211,73 @@ export interface Database {
         }
         Relationships: []
       }
+      admin_log: {
+        Row: {
+          id: string
+          admin_id: string | null
+          action: string
+          target: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          admin_id?: string | null
+          action: string
+          target: string
+        }
+        Update: Record<string, never>
+        Relationships: []
+      }
+      quotes: {
+        Row: {
+          id: string
+          text: string
+          author: string | null
+          category: string | null
+          active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          text: string
+          author?: string | null
+          category?: string | null
+          active?: boolean
+        }
+        Update: {
+          text?: string
+          author?: string | null
+          category?: string | null
+          active?: boolean
+        }
+        Relationships: []
+      }
+      changelog: {
+        Row: {
+          id: string
+          version: string
+          released_at: string
+          body: string
+          active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          version: string
+          released_at: string
+          body: string
+          active?: boolean
+        }
+        Update: {
+          version?: string
+          released_at?: string
+          body?: string
+          active?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {

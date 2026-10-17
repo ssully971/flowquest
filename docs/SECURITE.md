@@ -48,7 +48,8 @@ donne la procédure de vérification manuelle.
   compte en admin. Voir `supabase/make_admin.example.sql`.
 - La fonction `public.is_admin(uid uuid default auth.uid())` (migration `0003_is_admin.sql`)
   est `security definer` : elle peut lire `profiles.role` sans déclencher de récursion RLS,
-  et sert de brique pour toute future politique réservée aux admins (contenu, modération...).
+  et sert de brique pour toute politique réservée aux admins — utilisée par `quotes`,
+  `changelog`, `admin_log` et l'accès admin à `support_messages` (panneau Admin, §12).
 - Côté interface, `/admin` (`src/features/admin/AdminGate.tsx`) est protégée en lisant
   `profile.role` (chargé via `profiles_select_own`, donc fiable : cette politique ne
   renvoie jamais que la ligne du compte connecté lui-même). **Cette garde est un confort
@@ -95,6 +96,40 @@ existante n'aura besoin d'être recréée quand ces fonctionnalités arriveront.
 
 Une seule ligne par utilisateur (`user_id` est la clé primaire) : c'est ce qui permet de
 reprendre le minuteur en cours sur un autre appareil (§6.2 du cahier des charges).
+
+### `support_messages` (accès admin)
+
+| Opération | Règle |
+|---|---|
+| SELECT | `is_admin()` — seul un admin peut relire les messages (migration `0017_support_messages_admin_access.sql`, ajoutée avec le panneau Admin). |
+| UPDATE | `is_admin()` — réservé au changement de `status` (`pending` → `processed`) ; le texte du message n'est jamais modifié depuis le client. |
+| INSERT | Voir plus haut (`0011_support_messages.sql`) : ouverte à tous, connecté ou invité. |
+| DELETE | Aucune politique : pas de suppression depuis le client. |
+
+### `quotes` et `changelog` (contenu géré par le panneau Admin)
+
+| Opération | Règle |
+|---|---|
+| SELECT | `active = true` pour tout le monde (connecté ou invité) **ou** `is_admin()` — un admin voit aussi les lignes désactivées/brouillon pour les gérer. |
+| INSERT / UPDATE / DELETE | `is_admin()` exclusivement. |
+
+Ces deux tables ne contiennent aucune donnée personnelle : c'est du contenu éditorial
+(citations de l'accueil, entrées de nouveautés) que `src/features/home/quotes.ts` et
+`src/features/settings/changelog.ts` lisent en base avec un repli sur leur tableau
+statique existant (invité hors-ligne, base vide ou non encore peuplée) — jamais une
+dépendance dure à la base.
+
+### `admin_log`
+
+| Opération | Règle |
+|---|---|
+| SELECT | `is_admin()` exclusivement. |
+| INSERT | `is_admin()` **et** `admin_id = auth.uid()` — un admin ne peut journaliser que ses propres actions, jamais au nom d'un autre. |
+| UPDATE / DELETE | Aucune politique : un journal d'audit ne se corrige ni ne s'efface depuis le client, même par un admin. |
+
+Chaque mutation admin (citation créée/modifiée/désactivée/supprimée, nouveauté publiée,
+message support marqué traité...) écrit une ligne ici (§12 : « Les modifications admin
+sont journalisées — qui, quoi, quand »).
 
 ## Résolution de conflits (dernier horodatage gagne)
 
