@@ -25,6 +25,11 @@ export interface AuthContextValue {
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
   updateUsername: (username: string) => Promise<void>
+  resendConfirmationEmail: (email: string) => Promise<void>
+  requestPasswordReset: (email: string) => Promise<void>
+  updatePassword: (newPassword: string) => Promise<void>
+  isPasswordRecovery: boolean
+  clearPasswordRecovery: () => void
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

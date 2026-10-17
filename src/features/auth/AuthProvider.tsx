@@ -17,6 +17,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [profileState, setProfileState] = useState<ProfileState>('idle')
   const [profileError, setProfileError] = useState<string | null>(null)
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
   // Supabase déclenche plusieurs évènements onAuthStateChange coup sur coup pour la même
   // session (INITIAL_SESSION, SIGNED_IN, parfois TOKEN_REFRESHED), en particulier juste
   // après un retour OAuth. Sans cette garde, chaque évènement relançait loadProfile() et,
@@ -87,7 +88,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      // Déclenché quand on revient sur le site depuis le lien de réinitialisation reçu
+      // par e-mail : la session est valide, mais seulement pour choisir un nouveau mot
+      // de passe, pas pour accéder normalement au compte.
+      if (event === 'PASSWORD_RECOVERY') setIsPasswordRecovery(true)
+
       setSession(nextSession)
       setUser(nextSession?.user ?? null)
       if (nextSession?.user) {
@@ -153,6 +159,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [showToast])
 
+  const resendConfirmationEmail = useCallback(
+    async (email: string) => {
+      if (!supabase) throw new Error('Supabase non configuré')
+      const { error } = await supabase.auth.resend({ type: 'signup', email })
+      if (error) {
+        showToast({ type: 'error', message: translateAuthError(error.message) })
+        throw error
+      }
+    },
+    [showToast],
+  )
+
+  const requestPasswordReset = useCallback(
+    async (email: string) => {
+      if (!supabase) throw new Error('Supabase non configuré')
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin,
+      })
+      if (error) {
+        showToast({ type: 'error', message: translateAuthError(error.message) })
+        throw error
+      }
+    },
+    [showToast],
+  )
+
+  const updatePassword = useCallback(
+    async (newPassword: string) => {
+      if (!supabase) throw new Error('Supabase non configuré')
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) {
+        showToast({ type: 'error', message: translateAuthError(error.message) })
+        throw error
+      }
+      setIsPasswordRecovery(false)
+      showToast({ type: 'success', message: 'Mot de passe mis à jour.' })
+    },
+    [showToast],
+  )
+
+  const clearPasswordRecovery = useCallback(() => {
+    setIsPasswordRecovery(false)
+  }, [])
+
   const signOut = useCallback(async () => {
     if (!supabase) return
     const { error } = await supabase.auth.signOut()
@@ -196,6 +246,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithGoogle,
       signOut,
       updateUsername,
+      resendConfirmationEmail,
+      requestPasswordReset,
+      updatePassword,
+      isPasswordRecovery,
+      clearPasswordRecovery,
     }),
     [
       status,
@@ -210,6 +265,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithGoogle,
       signOut,
       updateUsername,
+      resendConfirmationEmail,
+      requestPasswordReset,
+      updatePassword,
+      isPasswordRecovery,
+      clearPasswordRecovery,
     ],
   )
 

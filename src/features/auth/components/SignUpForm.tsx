@@ -2,12 +2,16 @@ import type { FormEvent } from 'react'
 import { useState } from 'react'
 
 import { strings } from '@/shared/i18n'
+import { useToast } from '@/shared/toast'
 
 import { useAuth } from '../useAuth'
+import { useCooldown } from '../useCooldown'
 import { useUsernameAvailability } from '../useUsernameAvailability'
 import { getUsernameFormatIssue, isValidPassword } from '../validation'
 import { FormField } from './FormField'
 import { GoogleButton } from './GoogleButton'
+
+const RESEND_COOLDOWN_SECONDS = 45
 
 const USERNAME_FORMAT_ERRORS = {
   tooShort: strings.auth.errors.usernameTooShort,
@@ -21,13 +25,16 @@ interface SignUpFormProps {
 }
 
 export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
-  const { signUpWithEmail, signInWithGoogle } = useAuth()
+  const { signUpWithEmail, signInWithGoogle, resendConfirmationEmail } = useAuth()
+  const { showToast } = useToast()
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [confirmationSent, setConfirmationSent] = useState(false)
+  const [isResending, setIsResending] = useState(false)
+  const resendCooldown = useCooldown(RESEND_COOLDOWN_SECONDS)
 
   const usernameFormatIssue = getUsernameFormatIssue(username)
   const availability = useUsernameAvailability(username, username.length > 0 && !usernameFormatIssue)
@@ -77,10 +84,34 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
     }
   }
 
+  const handleResend = async () => {
+    setIsResending(true)
+    try {
+      await resendConfirmationEmail(email)
+      showToast({ type: 'success', message: strings.auth.signUp.resendSuccess })
+      resendCooldown.start()
+    } catch {
+      // déjà notifié par le toast
+    } finally {
+      setIsResending(false)
+    }
+  }
+
   if (confirmationSent) {
     return (
       <div className="flex max-w-sm flex-col gap-3 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] p-5">
         <p className="text-sm text-[var(--panel-text)]">{strings.auth.signUp.confirmationSent}</p>
+        <p className="text-sm text-[var(--panel-muted)]">{strings.auth.signUp.confirmationHint}</p>
+        <button
+          type="button"
+          onClick={() => void handleResend()}
+          disabled={isResending || resendCooldown.remaining > 0}
+          className="h-10 w-fit rounded-xl border border-[var(--panel-line)] px-4 text-sm font-medium text-[var(--panel-text)] transition-opacity duration-200 disabled:opacity-50"
+        >
+          {resendCooldown.remaining > 0
+            ? `${strings.auth.signUp.resendCooldown} ${resendCooldown.remaining} s`
+            : strings.auth.signUp.resend}
+        </button>
       </div>
     )
   }

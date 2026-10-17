@@ -9,9 +9,10 @@ import { GoogleButton } from './GoogleButton'
 
 interface SignInFormProps {
   onSwitchToSignUp: () => void
+  onForgotPassword: () => void
 }
 
-export function SignInForm({ onSwitchToSignUp }: SignInFormProps) {
+export function SignInForm({ onSwitchToSignUp, onForgotPassword }: SignInFormProps) {
   const { signInWithEmail, signInWithGoogle } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -49,6 +50,13 @@ export function SignInForm({ onSwitchToSignUp }: SignInFormProps) {
         onChange={setPassword}
         autoComplete="current-password"
       />
+      <button
+        type="button"
+        onClick={onForgotPassword}
+        className="-mt-2 text-left text-sm text-[var(--panel-muted)] underline-offset-2 hover:underline"
+      >
+        {strings.auth.signIn.forgotPassword}
+      </button>
       <button
         type="submit"
         disabled={isSubmitting}

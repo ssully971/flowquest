@@ -142,6 +142,7 @@ export const fr = {
       switchToSignUp: 'Pas encore de compte ? Crée-en un.',
       orContinueWith: 'ou continuer avec',
       google: 'Continuer avec Google',
+      forgotPassword: 'Mot de passe oublié ?',
     },
     signUp: {
       tab: 'Inscription',
@@ -149,8 +150,28 @@ export const fr = {
       submitting: 'Création…',
       switchToSignIn: 'Déjà un compte ? Connecte-toi.',
       google: 'S’inscrire avec Google',
-      confirmationSent:
-        'Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse, puis connecte-toi.',
+      confirmationSent: 'Compte créé ! Un e-mail de confirmation vient de partir.',
+      confirmationHint:
+        'Pense à vérifier tes spams : ça peut prendre quelques minutes. Toujours rien ?',
+      resend: 'Renvoyer l’e-mail',
+      resendCooldown: 'Renvoyer dans',
+      resendSuccess: 'E-mail renvoyé.',
+    },
+    resetPassword: {
+      requestTitle: 'Mot de passe oublié',
+      requestBody:
+        'Indique ton adresse e-mail : si un compte existe, un lien pour choisir un nouveau mot de passe t’est envoyé.',
+      requestSubmit: 'Envoyer le lien',
+      requestSubmitting: 'Envoi…',
+      requestSent:
+        'Si un compte existe avec cette adresse, un lien vient d’être envoyé. Vérifie aussi tes spams, ça peut prendre quelques minutes.',
+      backToSignIn: 'Retour à la connexion',
+      newPasswordTitle: 'Choisis un nouveau mot de passe',
+      newPassword: 'Nouveau mot de passe',
+      confirmPassword: 'Confirme le mot de passe',
+      mismatch: 'Les deux mots de passe ne correspondent pas.',
+      submitNew: 'Mettre à jour le mot de passe',
+      submittingNew: 'Mise à jour…',
     },
     account: {
       signedInAs: 'Connecté en tant que',

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ToastProvider } from '@/shared/toast'
@@ -10,6 +10,9 @@ const getSessionMock = vi.fn()
 const onAuthStateChangeMock = vi.fn()
 const fromMock = vi.fn()
 const rpcMock = vi.fn()
+const resendMock = vi.fn()
+const resetPasswordForEmailMock = vi.fn()
+const updateUserMock = vi.fn()
 
 vi.mock('@/shared/supabase/client', () => ({
   isSupabaseConfigured: true,
@@ -17,6 +20,9 @@ vi.mock('@/shared/supabase/client', () => ({
     auth: {
       getSession: (...args: unknown[]) => getSessionMock(...args),
       onAuthStateChange: (...args: unknown[]) => onAuthStateChangeMock(...args),
+      resend: (...args: unknown[]) => resendMock(...args),
+      resetPasswordForEmail: (...args: unknown[]) => resetPasswordForEmailMock(...args),
+      updateUser: (...args: unknown[]) => updateUserMock(...args),
     },
     from: (...args: unknown[]) => fromMock(...args),
     rpc: (...args: unknown[]) => rpcMock(...args),
@@ -41,14 +47,37 @@ function selectQuery(result: { data: unknown; error: unknown }) {
 }
 
 function ProbeAccountState() {
-  const { profileState, profile, profileError, retryLoadProfile } = useAuth()
+  const {
+    profileState,
+    profile,
+    profileError,
+    retryLoadProfile,
+    isPasswordRecovery,
+    resendConfirmationEmail,
+    requestPasswordReset,
+    updatePassword,
+    clearPasswordRecovery,
+  } = useAuth()
   return (
     <div>
       <span data-testid="profile-state">{profileState}</span>
       <span data-testid="profile-username">{profile?.username ?? ''}</span>
       <span data-testid="profile-error">{profileError ?? ''}</span>
+      <span data-testid="password-recovery">{String(isPasswordRecovery)}</span>
       <button type="button" onClick={retryLoadProfile}>
         Réessayer
+      </button>
+      <button type="button" onClick={() => void resendConfirmationEmail('sullivan@exemple.com')}>
+        Renvoyer
+      </button>
+      <button type="button" onClick={() => void requestPasswordReset('sullivan@exemple.com')}>
+        Demander une réinitialisation
+      </button>
+      <button type="button" onClick={() => void updatePassword('Nouveau1234')}>
+        Mettre à jour le mot de passe
+      </button>
+      <button type="button" onClick={clearPasswordRecovery}>
+        Annuler la réinitialisation
       </button>
     </div>
   )
@@ -69,6 +98,9 @@ beforeEach(() => {
   onAuthStateChangeMock.mockReset()
   fromMock.mockReset()
   rpcMock.mockReset()
+  resendMock.mockReset()
+  resetPasswordForEmailMock.mockReset()
+  updateUserMock.mockReset()
   getSessionMock.mockResolvedValue({ data: { session: { user: SESSION_USER } } })
   onAuthStateChangeMock.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } })
 })
@@ -186,5 +218,76 @@ describe('AuthProvider — ne relance pas loadProfile à chaque évènement (bug
       expect(screen.getByTestId('profile-state')).toHaveTextContent('error')
     })
     expect(rpcMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('AuthProvider — renvoi d’e-mail et réinitialisation du mot de passe (LOT 1)', () => {
+  it('renvoie l’e-mail de confirmation via supabase.auth.resend', async () => {
+    fromMock.mockReturnValue(selectQuery({ data: PROFILE_ROW, error: null }))
+    resendMock.mockResolvedValue({ error: null })
+    const user = await import('@testing-library/user-event').then((m) => m.default.setup())
+
+    renderProbe()
+    await waitFor(() => expect(screen.getByTestId('profile-state')).toHaveTextContent('loaded'))
+
+    await user.click(screen.getByRole('button', { name: 'Renvoyer' }))
+    expect(resendMock).toHaveBeenCalledWith({
+      type: 'signup',
+      email: 'sullivan@exemple.com',
+    })
+  })
+
+  it('demande une réinitialisation via supabase.auth.resetPasswordForEmail', async () => {
+    fromMock.mockReturnValue(selectQuery({ data: PROFILE_ROW, error: null }))
+    resetPasswordForEmailMock.mockResolvedValue({ error: null })
+    const user = await import('@testing-library/user-event').then((m) => m.default.setup())
+
+    renderProbe()
+    await waitFor(() => expect(screen.getByTestId('profile-state')).toHaveTextContent('loaded'))
+
+    await user.click(screen.getByRole('button', { name: 'Demander une réinitialisation' }))
+    expect(resetPasswordForEmailMock).toHaveBeenCalledWith(
+      'sullivan@exemple.com',
+      expect.objectContaining({ redirectTo: expect.any(String) }),
+    )
+  })
+
+  it('passe en mode récupération sur l’évènement PASSWORD_RECOVERY, et peut en sortir', async () => {
+    fromMock.mockReturnValue(selectQuery({ data: PROFILE_ROW, error: null }))
+    const user = await import('@testing-library/user-event').then((m) => m.default.setup())
+
+    renderProbe()
+    await waitFor(() => expect(screen.getByTestId('profile-state')).toHaveTextContent('loaded'))
+    expect(screen.getByTestId('password-recovery')).toHaveTextContent('false')
+
+    const authStateCallback = onAuthStateChangeMock.mock.calls[0][0] as (
+      event: string,
+      session: unknown,
+    ) => void
+    act(() => authStateCallback('PASSWORD_RECOVERY', { user: SESSION_USER }))
+    expect(screen.getByTestId('password-recovery')).toHaveTextContent('true')
+
+    await user.click(screen.getByRole('button', { name: 'Annuler la réinitialisation' }))
+    expect(screen.getByTestId('password-recovery')).toHaveTextContent('false')
+  })
+
+  it('met à jour le mot de passe et quitte le mode récupération en cas de succès', async () => {
+    fromMock.mockReturnValue(selectQuery({ data: PROFILE_ROW, error: null }))
+    updateUserMock.mockResolvedValue({ error: null })
+    const user = await import('@testing-library/user-event').then((m) => m.default.setup())
+
+    renderProbe()
+    await waitFor(() => expect(screen.getByTestId('profile-state')).toHaveTextContent('loaded'))
+
+    const authStateCallback = onAuthStateChangeMock.mock.calls[0][0] as (
+      event: string,
+      session: unknown,
+    ) => void
+    act(() => authStateCallback('PASSWORD_RECOVERY', { user: SESSION_USER }))
+    expect(screen.getByTestId('password-recovery')).toHaveTextContent('true')
+
+    await user.click(screen.getByRole('button', { name: 'Mettre à jour le mot de passe' }))
+    expect(updateUserMock).toHaveBeenCalledWith({ password: 'Nouveau1234' })
+    await waitFor(() => expect(screen.getByTestId('password-recovery')).toHaveTextContent('false'))
   })
 })
