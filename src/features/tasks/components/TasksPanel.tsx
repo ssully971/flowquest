@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { strings } from '@/shared/i18n'
 
 import { useActiveTask } from '../active-task-context'
+import { fireTaskListConfetti } from '../confetti'
 import { useTasks } from '../useTasks'
 import { TaskList } from './TaskList'
 
@@ -103,7 +104,11 @@ export function TasksPanel({ open, onClose }: TasksPanelProps) {
         <TaskList
           tasks={tasks}
           activeTaskId={activeTaskId}
-          onToggleDone={(id) => void toggleDone(id)}
+          onToggleDone={(id) => {
+            void toggleDone(id).then((isLastRemaining) => {
+              if (isLastRemaining) fireTaskListConfetti()
+            })
+          }}
           onRename={(id, title) => void renameTask(id, title)}
           onRemove={handleRemove}
           onSetActive={setActiveTaskId}

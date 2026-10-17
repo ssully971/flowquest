@@ -205,4 +205,34 @@ describe('useTasks — CRUD local-first, synchro seulement si connecté', () => 
 
     await waitFor(() => expect(result.current.tasks).toHaveLength(0))
   })
+
+  it('toggleDone signale la dernière tâche non terminée (lot 6, confettis §8)', async () => {
+    const { useTasks } = await import('./useTasks')
+    const { result } = renderHook(() => useTasks())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    await act(async () => {
+      await result.current.addTask('Première')
+      await result.current.addTask('Deuxième')
+    })
+    await waitFor(() => expect(result.current.tasks).toHaveLength(2))
+    const [first, second] = result.current.tasks
+
+    let returned = false
+    await act(async () => {
+      returned = await result.current.toggleDone(first.id)
+    })
+    expect(returned).toBe(false) // il reste une tâche non terminée
+
+    await act(async () => {
+      returned = await result.current.toggleDone(second.id)
+    })
+    expect(returned).toBe(true) // c'était la dernière
+
+    // Décocher ne doit jamais signaler "dernière tâche" (pas de confettis à l'envers).
+    await act(async () => {
+      returned = await result.current.toggleDone(second.id)
+    })
+    expect(returned).toBe(false)
+  })
 })

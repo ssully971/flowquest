@@ -19,7 +19,8 @@ export interface UseTasksResult {
   tasks: TaskRecord[]
   isLoading: boolean
   addTask: (title: string, parentId?: string | null) => Promise<void>
-  toggleDone: (id: string) => Promise<void>
+  /** Renvoie true si cette tâche était la dernière non terminée (confettis, §8). */
+  toggleDone: (id: string) => Promise<boolean>
   renameTask: (id: string, title: string) => Promise<void>
   removeTask: (id: string) => Promise<void>
   reorderTasks: (orderedIds: string[]) => Promise<void>
@@ -81,16 +82,19 @@ export function useTasks(): UseTasksResult {
   const toggleDone = useCallback(async (id: string) => {
     const current = await repo.listAll()
     const task = current.find((t) => t.id === id)
-    if (!task) return
+    if (!task) return false
+    const willBeDone = !task.done
     const updated: TaskRecord = {
       ...task,
-      done: !task.done,
-      doneAt: !task.done ? Date.now() : null,
+      done: willBeDone,
+      doneAt: willBeDone ? Date.now() : null,
       updatedAt: Date.now(),
     }
     await repo.put(updated)
     pushIfAuthenticated(updated)
     notifyTasksChanged()
+    const isLastRemaining = willBeDone && current.filter((t) => t.id !== id).every((t) => t.done)
+    return isLastRemaining
   }, [])
 
   const renameTask = useCallback(async (id: string, title: string) => {
