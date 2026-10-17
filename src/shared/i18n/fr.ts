@@ -93,6 +93,13 @@ export const fr = {
     modeFocus: 'Focus',
     modeAmbient: 'Ambiant',
   },
+  pwa: {
+    installMessage: 'Ajoute Flowquest à l’écran d’accueil pour recevoir l’alerte de fin.',
+    iosInstructions: 'Appuie sur Partager, puis « Sur l’écran d’accueil ».',
+    installAction: 'Installer',
+    later: 'Plus tard',
+    dismiss: 'Fermer',
+  },
   ambient: {
     soundsButton: 'Sons d’ambiance',
     soundsTitle: 'Sons d’ambiance',
