@@ -19,6 +19,7 @@ import { formatCountdown } from './format'
 import { toDurationsMs } from './timer-settings'
 import { useTimerSettings } from './timer-settings-context'
 import { useFocusTimer } from './useFocusTimer'
+import { useLiveTabTitle } from './useLiveTabTitle'
 import { usePictureInPicture } from './usePictureInPicture'
 
 function getSegmentLabel(segment: SegmentKind): string {
@@ -45,6 +46,7 @@ export function FocusScreen() {
   const activeTask = tasks.find((task) => task.id === activeTaskId) ?? null
 
   const displayLabel = formatCountdown(timer.snapshot?.remainingMs ?? 0)
+  useLiveTabTitle(displayLabel, timer.snapshot?.status === 'running')
   const pip = usePictureInPicture({
     segmentLabel: getSegmentLabel(timer.segment),
     timeLabel: displayLabel,
