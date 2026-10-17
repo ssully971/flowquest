@@ -52,6 +52,20 @@ h3 {
   }
 }
 
+/* Lot 2 : transitions douces sur les changements de mode (accueil/focus/ambiant) et de
+   page des Réglages — 150 à 250ms, coupées comme tout le reste sous prefers-reduced-motion
+   (règle globale plus bas). */
+@keyframes screen-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes bg-drift {
   0% {
     background-position: 0% 50%;

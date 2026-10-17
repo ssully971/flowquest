@@ -117,7 +117,9 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   return (
     <div className="relative h-svh overflow-hidden">
       <CurrentBackground />
-      <div className="absolute inset-0">{children}</div>
+      <div key={mode} className="absolute inset-0" style={{ animation: 'screen-fade-in 200ms ease-out' }}>
+        {children}
+      </div>
 
       <div
         className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 px-4 sm:flex-nowrap sm:justify-between sm:px-10"

@@ -254,35 +254,40 @@ export function SettingsPanel({
             <X size={20} strokeWidth={1.75} aria-hidden="true" />
           </button>
 
-          {activePage === 'themes' ? (
-            <ThemesPage
-              mode={mode}
-              onModeChange={onModeChange}
-              selection={backgroundSelection}
-              onSelect={onBackgroundSelect}
-              disableAnimatedThemes={extrasSettings.disableAnimatedThemes}
-            />
-          ) : activePage === 'account' ? (
-            <AccountPage />
-          ) : activePage === 'stats' ? (
-            <StatsPage dailyGoalMinutes={dailyGoalMinutes} onDailyGoalChange={onDailyGoalChange} />
-          ) : activePage === 'timer' ? (
-            <TimerPage settings={timerSettings} onChange={onTimerSettingsChange} />
-          ) : activePage === 'clock' ? (
-            <ClockPage settings={clockSettings} onChange={onClockSettingsChange} />
-          ) : activePage === 'quotes' ? (
-            <QuotesPage settings={quotesSettings} onChange={onQuotesSettingsChange} />
-          ) : activePage === 'extras' ? (
-            <ExtrasPage settings={extrasSettings} onChange={onExtrasSettingsChange} />
-          ) : activePage === 'support' ? (
-            <SupportPage />
-          ) : activePage === 'changelog' ? (
-            <ChangelogPage />
-          ) : (
-            <PlaceholderPage
-              title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}
-            />
-          )}
+          <div key={activePage} style={{ animation: 'screen-fade-in 200ms ease-out' }}>
+            {activePage === 'themes' ? (
+              <ThemesPage
+                mode={mode}
+                onModeChange={onModeChange}
+                selection={backgroundSelection}
+                onSelect={onBackgroundSelect}
+                disableAnimatedThemes={extrasSettings.disableAnimatedThemes}
+              />
+            ) : activePage === 'account' ? (
+              <AccountPage />
+            ) : activePage === 'stats' ? (
+              <StatsPage
+                dailyGoalMinutes={dailyGoalMinutes}
+                onDailyGoalChange={onDailyGoalChange}
+              />
+            ) : activePage === 'timer' ? (
+              <TimerPage settings={timerSettings} onChange={onTimerSettingsChange} />
+            ) : activePage === 'clock' ? (
+              <ClockPage settings={clockSettings} onChange={onClockSettingsChange} />
+            ) : activePage === 'quotes' ? (
+              <QuotesPage settings={quotesSettings} onChange={onQuotesSettingsChange} />
+            ) : activePage === 'extras' ? (
+              <ExtrasPage settings={extrasSettings} onChange={onExtrasSettingsChange} />
+            ) : activePage === 'support' ? (
+              <SupportPage />
+            ) : activePage === 'changelog' ? (
+              <ChangelogPage />
+            ) : (
+              <PlaceholderPage
+                title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>
