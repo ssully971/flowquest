@@ -1,14 +1,31 @@
+import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { BigDigits } from '@/shared/design-system'
 import { useCurrentTime } from '@/shared/hooks/useCurrentTime'
 import { strings } from '@/shared/i18n'
 
+import { CLOCK_SIZE_SCALE, CLOCK_STYLE_CSS } from './clock-settings'
+import { useClockSettings } from './clock-settings-context'
 import { getGreeting } from './greeting'
-import { getCurrentQuote } from './quotes'
+import { useQuotesSettings } from './quotes-settings-context'
+import { useQuote } from './useQuote'
 
-function formatClockLabel(date: Date): string {
-  const hours = date.getHours().toString().padStart(2, '0')
-  const minutes = date.getMinutes().toString().padStart(2, '0')
-  return `${hours}:${minutes}`
+interface ClockParts {
+  label: string
+  meridiem?: string
+}
+
+function formatClockParts(date: Date, format: '12h' | '24h', showSeconds: boolean): ClockParts {
+  let hours = date.getHours()
+  let meridiem: string | undefined
+  if (format === '12h') {
+    meridiem = hours >= 12 ? strings.home.clock.pm : strings.home.clock.am
+    hours = hours % 12 || 12
+  }
+  const hh = hours.toString().padStart(2, '0')
+  const mm = date.getMinutes().toString().padStart(2, '0')
+  const ss = date.getSeconds().toString().padStart(2, '0')
+  const label = showSeconds ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`
+  return { label, meridiem }
 }
 
 function formatLongDate(date: Date): string {
@@ -22,8 +39,15 @@ function formatLongDate(date: Date): string {
 
 export function HomeScreen() {
   const now = useCurrentTime()
-  const greeting = getGreeting(now)
-  const quote = getCurrentQuote()
+  const { settings: clockSettings } = useClockSettings()
+  const { settings: quotesSettings } = useQuotesSettings()
+  const { settings: extrasSettings } = useExtrasSettings()
+  const greeting = getGreeting(now, extrasSettings.displayName || undefined)
+  const quote = useQuote(now)
+  const clock = formatClockParts(now, clockSettings.format, clockSettings.showSeconds)
+  const styleCss = CLOCK_STYLE_CSS[clockSettings.style]
+  const showQuote = quotesSettings.showOnHome && !extrasSettings.cleanMode
+  const showGreetingSecondary = !extrasSettings.cleanMode
 
   return (
     <div className="relative h-full">
@@ -34,23 +58,41 @@ export function HomeScreen() {
         >
           {strings.app.name}
         </p>
-        <figure className="max-w-sm pt-1.5 text-right sm:max-w-md sm:pt-2">
-          <blockquote className="text-[18px] leading-snug text-[var(--text)] sm:text-[20px]">
-            “{quote.text}”
-          </blockquote>
-          <figcaption className="mt-1.5 text-sm text-[var(--muted)]">{quote.author}</figcaption>
-        </figure>
+        {showQuote ? (
+          <figure className="max-w-sm pt-1.5 text-right sm:max-w-md sm:pt-2">
+            <blockquote className="text-[18px] leading-snug text-[var(--text)] sm:text-[20px]">
+              “{quote.text}”
+            </blockquote>
+            <figcaption className="mt-1.5 text-sm text-[var(--muted)]">{quote.author}</figcaption>
+          </figure>
+        ) : null}
       </div>
 
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center">
-        <p
-          className="w-full text-[28px] font-semibold text-[var(--text)]"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
-          {greeting.primary}
-        </p>
-        <p className="w-full text-sm text-[var(--muted)]">{greeting.secondary}</p>
-        <BigDigits label={formatClockLabel(now)} sizePx={208} />
+        {clockSettings.showGreeting ? (
+          <>
+            <p
+              className="w-full text-[28px] font-semibold text-[var(--text)]"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              {greeting.primary}
+            </p>
+            {showGreetingSecondary ? (
+              <p className="w-full text-sm text-[var(--muted)]">{greeting.secondary}</p>
+            ) : null}
+          </>
+        ) : null}
+        <BigDigits
+          label={clock.label}
+          meridiem={clock.meridiem}
+          sizePx={208}
+          sizeScale={CLOCK_SIZE_SCALE[clockSettings.size]}
+          fontFamily={styleCss.fontFamily}
+          fontWeight={styleCss.fontWeight}
+          letterSpacing={styleCss.letterSpacing}
+          fontStyle={styleCss.fontStyle}
+          flip={clockSettings.flipClock}
+        />
         <p className="w-full text-sm text-[var(--muted)]">{formatLongDate(now)}</p>
       </div>
     </div>

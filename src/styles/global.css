@@ -29,6 +29,41 @@ h3 {
   outline-offset: 2px;
 }
 
+@keyframes clock-flip {
+  from {
+    transform: rotateX(90deg);
+    opacity: 0;
+  }
+  to {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes bg-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.9;
+  }
+}
+
+@keyframes bg-drift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -37,4 +72,14 @@ h3 {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* §7.6 : "Désactiver les thèmes animés (appareils lents)", réglage manuel distinct de
+   prefers-reduced-motion (coche aussi les fonds animés ET les animations de l'horloge,
+   utile sur un appareil lent même sans préférence système d'accessibilité). */
+:root[data-disable-animated-themes='true'] *,
+:root[data-disable-animated-themes='true'] *::before,
+:root[data-disable-animated-themes='true'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
 }

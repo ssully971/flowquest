@@ -135,6 +135,13 @@ appareil ou d'une autre session — c'est ce qui garantit qu'aucune session n'es
    avec deux clients Supabase (deux utilisateurs), à lancer manuellement contre un vrai
    projet (RLS ne peut pas être vérifiée par un test unitaire sans base réelle).
 
+## Notifications push (non implémentées)
+
+Le Web Push (§6.2 du cahier des charges) introduira une table `push_subscriptions` et
+une Edge Function tournant avec la clé `service_role` — seule exception documentée à la
+règle « pas de `service_role` dans le front », puisque ce code tourne côté serveur, pas
+dans le navigateur. Conception complète, RLS incluse, dans `docs/NOTIFICATIONS_PUSH.md`.
+
 ## Journal des migrations
 
 Chaque fichier de `supabase/migrations/` est numéroté, idempotent (peut être recollé sans

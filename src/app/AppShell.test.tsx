@@ -2,22 +2,35 @@ import { render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
+import type { AppMode } from '@/app/useAppMode'
 import { AuthProvider } from '@/features/auth/AuthProvider'
+import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
+import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
+import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
+import { TimerSettingsProvider } from '@/features/timer/TimerSettingsProvider'
 import { ThemeProvider } from '@/shared/design-system'
 import { ToastProvider } from '@/shared/toast'
 
 import { AppShell } from './AppShell'
 
-function renderAppShell(children: ReactNode) {
+function renderAppShell(children: ReactNode, mode: AppMode = 'home') {
   return render(
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
           <ActiveTaskProvider>
-            <AppShell mode="home" onModeChange={vi.fn()}>
-              {children}
-            </AppShell>
+            <TimerSettingsProvider>
+              <ClockSettingsProvider>
+                <QuotesSettingsProvider>
+                  <ExtrasSettingsProvider>
+                    <AppShell mode={mode} onModeChange={vi.fn()}>
+                      {children}
+                    </AppShell>
+                  </ExtrasSettingsProvider>
+                </QuotesSettingsProvider>
+              </ClockSettingsProvider>
+            </TimerSettingsProvider>
           </ActiveTaskProvider>
         </AuthProvider>
       </ToastProvider>
@@ -66,5 +79,21 @@ describe('AppShell — Réglages et Plein écran à gauche, Tâches/Notes à dro
       el.getAttribute('aria-label'),
     )
     expect(labels.slice(-2)).toEqual(['Tâches', 'Bloc-notes'])
+  })
+})
+
+describe('AppShell — mode Ambiant (§5.3) : tâches et bloc-notes masqués', () => {
+  it('propose Ambiant dans le sélecteur de mode', () => {
+    renderAppShell(<div>Contenu</div>)
+    expect(screen.getByRole('radio', { name: 'Ambiant' })).toBeInTheDocument()
+  })
+
+  it('masque les boutons Tâches et Bloc-notes en mode Ambiant', () => {
+    renderAppShell(<div>Contenu</div>, 'ambient')
+
+    expect(screen.queryByRole('button', { name: 'Tâches' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Bloc-notes' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Réglages' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Plein écran' })).toBeInTheDocument()
   })
 })

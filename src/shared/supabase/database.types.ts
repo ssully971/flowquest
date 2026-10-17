@@ -9,6 +9,7 @@ export type SessionKind = 'focus' | 'short_break' | 'long_break'
 export type TimerMode = 'pomodoro' | 'countdown' | 'stopwatch'
 export type TimerSegment = 'focus' | 'short_break' | 'long_break' | 'countdown' | 'stopwatch'
 export type TimerStatus = 'idle' | 'running' | 'paused' | 'completed'
+export type SupportMessageStatus = 'pending' | 'processed'
 
 export interface Database {
   public: {
@@ -186,6 +187,27 @@ export interface Database {
         Update: {
           content?: string
           updated_at: string
+        }
+        Relationships: []
+      }
+      support_messages: {
+        Row: {
+          id: string
+          user_id: string | null
+          email: string
+          body: string
+          status: SupportMessageStatus
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          email: string
+          body: string
+          status?: SupportMessageStatus
+        }
+        Update: {
+          status?: SupportMessageStatus
         }
         Relationships: []
       }

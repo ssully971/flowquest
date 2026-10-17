@@ -1,8 +1,13 @@
 import { AdminGate } from '@/features/admin/AdminGate'
 import { AuthProvider } from '@/features/auth/AuthProvider'
+import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
 import { HomeScreen } from '@/features/home/HomeScreen'
+import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
+import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
+import { AmbientScreen } from '@/features/timer/AmbientScreen'
 import { FocusScreen } from '@/features/timer/FocusScreen'
+import { TimerSettingsProvider } from '@/features/timer/TimerSettingsProvider'
 import { ThemeProvider } from '@/shared/design-system'
 import { ToastProvider } from '@/shared/toast'
 
@@ -18,13 +23,27 @@ export function App() {
       <ToastProvider>
         <AuthProvider>
           <ActiveTaskProvider>
-            {isAdminRoute ? (
-              <AdminGate />
-            ) : (
-              <AppShell mode={mode} onModeChange={setMode}>
-                {mode === 'home' ? <HomeScreen /> : <FocusScreen />}
-              </AppShell>
-            )}
+            <TimerSettingsProvider>
+              <ClockSettingsProvider>
+                <QuotesSettingsProvider>
+                  <ExtrasSettingsProvider>
+                    {isAdminRoute ? (
+                      <AdminGate />
+                    ) : (
+                      <AppShell mode={mode} onModeChange={setMode}>
+                        {mode === 'home' ? (
+                          <HomeScreen />
+                        ) : mode === 'focus' ? (
+                          <FocusScreen />
+                        ) : (
+                          <AmbientScreen />
+                        )}
+                      </AppShell>
+                    )}
+                  </ExtrasSettingsProvider>
+                </QuotesSettingsProvider>
+              </ClockSettingsProvider>
+            </TimerSettingsProvider>
           </ActiveTaskProvider>
         </AuthProvider>
       </ToastProvider>

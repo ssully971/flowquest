@@ -2,8 +2,12 @@ import { useEffect, useRef } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
 import { useAuth } from '@/features/auth/useAuth'
+import type { ClockSettings } from '@/features/home/clock-settings'
+import type { QuotesSettings } from '@/features/home/quotes-settings'
+import type { TimerSettings } from '@/features/timer/timer-settings'
 import type { Appearance, BackgroundId } from '@/shared/design-system'
 
+import type { ExtrasSettings } from './extras-settings'
 import { IndexedDbSettingsRepository } from './storage/indexed-db-settings-repository'
 import { SupabaseSettingsRepository } from './storage/supabase-settings-repository'
 import type { AppSettings } from './types'
@@ -18,6 +22,16 @@ interface UseSettingsSyncParams {
   setBackground: (mode: AppMode, id: BackgroundId) => void
   activeTaskId: string | null
   setActiveTaskId: (id: string | null) => void
+  dailyGoalMinutes: number
+  setDailyGoalMinutes: (minutes: number) => void
+  timerSettings: TimerSettings
+  setTimerSettings: (settings: TimerSettings) => void
+  clockSettings: ClockSettings
+  setClockSettings: (settings: ClockSettings) => void
+  quotesSettings: QuotesSettings
+  setQuotesSettings: (settings: QuotesSettings) => void
+  extrasSettings: ExtrasSettings
+  setExtrasSettings: (settings: ExtrasSettings) => void
 }
 
 /**
@@ -33,18 +47,48 @@ export function useSettingsSync({
   setBackground,
   activeTaskId,
   setActiveTaskId,
+  dailyGoalMinutes,
+  setDailyGoalMinutes,
+  timerSettings,
+  setTimerSettings,
+  clockSettings,
+  setClockSettings,
+  quotesSettings,
+  setQuotesSettings,
+  extrasSettings,
+  setExtrasSettings,
 }: UseSettingsSyncParams): void {
   const { status, user } = useAuth()
   const pulledForUserRef = useRef<string | null>(null)
 
   useEffect(() => {
-    const settings: AppSettings = { appearance, backgrounds, activeTaskId }
+    const settings: AppSettings = {
+      appearance,
+      backgrounds,
+      activeTaskId,
+      dailyGoalMinutes,
+      timerSettings,
+      clockSettings,
+      quotesSettings,
+      extrasSettings,
+    }
     const updatedAt = Date.now()
     void localRepo.save(settings, updatedAt)
     if (status === 'authenticated' && user) {
       void remoteRepo.save(user.id, settings, updatedAt)
     }
-  }, [appearance, backgrounds, activeTaskId, status, user])
+  }, [
+    appearance,
+    backgrounds,
+    activeTaskId,
+    dailyGoalMinutes,
+    timerSettings,
+    clockSettings,
+    quotesSettings,
+    extrasSettings,
+    status,
+    user,
+  ])
 
   useEffect(() => {
     if (status !== 'authenticated' || !user) return
@@ -61,6 +105,22 @@ export function useSettingsSync({
         setBackground(mode, remote.settings.backgrounds[mode])
       }
       setActiveTaskId(remote.settings.activeTaskId)
+      setDailyGoalMinutes(remote.settings.dailyGoalMinutes)
+      setTimerSettings(remote.settings.timerSettings)
+      setClockSettings(remote.settings.clockSettings)
+      setQuotesSettings(remote.settings.quotesSettings)
+      setExtrasSettings(remote.settings.extrasSettings)
     })()
-  }, [status, user, setAppearance, setBackground, setActiveTaskId])
+  }, [
+    status,
+    user,
+    setAppearance,
+    setBackground,
+    setActiveTaskId,
+    setDailyGoalMinutes,
+    setTimerSettings,
+    setClockSettings,
+    setQuotesSettings,
+    setExtrasSettings,
+  ])
 }

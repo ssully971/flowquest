@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { FocusSessionRecord } from '@/shared/storage/db'
 
-import { computeStats } from './compute-stats'
+import { computeDailyFocus, computeStats } from './compute-stats'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -45,11 +45,17 @@ describe('computeStats — temps de focus aujourd’hui/cette semaine', () => {
   })
 })
 
-describe('computeStats — série de jours (streak)', () => {
+describe('computeStats — série de jours (streak), conditionnée par l’objectif quotidien', () => {
+  // Les sessions par défaut durent 1500 s (25 min). Avec un objectif de 10 min, une
+  // seule session de ce type suffit à faire compter le jour — ces tests reproduisent
+  // donc le comportement "une session = un jour" désormais conditionné par un objectif
+  // explicitement bas, pour isoler la logique de chaînage des jours de celle du seuil.
+  const LOW_GOAL_MINUTES = 10
+
   it('série à 0 si aucune session complétée aujourd’hui ni hier', () => {
     const now = Date.UTC(2026, 0, 15, 12, 0, 0)
     const sessions: FocusSessionRecord[] = [session({ startedAt: now - 3 * DAY_MS })]
-    expect(computeStats(sessions, now).currentStreakDays).toBe(0)
+    expect(computeStats(sessions, now, LOW_GOAL_MINUTES).currentStreakDays).toBe(0)
   })
 
   it('compte la série en cours même si rien n’est fait aujourd’hui, tant qu’hier compte', () => {
@@ -58,7 +64,7 @@ describe('computeStats — série de jours (streak)', () => {
       session({ startedAt: now - DAY_MS }),
       session({ startedAt: now - 2 * DAY_MS }),
     ]
-    expect(computeStats(sessions, now).currentStreakDays).toBe(2)
+    expect(computeStats(sessions, now, LOW_GOAL_MINUTES).currentStreakDays).toBe(2)
   })
 
   it('une interruption d’un jour coupe la série actuelle', () => {
@@ -67,7 +73,7 @@ describe('computeStats — série de jours (streak)', () => {
       session({ startedAt: now }),
       session({ startedAt: now - 3 * DAY_MS }), // trou de 2 jours avant
     ]
-    expect(computeStats(sessions, now).currentStreakDays).toBe(1)
+    expect(computeStats(sessions, now, LOW_GOAL_MINUTES).currentStreakDays).toBe(1)
   })
 
   it('retient la plus longue série même si elle n’est plus la série actuelle', () => {
@@ -79,8 +85,69 @@ describe('computeStats — série de jours (streak)', () => {
       session({ startedAt: now - 12 * DAY_MS }),
       session({ startedAt: now - 13 * DAY_MS }), // série passée de 4 jours
     ]
-    const stats = computeStats(sessions, now)
+    const stats = computeStats(sessions, now, LOW_GOAL_MINUTES)
     expect(stats.currentStreakDays).toBe(1)
     expect(stats.longestStreakDays).toBe(4)
+  })
+
+  it('un jour sous l’objectif ne compte pas dans la série', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0)
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now, actualSeconds: 600 }), // 10 min, sous l'objectif de 120 min
+    ]
+    expect(computeStats(sessions, now, 120).currentStreakDays).toBe(0)
+  })
+
+  it('plusieurs sessions le même jour se cumulent pour atteindre l’objectif', () => {
+    const now = Date.UTC(2026, 0, 15, 20, 0, 0)
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 2000, actualSeconds: 3600 }), // 60 min
+      session({ startedAt: now - 1000, actualSeconds: 3600 }), // + 60 min = 120 min
+    ]
+    expect(computeStats(sessions, now, 120).currentStreakDays).toBe(1)
+  })
+
+  it('utilise 120 min par défaut quand aucun objectif n’est fourni', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0)
+    const sessions: FocusSessionRecord[] = [session({ startedAt: now, actualSeconds: 1500 })]
+    expect(computeStats(sessions, now).currentStreakDays).toBe(0)
+    expect(computeStats(sessions, now).dailyGoalMinutes).toBe(120)
+  })
+})
+
+describe('computeDailyFocus — historique jour par jour (calendrier et tendance, §9)', () => {
+  it('retourne exactement `days` entrées, la plus récente en dernier, se terminant aujourd’hui', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0)
+    const result = computeDailyFocus([], now, 7)
+    expect(result).toHaveLength(7)
+    expect(result[6].dayStart).toBe(Date.UTC(2026, 0, 15))
+    expect(result[0].dayStart).toBe(Date.UTC(2026, 0, 9))
+  })
+
+  it('cumule les sessions focus terminées du même jour, ignore pauses et abandons', () => {
+    const now = Date.UTC(2026, 0, 15, 20, 0, 0)
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 2000, actualSeconds: 600 }),
+      session({ startedAt: now - 1000, actualSeconds: 300 }),
+      session({ startedAt: now - 500, kind: 'short_break', actualSeconds: 300 }),
+      session({ startedAt: now - 100, completed: false, actualSeconds: 1000 }),
+    ]
+    const result = computeDailyFocus(sessions, now, 1, 120)
+    expect(result[0].focusSeconds).toBe(900)
+  })
+
+  it('marque goalMet à partir du seuil de l’objectif quotidien', () => {
+    const now = Date.UTC(2026, 0, 15, 20, 0, 0)
+    const sessions: FocusSessionRecord[] = [session({ startedAt: now, actualSeconds: 3600 })]
+    const underGoal = computeDailyFocus(sessions, now, 1, 120)
+    const metGoal = computeDailyFocus(sessions, now, 1, 60)
+    expect(underGoal[0].goalMet).toBe(false)
+    expect(metGoal[0].goalMet).toBe(true)
+  })
+
+  it('renvoie des jours à 0 (et goalMet false) pour les jours sans session', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0)
+    const result = computeDailyFocus([], now, 3, 120)
+    expect(result.every((day) => day.focusSeconds === 0 && !day.goalMet)).toBe(true)
   })
 })

@@ -1,0 +1,34 @@
+import { POMODORO_DEFAULTS } from './durations'
+import type { PomodoroDurationsMs } from './durations'
+
+export interface TimerSettings {
+  focusMinutes: number
+  shortBreakMinutes: number
+  longBreakMinutes: number
+  sessionsBeforeLongBreak: number
+  autoStartNext: boolean
+  showTaskInPip: boolean
+}
+
+export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
+  focusMinutes: POMODORO_DEFAULTS.focusMs / 60_000,
+  shortBreakMinutes: POMODORO_DEFAULTS.shortBreakMs / 60_000,
+  longBreakMinutes: POMODORO_DEFAULTS.longBreakMs / 60_000,
+  sessionsBeforeLongBreak: POMODORO_DEFAULTS.sessionsBeforeLongBreak,
+  autoStartNext: false,
+  showTaskInPip: true,
+}
+
+// Plages du §6.1 du cahier des charges.
+export const FOCUS_MINUTES_RANGE = { min: 10, max: 100, step: 5 }
+export const SHORT_BREAK_MINUTES_RANGE = { min: 1, max: 20, step: 1 }
+export const LONG_BREAK_MINUTES_RANGE = { min: 20, max: 40, step: 5 }
+export const SESSIONS_BEFORE_LONG_BREAK_RANGE = { min: 2, max: 8, step: 1 }
+
+export function toDurationsMs(settings: TimerSettings): PomodoroDurationsMs {
+  return {
+    focusMs: settings.focusMinutes * 60_000,
+    shortBreakMs: settings.shortBreakMinutes * 60_000,
+    longBreakMs: settings.longBreakMinutes * 60_000,
+  }
+}

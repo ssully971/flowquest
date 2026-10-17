@@ -14,16 +14,28 @@ import type { LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
+import type { ClockSettings } from '@/features/home/clock-settings'
+import type { QuotesSettings } from '@/features/home/quotes-settings'
+import type { TimerSettings } from '@/features/timer/timer-settings'
 import type { BackgroundId } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
+import { CHANGELOG } from './changelog'
+import { getLastSeenChangelogVersion, markChangelogSeen } from './changelog-seen'
+import type { ExtrasSettings } from './extras-settings'
+import type { SettingsPageId } from './page-id'
 import { AccountPage } from './pages/AccountPage'
+import { ChangelogPage } from './pages/ChangelogPage'
+import { ClockPage } from './pages/ClockPage'
+import { ExtrasPage } from './pages/ExtrasPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { QuotesPage } from './pages/QuotesPage'
 import { StatsPage } from './pages/StatsPage'
+import { SupportPage } from './pages/SupportPage'
 import { ThemesPage } from './pages/ThemesPage'
+import { TimerPage } from './pages/TimerPage'
 
-type PageId =
-  'themes' | 'clock' | 'timer' | 'stats' | 'quotes' | 'extras' | 'account' | 'support' | 'changelog'
+type PageId = SettingsPageId
 
 const NAV_ITEMS: { id: PageId; label: string; icon: LucideIcon }[] = [
   { id: 'themes', label: strings.settings.nav.themes, icon: Palette },
@@ -44,6 +56,16 @@ interface SettingsPanelProps {
   onModeChange: (mode: AppMode) => void
   backgroundSelection: Record<AppMode, BackgroundId>
   onBackgroundSelect: (mode: AppMode, id: BackgroundId) => void
+  dailyGoalMinutes: number
+  onDailyGoalChange: (minutes: number) => void
+  timerSettings: TimerSettings
+  onTimerSettingsChange: (settings: TimerSettings) => void
+  clockSettings: ClockSettings
+  onClockSettingsChange: (settings: ClockSettings) => void
+  quotesSettings: QuotesSettings
+  onQuotesSettingsChange: (settings: QuotesSettings) => void
+  extrasSettings: ExtrasSettings
+  onExtrasSettingsChange: (settings: ExtrasSettings) => void
 }
 
 export function SettingsPanel({
@@ -53,6 +75,16 @@ export function SettingsPanel({
   onModeChange,
   backgroundSelection,
   onBackgroundSelect,
+  dailyGoalMinutes,
+  onDailyGoalChange,
+  timerSettings,
+  onTimerSettingsChange,
+  clockSettings,
+  onClockSettingsChange,
+  quotesSettings,
+  onQuotesSettingsChange,
+  extrasSettings,
+  onExtrasSettingsChange,
 }: SettingsPanelProps) {
   // mounted suit `open` à l'ouverture, mais seulement à la fermeture complète (fin de
   // l'animation de la boîte de dialogue) pour laisser le temps à la transition de
@@ -62,16 +94,27 @@ export function SettingsPanel({
   // referme alors le panneau qu'on venait de rouvrir.
   const [mounted, setMounted] = useState(open)
   const [entered, setEntered] = useState(false)
-  const [activePage, setActivePage] = useState<PageId>('themes')
+  const [activePage, setActivePage] = useState<PageId>(() => extrasSettings.defaultSettingsTab)
+  const [lastSeenChangelogVersion, setLastSeenChangelogVersion] = useState(() =>
+    getLastSeenChangelogVersion(),
+  )
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  const latestChangelogVersion = CHANGELOG[0]?.version
+  const hasUnreadChangelog =
+    latestChangelogVersion !== undefined && lastSeenChangelogVersion !== latestChangelogVersion
 
   if (open && !mounted) {
     setMounted(true)
+    setActivePage(extrasSettings.defaultSettingsTab)
   }
   if (!open && entered) {
     setEntered(false)
+  }
+  if (activePage === 'changelog' && hasUnreadChangelog && latestChangelogVersion !== undefined) {
+    markChangelogSeen(latestChangelogVersion)
+    setLastSeenChangelogVersion(latestChangelogVersion)
   }
 
   useEffect(() => {
@@ -176,6 +219,13 @@ export function SettingsPanel({
               >
                 <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
                 {item.label}
+                {item.id === 'changelog' && hasUnreadChangelog ? (
+                  <span
+                    aria-label={strings.settings.changelog.unreadBadge}
+                    className="h-1.5 w-1.5 shrink-0 rounded-full"
+                    style={{ background: 'var(--accent)' }}
+                  />
+                ) : null}
               </button>
             )
           })}
@@ -198,11 +248,24 @@ export function SettingsPanel({
               onModeChange={onModeChange}
               selection={backgroundSelection}
               onSelect={onBackgroundSelect}
+              disableAnimatedThemes={extrasSettings.disableAnimatedThemes}
             />
           ) : activePage === 'account' ? (
             <AccountPage />
           ) : activePage === 'stats' ? (
-            <StatsPage />
+            <StatsPage dailyGoalMinutes={dailyGoalMinutes} onDailyGoalChange={onDailyGoalChange} />
+          ) : activePage === 'timer' ? (
+            <TimerPage settings={timerSettings} onChange={onTimerSettingsChange} />
+          ) : activePage === 'clock' ? (
+            <ClockPage settings={clockSettings} onChange={onClockSettingsChange} />
+          ) : activePage === 'quotes' ? (
+            <QuotesPage settings={quotesSettings} onChange={onQuotesSettingsChange} />
+          ) : activePage === 'extras' ? (
+            <ExtrasPage settings={extrasSettings} onChange={onExtrasSettingsChange} />
+          ) : activePage === 'support' ? (
+            <SupportPage />
+          ) : activePage === 'changelog' ? (
+            <ChangelogPage />
           ) : (
             <PlaceholderPage
               title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}
