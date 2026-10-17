@@ -40,4 +40,15 @@ describe('AmbientScreen — minuteur compact en carte, reste de l’écran libre
 
     expect(await screen.findByRole('button', { name: 'Mettre en pause' })).toBeInTheDocument()
   })
+
+  it('ouvre le panneau des sons d’ambiance (§12/§17/§18)', async () => {
+    const user = userEvent.setup()
+    renderAmbientScreen()
+
+    await screen.findByText('25:00')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Sons d’ambiance' }))
+    expect(await screen.findByRole('dialog', { name: 'Sons d’ambiance' })).toBeInTheDocument()
+  })
 })

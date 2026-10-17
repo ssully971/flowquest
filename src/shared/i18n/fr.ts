@@ -93,6 +93,15 @@ export const fr = {
     modeFocus: 'Focus',
     modeAmbient: 'Ambiant',
   },
+  ambient: {
+    soundsButton: 'Sons d’ambiance',
+    soundsTitle: 'Sons d’ambiance',
+    soundsHint: 'Deux sons maximum en même temps.',
+    volume: 'Volume',
+    sleepTimer: 'Minuteur d’arrêt',
+    sleepTimerNone: 'Aucun',
+    close: 'Fermer les sons d’ambiance',
+  },
   auth: {
     notConfigured:
       'Les comptes ne sont pas encore configurés sur ce déploiement. Flowquest reste utilisable en mode invité : tes données restent sur cet appareil.',
