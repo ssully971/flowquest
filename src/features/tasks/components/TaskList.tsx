@@ -2,6 +2,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 
 import type { TaskRecord } from '@/shared/storage/db'
+import type { TaskDetailsUpdate } from '@/features/tasks/useTasks'
 
 import { TaskRow } from './TaskRow'
 
@@ -12,6 +13,7 @@ interface TaskListProps {
   onRename: (id: string, title: string) => void
   onRemove: (id: string) => void
   onSetActive: (id: string | null) => void
+  onUpdateDetails: (id: string, update: TaskDetailsUpdate) => void
   onReorder: (orderedIds: string[]) => void
 }
 
@@ -28,6 +30,7 @@ export function TaskList({
   onRename,
   onRemove,
   onSetActive,
+  onUpdateDetails,
   onReorder,
 }: TaskListProps) {
   const [order, setOrder] = useState<string[]>(() => tasks.map((task) => task.id))
@@ -92,6 +95,7 @@ export function TaskList({
           onRename={onRename}
           onRemove={onRemove}
           onSetActive={onSetActive}
+          onUpdateDetails={onUpdateDetails}
           onDragPointerDown={handleDragPointerDown}
         />
       ))}

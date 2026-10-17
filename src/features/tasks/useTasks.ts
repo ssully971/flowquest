@@ -9,6 +9,12 @@ import { notifyTasksChanged, onTasksChanged } from './task-events'
 
 const repo = new IndexedDbTaskRepository()
 
+export interface TaskDetailsUpdate {
+  emoji?: string | null
+  color?: string | null
+  etaMinutes?: number | null
+}
+
 export interface UseTasksResult {
   tasks: TaskRecord[]
   isLoading: boolean
@@ -17,6 +23,7 @@ export interface UseTasksResult {
   renameTask: (id: string, title: string) => Promise<void>
   removeTask: (id: string) => Promise<void>
   reorderTasks: (orderedIds: string[]) => Promise<void>
+  updateTaskDetails: (id: string, update: TaskDetailsUpdate) => Promise<void>
 }
 
 function pushIfAuthenticated(task: TaskRecord): void {
@@ -55,6 +62,10 @@ export function useTasks(): UseTasksResult {
     const task: TaskRecord = {
       id: crypto.randomUUID(),
       title: trimmed,
+      emoji: null,
+      color: null,
+      etaMinutes: null,
+      parentId: null,
       position: current.length,
       done: false,
       doneAt: null,
@@ -93,6 +104,16 @@ export function useTasks(): UseTasksResult {
     notifyTasksChanged()
   }, [])
 
+  const updateTaskDetails = useCallback(async (id: string, update: TaskDetailsUpdate) => {
+    const current = await repo.listAll()
+    const task = current.find((t) => t.id === id)
+    if (!task) return
+    const updated: TaskRecord = { ...task, ...update, updatedAt: Date.now() }
+    await repo.put(updated)
+    pushIfAuthenticated(updated)
+    notifyTasksChanged()
+  }, [])
+
   const removeTask = useCallback(async (id: string) => {
     await repo.remove(id)
     const userId = getCurrentUserId()
@@ -114,5 +135,14 @@ export function useTasks(): UseTasksResult {
     notifyTasksChanged()
   }, [])
 
-  return { tasks, isLoading, addTask, toggleDone, renameTask, removeTask, reorderTasks }
+  return {
+    tasks,
+    isLoading,
+    addTask,
+    toggleDone,
+    renameTask,
+    removeTask,
+    reorderTasks,
+    updateTaskDetails,
+  }
 }

@@ -17,6 +17,10 @@ function makeTask(overrides: Partial<TaskRecord> = {}): TaskRecord {
   return {
     id: 'task-1',
     title: 'Réviser',
+    emoji: null,
+    color: null,
+    etaMinutes: null,
+    parentId: null,
     position: 0,
     done: false,
     doneAt: null,

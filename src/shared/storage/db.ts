@@ -24,6 +24,10 @@ export interface FocusSessionRecord {
 export interface TaskRecord {
   id: string
   title: string
+  emoji: string | null
+  color: string | null
+  etaMinutes: number | null
+  parentId: string | null
   position: number
   done: boolean
   doneAt: number | null

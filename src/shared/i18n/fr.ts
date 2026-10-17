@@ -40,6 +40,13 @@ export const fr = {
     dragHandle: 'Réordonner (glisser)',
     editLabel: 'Titre de la tâche',
     close: 'Fermer les tâches',
+    options: 'Options de la tâche',
+    emojiLabel: 'Emoji',
+    colorLabel: 'Couleur',
+    etaLabel: 'Durée estimée',
+    etaPlaceholder: 'Durée (min)',
+    noEmoji: 'Aucun emoji',
+    noColor: 'Aucune couleur',
   },
   notes: {
     title: 'Bloc-notes',

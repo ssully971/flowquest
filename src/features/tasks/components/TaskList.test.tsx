@@ -9,6 +9,10 @@ function makeTask(id: string, title: string, position: number): TaskRecord {
   return {
     id,
     title,
+    emoji: null,
+    color: null,
+    etaMinutes: null,
+    parentId: null,
     position,
     done: false,
     doneAt: null,
@@ -34,6 +38,7 @@ describe('TaskList — réordonner au doigt et à la souris (Pointer Events, uni
         onRename={vi.fn()}
         onRemove={vi.fn()}
         onSetActive={vi.fn()}
+        onUpdateDetails={vi.fn()}
         onReorder={onReorder}
       />,
     )
@@ -64,6 +69,7 @@ describe('TaskList — réordonner au doigt et à la souris (Pointer Events, uni
         onRename={vi.fn()}
         onRemove={vi.fn()}
         onSetActive={vi.fn()}
+        onUpdateDetails={vi.fn()}
         onReorder={onReorder}
       />,
     )

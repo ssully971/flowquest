@@ -34,6 +34,10 @@ describe('usePeriodStats — cartes de la période choisie (lot 5)', () => {
     await db.put('tasks', {
       id: 't1',
       title: 'Tâche',
+      emoji: null,
+      color: null,
+      etaMinutes: null,
+      parentId: null,
       position: 0,
       done: true,
       doneAt: now - 500,
@@ -58,6 +62,10 @@ describe('usePeriodStats — cartes de la période choisie (lot 5)', () => {
     await db.put('tasks', {
       id: 't2',
       title: 'Nouvelle tâche',
+      emoji: null,
+      color: null,
+      etaMinutes: null,
+      parentId: null,
       position: 0,
       done: true,
       doneAt: now,

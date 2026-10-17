@@ -36,6 +36,10 @@ function task(overrides: Partial<TaskRecord> & { doneAt: number }): TaskRecord {
   return {
     id: crypto.randomUUID(),
     title: 'Tâche',
+    emoji: null,
+    color: null,
+    etaMinutes: null,
+    parentId: null,
     position: 0,
     done: true,
     createdAt: overrides.doneAt,

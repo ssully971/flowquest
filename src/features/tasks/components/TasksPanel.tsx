@@ -14,7 +14,16 @@ interface TasksPanelProps {
 }
 
 export function TasksPanel({ open, onClose }: TasksPanelProps) {
-  const { tasks, isLoading, addTask, toggleDone, renameTask, removeTask, reorderTasks } = useTasks()
+  const {
+    tasks,
+    isLoading,
+    addTask,
+    toggleDone,
+    renameTask,
+    removeTask,
+    reorderTasks,
+    updateTaskDetails,
+  } = useTasks()
   const { activeTaskId, setActiveTaskId } = useActiveTask()
   const [newTitle, setNewTitle] = useState('')
   const panelRef = useRef<HTMLDivElement>(null)
@@ -98,6 +107,7 @@ export function TasksPanel({ open, onClose }: TasksPanelProps) {
           onRename={(id, title) => void renameTask(id, title)}
           onRemove={handleRemove}
           onSetActive={setActiveTaskId}
+          onUpdateDetails={(id, update) => void updateTaskDetails(id, update)}
           onReorder={(ids) => void reorderTasks(ids)}
         />
       )}
