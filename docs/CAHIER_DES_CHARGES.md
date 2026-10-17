@@ -307,18 +307,25 @@ Les maquettes (Accueil, Focus, Réglages, en sombre et en clair) ont été valid
 
 | Jeton | Sombre | Clair |
 |---|---|---|
-| `--bg` | `#120C1E` | `#EDE6FB` |
+| `--bg` | `#0C0719` | `#F1EAFF` |
 | `--surface` | `#1C1330` | `#F8F4FF` |
 | `--surface-2` | `#291D47` | `#DFD2F5` |
 | `--line` | `rgba(206,184,255,0.16)` | `rgba(74,32,140,0.16)` |
 | `--text` | `#F2ECFC` | `#20103B` |
 | `--muted` | `#A99BC8` | `#64548A` |
-| `--accent` | `#B28BFF` | `#6A2FD6` |
+| `--accent` | `#A35CFF` | `#5A1FD1` |
 | `--on-accent` | `#1A0B33` | `#FFFFFF` |
-| `--glow` | `rgba(178,139,255,0.14)` | `rgba(106,47,214,0.13)` |
-| `--contour` | `rgba(178,139,255,0.20)` | `rgba(106,47,214,0.22)` |
-| `--scrim` | `rgba(18,12,30,0.62)` | `rgba(237,230,251,0.70)` |
+| `--glow` | `rgba(163,92,255,0.16)` | `rgba(90,31,209,0.14)` |
+| `--contour` | `rgba(163,92,255,0.24)` | `rgba(90,31,209,0.24)` |
+| `--scrim` | `rgba(12,7,25,0.62)` | `rgba(241,234,255,0.70)` |
 | `--horizon` | `radial-gradient(120% 75% at 50% 112%, #6A3CC4 0%, #33196A 34%, #120C1E 72%)` | `radial-gradient(120% 75% at 50% 112%, #C7A4FF 0%, #DCCBF8 42%, #EFE9FC 80%)` |
+
+Mis à jour au lot 2 (finitions) : améthyste plus vibrante sans virer au néon, tout en
+gardant un contraste AA (texte courant ≥ 4,5:1) sur les deux thèmes — vérifié par calcul
+(luminance relative WCAG) sur chaque paire texte/fond et accent/fond utilisée dans
+l'interface. `--horizon` et les teintes d'échantillons (`--tone-a/b/c`, fonds de thèmes)
+restent inchangés : seuls `--bg`, `--accent` et les tokens qui en dérivent directement
+(`--glow`, `--contour`, `--scrim`) ont été retouchés.
 
 Teintes d'échantillons de thèmes (aperçus de la bibliothèque) : `--tone-a / --tone-b / --tone-c` = `#2A1650 / #4B2A8A / #7A55C8` (sombre), `#C9B3F0 / #B497E8 / #E6DAFA` (clair).
 

@@ -14,7 +14,7 @@ const MAX_TASK_LABEL_LENGTH = 32
  * Document Picture-in-Picture n'a pas besoin de ça : il rend du vrai DOM via un portail
  * React (voir FocusScreen.tsx). */
 export function drawPipFrame(ctx: CanvasRenderingContext2D, content: PipFrameContent): void {
-  ctx.fillStyle = '#120c1e'
+  ctx.fillStyle = '#0c0719'
   ctx.fillRect(0, 0, PIP_CANVAS_WIDTH, PIP_CANVAS_HEIGHT)
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'

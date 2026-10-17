@@ -116,7 +116,7 @@ export function FocusScreen() {
             <div
               style={{
                 fontFamily: 'sans-serif',
-                background: '#120c1e',
+                background: '#0c0719',
                 color: '#f2ecfc',
                 height: '100%',
                 display: 'flex',
