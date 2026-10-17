@@ -1,8 +1,9 @@
-import { CHANGELOG } from '@/features/settings/changelog'
+import { useChangelogEntries } from '@/features/settings/useChangelogEntries'
 import { strings } from '@/shared/i18n'
 
 export function ChangelogPage() {
   const s = strings.settings.changelog
+  const entries = useChangelogEntries()
 
   return (
     <div className="flex flex-col gap-6">
@@ -13,11 +14,11 @@ export function ChangelogPage() {
         {s.title}
       </h2>
 
-      {CHANGELOG.length === 0 ? (
+      {entries.length === 0 ? (
         <p className="text-sm text-[var(--panel-muted)]">{s.empty}</p>
       ) : (
         <ul className="flex max-w-md flex-col gap-3">
-          {CHANGELOG.map((entry) => (
+          {entries.map((entry) => (
             <li
               key={entry.version}
               className="flex flex-col gap-1 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] px-5 py-4"

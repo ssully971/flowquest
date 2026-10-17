@@ -22,7 +22,6 @@ import type { BackgroundId } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import type { BackgroundDisplaySettings } from './background-display-settings'
-import { CHANGELOG } from './changelog'
 import { getLastSeenChangelogVersion, markChangelogSeen } from './changelog-seen'
 import type { ExtrasSettings } from './extras-settings'
 import { getLastSettingsPage, setLastSettingsPage } from './last-page'
@@ -37,6 +36,7 @@ import { StatsPage } from './pages/StatsPage'
 import { SupportPage } from './pages/SupportPage'
 import { ThemesPage } from './pages/ThemesPage'
 import { TimerPage } from './pages/TimerPage'
+import { useChangelogEntries } from './useChangelogEntries'
 
 type PageId = SettingsPageId
 
@@ -110,7 +110,8 @@ export function SettingsPanel({
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
-  const latestChangelogVersion = CHANGELOG[0]?.version
+  const changelogEntries = useChangelogEntries()
+  const latestChangelogVersion = changelogEntries[0]?.version
   const hasUnreadChangelog =
     latestChangelogVersion !== undefined && lastSeenChangelogVersion !== latestChangelogVersion
 
