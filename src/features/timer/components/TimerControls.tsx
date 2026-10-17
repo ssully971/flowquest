@@ -10,6 +10,7 @@ interface TimerControlsProps {
   onReset: () => void
   onPrimary: () => void
   onSkip: () => void
+  showSkip?: boolean
   onPictureInPicture: () => void
   pipAvailable: boolean
 }
@@ -19,6 +20,7 @@ export function TimerControls({
   onReset,
   onPrimary,
   onSkip,
+  showSkip = true,
   onPictureInPicture,
   pipAvailable,
 }: TimerControlsProps) {
@@ -46,7 +48,9 @@ export function TimerControls({
           fill={isRunning ? 'none' : 'currentColor'}
         />
       </button>
-      <IconButton icon={SkipForward} label={strings.focus.controls.skip} onClick={onSkip} />
+      {showSkip ? (
+        <IconButton icon={SkipForward} label={strings.focus.controls.skip} onClick={onSkip} />
+      ) : null}
       <IconButton
         icon={PictureInPicture2}
         label={

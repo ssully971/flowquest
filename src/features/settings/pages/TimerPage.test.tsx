@@ -20,6 +20,15 @@ describe('TimerPage — durées Pomodoro et démarrage automatique', () => {
     expect(within(sessionsStepper).getByText('4')).toBeInTheDocument()
   })
 
+  it('augmente la durée du compte à rebours de 1 min au clic sur +', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<TimerPage settings={DEFAULT_TIMER_SETTINGS} onChange={onChange} />)
+
+    await user.click(screen.getByRole('button', { name: 'Augmenter : Durée du compte à rebours' }))
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_TIMER_SETTINGS, countdownMinutes: 21 })
+  })
+
   it('augmente la durée de focus de 5 min au clic sur +', async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()

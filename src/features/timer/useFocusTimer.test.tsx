@@ -107,3 +107,56 @@ describe('useFocusTimer — durées configurables et démarrage automatique', ()
     await waitFor(() => expect(result.current.segment).toBe('long_break'), { timeout: 3000 })
   })
 })
+
+describe('useFocusTimer — trois modes de minuteur (lot 4)', () => {
+  it('démarre en mode pomodoro, segment focus, par défaut', async () => {
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+    expect(result.current.mode).toBe('pomodoro')
+    expect(result.current.segment).toBe('focus')
+  })
+
+  it('selectMode bascule vers le compte à rebours (segment et durée dédiés)', async () => {
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => {
+      result.current.selectMode('countdown')
+    })
+
+    await waitFor(() => expect(result.current.mode).toBe('countdown'))
+    expect(result.current.segment).toBe('countdown')
+    expect(result.current.snapshot?.remainingMs).toBe(20 * 60_000) // 20 min par défaut
+  })
+
+  it('selectMode bascule vers le chronomètre (durée illimitée)', async () => {
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => {
+      result.current.selectMode('stopwatch')
+    })
+
+    await waitFor(() => expect(result.current.mode).toBe('stopwatch'))
+    expect(result.current.segment).toBe('stopwatch')
+    expect(result.current.snapshot?.remainingMs).toBeNull()
+  })
+
+  it('revenir en mode pomodoro repart du segment focus', async () => {
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => {
+      result.current.selectMode('stopwatch')
+    })
+    await waitFor(() => expect(result.current.mode).toBe('stopwatch'))
+
+    act(() => {
+      result.current.selectMode('pomodoro')
+    })
+
+    await waitFor(() => expect(result.current.mode).toBe('pomodoro'))
+    expect(result.current.segment).toBe('focus')
+  })
+})

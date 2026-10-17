@@ -60,6 +60,13 @@ export const fr = {
     question: 'Sur quoi te concentres-tu ?',
     noActiveTask: 'Aucune tâche active',
     timeRemaining: 'Temps restant',
+    timeElapsed: 'Temps écoulé',
+    mode: 'Mode de minuteur',
+    modes: {
+      pomodoro: 'Pomodoro',
+      countdown: 'Compte à rebours',
+      stopwatch: 'Chronomètre',
+    },
     tabs: {
       focus: 'Focus',
       shortBreak: 'Pause courte',
@@ -81,6 +88,7 @@ export const fr = {
       focusDone: 'Session de focus terminée.',
       shortBreakDone: 'Pause courte terminée.',
       longBreakDone: 'Pause longue terminée.',
+      countdownDone: 'Compte à rebours terminé.',
     },
   },
   home: {
@@ -315,6 +323,7 @@ export const fr = {
       shortBreakDuration: 'Pause courte',
       longBreakDuration: 'Pause longue',
       sessionsBeforeLongBreak: 'Sessions avant la pause longue',
+      countdownDuration: 'Durée du compte à rebours',
       autoStartNext: 'Démarrage automatique du segment suivant',
       autoStartNextHint:
         'À la fin d’un segment, le suivant démarre seul, sans attendre que tu appuies sur Démarrer.',

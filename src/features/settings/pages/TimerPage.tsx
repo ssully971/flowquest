@@ -1,6 +1,7 @@
 import { Minus, Plus } from 'lucide-react'
 
 import {
+  COUNTDOWN_MINUTES_RANGE,
   FOCUS_MINUTES_RANGE,
   LONG_BREAK_MINUTES_RANGE,
   SESSIONS_BEFORE_LONG_BREAK_RANGE,
@@ -108,6 +109,15 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
           max={SESSIONS_BEFORE_LONG_BREAK_RANGE.max}
           step={SESSIONS_BEFORE_LONG_BREAK_RANGE.step}
           onChange={(sessionsBeforeLongBreak) => onChange({ ...settings, sessionsBeforeLongBreak })}
+        />
+        <NumericStepper
+          label={s.countdownDuration}
+          value={settings.countdownMinutes}
+          min={COUNTDOWN_MINUTES_RANGE.min}
+          max={COUNTDOWN_MINUTES_RANGE.max}
+          step={COUNTDOWN_MINUTES_RANGE.step}
+          unit="min"
+          onChange={(countdownMinutes) => onChange({ ...settings, countdownMinutes })}
         />
       </div>
 

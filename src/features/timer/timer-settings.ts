@@ -11,6 +11,7 @@ export interface TimerSettings {
   shortBreakMinutes: number
   longBreakMinutes: number
   sessionsBeforeLongBreak: number
+  countdownMinutes: number
   autoStartNext: boolean
   showTaskInPip: boolean
   displayStyle: TimerDisplayStyle
@@ -26,6 +27,7 @@ export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
   shortBreakMinutes: POMODORO_DEFAULTS.shortBreakMs / 60_000,
   longBreakMinutes: POMODORO_DEFAULTS.longBreakMs / 60_000,
   sessionsBeforeLongBreak: POMODORO_DEFAULTS.sessionsBeforeLongBreak,
+  countdownMinutes: 20,
   autoStartNext: false,
   showTaskInPip: true,
   displayStyle: 'default',
@@ -44,6 +46,8 @@ export const FOCUS_MINUTES_RANGE = { min: 10, max: 100, step: 5 }
 export const SHORT_BREAK_MINUTES_RANGE = { min: 1, max: 20, step: 1 }
 export const LONG_BREAK_MINUTES_RANGE = { min: 20, max: 40, step: 5 }
 export const SESSIONS_BEFORE_LONG_BREAK_RANGE = { min: 2, max: 8, step: 1 }
+// Durée libre du mode Compte à rebours (lot 4) : 1 min à 3 h.
+export const COUNTDOWN_MINUTES_RANGE = { min: 1, max: 180, step: 1 }
 
 export function toDurationsMs(settings: TimerSettings): PomodoroDurationsMs {
   return {

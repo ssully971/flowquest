@@ -24,6 +24,8 @@ function segmentFinishedMessage(segment: SegmentKind): string {
       return strings.focus.notifications.shortBreakDone
     case 'long_break':
       return strings.focus.notifications.longBreakDone
+    case 'countdown':
+      return strings.focus.notifications.countdownDone
     default:
       return strings.focus.notifications.focusDone
   }

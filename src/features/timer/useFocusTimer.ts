@@ -3,9 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getCurrentUserId } from '@/features/auth/current-user'
 import { useAuth } from '@/features/auth/useAuth'
 
-import type { SegmentKind, TimerSnapshot } from './engine/timer-engine'
-import { getDurationForSegment } from './durations'
-import type { PomodoroDurationsMs } from './durations'
+import type { SegmentKind, TimerMode, TimerSnapshot } from './engine/timer-engine'
+import { getDefaultSegmentForMode, getDurationForSegment, getDurationMsForMode } from './durations'
 import { notifySegmentFinished, requestNotificationPermission } from './notifications'
 import { advancePomodoroCycle, createPomodoroCycle } from './pomodoro-cycle'
 import type { PomodoroCycleState } from './pomodoro-cycle'
@@ -15,6 +14,7 @@ import { SupabaseTimerStateRepository } from './storage/supabase-timer-state-rep
 import { SyncingTimerStateRepository } from './storage/syncing-timer-state-repository'
 import { TimerController } from './timer-controller'
 import { toDurationsMs } from './timer-settings'
+import type { TimerSettings } from './timer-settings'
 import { useTimerSettings } from './timer-settings-context'
 import { useTimerSnapshot } from './useTimerSnapshot'
 
@@ -24,9 +24,11 @@ const repository = new SyncingTimerStateRepository(getCurrentUserId)
 
 export interface UseFocusTimerResult {
   isReady: boolean
+  mode: TimerMode
   segment: SegmentKind
   cycle: PomodoroCycleState
   snapshot: TimerSnapshot | null
+  selectMode: (mode: TimerMode) => void
   selectSegment: (segment: SegmentKind) => void
   start: () => void
   pause: () => void
@@ -36,25 +38,27 @@ export interface UseFocusTimerResult {
 }
 
 async function createSelectedController(
+  mode: TimerMode,
   segment: SegmentKind,
-  durationsMs: PomodoroDurationsMs,
+  settings: TimerSettings,
 ): Promise<TimerController> {
-  const controller = TimerController.createIdle(
-    repository,
-    'pomodoro',
+  const durationMs = getDurationMsForMode(
+    mode,
     segment,
-    getDurationForSegment(segment, durationsMs),
+    toDurationsMs(settings),
+    settings.countdownMinutes * 60_000,
   )
+  const controller = TimerController.createIdle(repository, mode, segment, durationMs)
   await controller.reset()
   return controller
 }
 
-async function restoreController(durationsMs: PomodoroDurationsMs): Promise<TimerController> {
+async function restoreController(settings: TimerSettings): Promise<TimerController> {
   const fallback = TimerController.createIdle(
     repository,
     'pomodoro',
     'focus',
-    getDurationForSegment('focus', durationsMs),
+    getDurationForSegment('focus', toDurationsMs(settings)),
   )
   return TimerController.restore(repository, fallback.getState())
 }
@@ -76,7 +80,7 @@ export function useFocusTimer(): UseFocusTimerResult {
 
   useEffect(() => {
     let cancelled = false
-    restoreController(toDurationsMs(timerSettingsRef.current)).then((restored) => {
+    restoreController(timerSettingsRef.current).then((restored) => {
       if (cancelled) return
       setController(restored)
       setCycle(createPomodoroCycle(restored.getState().segment))
@@ -104,7 +108,7 @@ export function useFocusTimer(): UseFocusTimerResult {
       if (local && local.updatedAt >= remote.updatedAt) return
 
       await localRepository.save(remote.state, remote.updatedAt)
-      const restored = await restoreController(toDurationsMs(timerSettingsRef.current))
+      const restored = await restoreController(timerSettingsRef.current)
       setController(restored)
       setCycle(createPomodoroCycle(restored.getState().segment))
     })()
@@ -118,7 +122,7 @@ export function useFocusTimer(): UseFocusTimerResult {
     const next = advancePomodoroCycle(cycle, {
       sessionsBeforeLongBreak: config.sessionsBeforeLongBreak,
     })
-    const nextController = await createSelectedController(next.segment, toDurationsMs(config))
+    const nextController = await createSelectedController('pomodoro', next.segment, config)
     setCycle(next)
     setController(nextController)
     return nextController
@@ -126,12 +130,11 @@ export function useFocusTimer(): UseFocusTimerResult {
 
   const skip = useCallback(() => {
     void (async () => {
-      if (controller) {
-        const state = controller.getState()
-        const liveSnapshot = controller.getSnapshot()
-        if (state.startedAt !== null && liveSnapshot.status !== 'completed') {
-          await recordSession(state, Date.now(), false)
-        }
+      if (!controller || controller.getState().mode !== 'pomodoro') return
+      const state = controller.getState()
+      const liveSnapshot = controller.getSnapshot()
+      if (state.startedAt !== null && liveSnapshot.status !== 'completed') {
+        await recordSession(state, Date.now(), false)
       }
       await advanceToNext()
     })()
@@ -143,19 +146,21 @@ export function useFocusTimer(): UseFocusTimerResult {
     if (settledEndedAtRef.current === snapshot.endedAt) return
     settledEndedAtRef.current = snapshot.endedAt
     const config = timerSettingsRef.current
-    notifySegmentFinished(controller.getState().segment, {
+    const state = controller.getState()
+    notifySegmentFinished(state.segment, {
       soundEnabled: config.soundEnabled,
       notificationsEnabled: config.notificationsEnabled,
       alertSoundId: config.alertSoundId,
       alertVolume: config.alertVolume,
     })
-    void recordSession(controller.getState(), snapshot.endedAt, true)
-      .then(() => advanceToNext())
-      .then((nextController) => {
+    void recordSession(state, snapshot.endedAt, true).then(() => {
+      if (state.mode !== 'pomodoro') return
+      void advanceToNext().then((nextController) => {
         if (!timerSettingsRef.current.autoStartNext) return
         if (timerSettingsRef.current.notificationsEnabled) requestNotificationPermission()
         void nextController.start().then(refresh)
       })
+    })
   }, [controller, snapshot, advanceToNext, refresh])
 
   const selectSegment = useCallback(
@@ -169,8 +174,32 @@ export function useFocusTimer(): UseFocusTimerResult {
           }
         }
         const nextController = await createSelectedController(
+          'pomodoro',
           segment,
-          toDurationsMs(timerSettingsRef.current),
+          timerSettingsRef.current,
+        )
+        setCycle(createPomodoroCycle(segment))
+        setController(nextController)
+      })()
+    },
+    [controller],
+  )
+
+  const selectMode = useCallback(
+    (mode: TimerMode) => {
+      void (async () => {
+        if (controller) {
+          const state = controller.getState()
+          const liveSnapshot = controller.getSnapshot()
+          if (state.startedAt !== null && liveSnapshot.status !== 'completed') {
+            await recordSession(state, Date.now(), false)
+          }
+        }
+        const segment = getDefaultSegmentForMode(mode)
+        const nextController = await createSelectedController(
+          mode,
+          segment,
+          timerSettingsRef.current,
         )
         setCycle(createPomodoroCycle(segment))
         setController(nextController)
@@ -208,9 +237,11 @@ export function useFocusTimer(): UseFocusTimerResult {
 
   return {
     isReady,
+    mode: controller?.getState().mode ?? 'pomodoro',
     segment: controller?.getState().segment ?? cycle.segment,
     cycle,
     snapshot,
+    selectMode,
     selectSegment,
     start,
     pause,
