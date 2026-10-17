@@ -13,11 +13,11 @@ import { usePeriodStats } from '@/features/stats/usePeriodStats'
 import { formatFocusDuration } from '@/features/stats/format'
 import { strings } from '@/shared/i18n'
 
-import { FocusCalendar } from './stats/FocusCalendar'
+import { CalendarSection } from './stats/CalendarSection'
 import { FocusTrend } from './stats/FocusTrend'
 import { PeriodStatCards } from './stats/PeriodStatCards'
 
-const CALENDAR_DAYS = 84
+const TREND_DAYS = 30
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
@@ -35,7 +35,7 @@ interface StatsPageProps {
 
 export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProps) {
   const stats = useDashboardStats(dailyGoalMinutes)
-  const calendarDays = useDailyFocusHistory(CALENDAR_DAYS, dailyGoalMinutes)
+  const trendDays = useDailyFocusHistory(TREND_DAYS, dailyGoalMinutes)
   const [period, setPeriod] = useState<StatsPeriod>('week')
   const periodStats = usePeriodStats(period)
   const s = strings.settings.stats
@@ -108,11 +108,10 @@ export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProp
         </>
       )}
 
-      {calendarDays ? (
-        <>
-          <FocusCalendar days={calendarDays} dailyGoalMinutes={dailyGoalMinutes} />
-          <FocusTrend days7={calendarDays.slice(-7)} days30={calendarDays.slice(-30)} />
-        </>
+      <CalendarSection dailyGoalMinutes={dailyGoalMinutes} />
+
+      {trendDays ? (
+        <FocusTrend days7={trendDays.slice(-7)} days30={trendDays.slice(-30)} />
       ) : null}
     </div>
   )

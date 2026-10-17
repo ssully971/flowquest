@@ -2,9 +2,12 @@ import type { DayFocus } from '@/features/stats/compute-stats'
 import { formatFocusDuration } from '@/features/stats/format'
 import { strings } from '@/shared/i18n'
 
+export type CalendarMetric = 'hours' | 'sessions'
+
 interface FocusCalendarProps {
   days: DayFocus[]
   dailyGoalMinutes: number
+  metric?: CalendarMetric
 }
 
 type IntensityLevel = 0 | 1 | 2 | 3 | 4
@@ -38,7 +41,7 @@ function groupIntoWeeks(days: DayFocus[]): (DayFocus | null)[][] {
   return weeks
 }
 
-function intensityLevel(day: DayFocus, goalSeconds: number): IntensityLevel {
+function hoursIntensityLevel(day: DayFocus, goalSeconds: number): IntensityLevel {
   if (day.focusSeconds <= 0) return 0
   if (goalSeconds <= 0) return 4
   const ratio = day.focusSeconds / goalSeconds
@@ -48,15 +51,45 @@ function intensityLevel(day: DayFocus, goalSeconds: number): IntensityLevel {
   return 1
 }
 
-function dayLabel(day: DayFocus): string {
+/** Pas d'objectif « nombre de sessions par jour » dans les réglages : le niveau est
+ * relatif au maximum observé dans la fenêtre affichée, comme un calendrier GitHub. */
+function sessionsIntensityLevel(day: DayFocus, maxSessionsCount: number): IntensityLevel {
+  if (day.sessionsCount <= 0) return 0
+  if (maxSessionsCount <= 0) return 0
+  const ratio = day.sessionsCount / maxSessionsCount
+  if (ratio >= 1) return 4
+  if (ratio >= 0.66) return 3
+  if (ratio >= 0.33) return 2
+  return 1
+}
+
+function dayLabel(day: DayFocus, metric: CalendarMetric): string {
   const s = strings.settings.stats
+  if (metric === 'sessions') {
+    const unit = day.sessionsCount === 1 ? s.session : s.sessions
+    const value = day.sessionsCount > 0 ? `${day.sessionsCount} ${unit}` : s.calendarNoFocus
+    return `${DAY_LABEL_FORMATTER.format(new Date(day.dayStart))} — ${value}`
+  }
   const duration = day.focusSeconds > 0 ? formatFocusDuration(day.focusSeconds) : s.calendarNoFocus
   return `${DAY_LABEL_FORMATTER.format(new Date(day.dayStart))} — ${duration}`
 }
 
-function CalendarCell({ day, goalSeconds }: { day: DayFocus; goalSeconds: number }) {
-  const level = intensityLevel(day, goalSeconds)
-  const label = dayLabel(day)
+function CalendarCell({
+  day,
+  metric,
+  goalSeconds,
+  maxSessionsCount,
+}: {
+  day: DayFocus
+  metric: CalendarMetric
+  goalSeconds: number
+  maxSessionsCount: number
+}) {
+  const level =
+    metric === 'sessions'
+      ? sessionsIntensityLevel(day, maxSessionsCount)
+      : hoursIntensityLevel(day, goalSeconds)
+  const label = dayLabel(day, metric)
   return (
     <div
       role="img"
@@ -71,9 +104,10 @@ function CalendarCell({ day, goalSeconds }: { day: DayFocus; goalSeconds: number
   )
 }
 
-export function FocusCalendar({ days, dailyGoalMinutes }: FocusCalendarProps) {
+export function FocusCalendar({ days, dailyGoalMinutes, metric = 'hours' }: FocusCalendarProps) {
   const s = strings.settings.stats
   const goalSeconds = dailyGoalMinutes * 60
+  const maxSessionsCount = Math.max(0, ...days.map((day) => day.sessionsCount))
   const weeks = groupIntoWeeks(days)
 
   return (
@@ -84,7 +118,13 @@ export function FocusCalendar({ days, dailyGoalMinutes }: FocusCalendarProps) {
           <div key={weekIndex} className="flex flex-col gap-1">
             {week.map((day, dayIndex) =>
               day ? (
-                <CalendarCell key={day.dayStart} day={day} goalSeconds={goalSeconds} />
+                <CalendarCell
+                  key={day.dayStart}
+                  day={day}
+                  metric={metric}
+                  goalSeconds={goalSeconds}
+                  maxSessionsCount={maxSessionsCount}
+                />
               ) : (
                 <div key={`empty-${weekIndex}-${dayIndex}`} className="h-3 w-3 shrink-0" />
               ),
