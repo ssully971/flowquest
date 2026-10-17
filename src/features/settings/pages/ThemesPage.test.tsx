@@ -3,7 +3,9 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
 import { DEFAULT_BACKGROUND_DISPLAY_SETTINGS } from '@/features/settings/background-display-settings'
+import { CustomBackgroundProvider } from '@/features/settings/CustomBackgroundProvider'
 import { ThemeProvider } from '@/shared/design-system'
+import { ToastProvider } from '@/shared/toast'
 
 import { ThemesPage } from './ThemesPage'
 
@@ -16,17 +18,21 @@ function renderThemesPage(
     onSelect,
     onBackgroundDisplaySettingsChange,
     ...render(
-      <ThemeProvider>
-        <ThemesPage
-          mode="home"
-          onModeChange={vi.fn()}
-          selection={{ home: 'horizon', focus: 'horizon', ambient: 'horizon' }}
-          onSelect={onSelect}
-          disableAnimatedThemes={disableAnimatedThemes}
-          backgroundDisplaySettings={DEFAULT_BACKGROUND_DISPLAY_SETTINGS}
-          onBackgroundDisplaySettingsChange={onBackgroundDisplaySettingsChange}
-        />
-      </ThemeProvider>,
+      <ToastProvider>
+        <ThemeProvider>
+          <CustomBackgroundProvider>
+            <ThemesPage
+              mode="home"
+              onModeChange={vi.fn()}
+              selection={{ home: 'horizon', focus: 'horizon', ambient: 'horizon' }}
+              onSelect={onSelect}
+              disableAnimatedThemes={disableAnimatedThemes}
+              backgroundDisplaySettings={DEFAULT_BACKGROUND_DISPLAY_SETTINGS}
+              onBackgroundDisplaySettingsChange={onBackgroundDisplaySettingsChange}
+            />
+          </CustomBackgroundProvider>
+        </ThemeProvider>
+      </ToastProvider>,
     ),
   }
 }

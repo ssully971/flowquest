@@ -9,6 +9,7 @@ import { DunesBackground } from './DunesBackground'
 import { FenetreBackground } from './FenetreBackground'
 import { FeuillageBackground } from './FeuillageBackground'
 import { GrilleBackground } from './GrilleBackground'
+import { CustomBackground } from './CustomBackground'
 import { HorizonBackground } from './HorizonBackground'
 import { PHOTO_BACKGROUNDS } from './photo-backgrounds'
 import { RespirationBackground } from './RespirationBackground'
@@ -47,6 +48,7 @@ export type BackgroundId =
   | 'photo-confettis'
   | 'photo-cretes'
   | 'photo-desert'
+  | 'custom'
 
 export type BackgroundCategory =
   'gradients' | 'abstract' | 'scenic' | 'nature' | 'urban' | 'interior' | 'animated'
@@ -91,6 +93,10 @@ export const BACKGROUNDS: BackgroundDefinition[] = [
   },
   { id: 'derive', label: 'Dérive', category: 'animated', Component: DeriveBackground },
   ...PHOTO_BACKGROUNDS,
+  // Fond personnel (lot 3) : jamais affiché dans la grille de la bibliothèque (exclu
+  // explicitement par id dans ThemesPage, pas par catégorie), seulement sélectionnable une
+  // fois une image envoyée, depuis sa propre section « Fond personnel ».
+  { id: 'custom', label: 'Fond personnel', category: 'gradients', Component: CustomBackground },
 ]
 
 export const BACKGROUND_IDS: BackgroundId[] = BACKGROUNDS.map((bg) => bg.id)

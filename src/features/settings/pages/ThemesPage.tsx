@@ -15,6 +15,7 @@ import type { BackgroundCategory, BackgroundId } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import { CategoryChip } from './CategoryChip'
+import { CustomBackgroundSection } from './CustomBackgroundSection'
 
 const CATEGORY_ORDER: BackgroundCategory[] = [
   'gradients',
@@ -51,9 +52,12 @@ export function ThemesPage({
   const categories = disableAnimatedThemes
     ? CATEGORY_ORDER.filter((cat) => cat !== 'animated')
     : CATEGORY_ORDER
+  // Fond personnel exclu de la grille : il n'est pas un fond du catalogue, il se choisit
+  // depuis sa propre section au-dessus (voir le composant <CustomBackgroundSection>).
+  const catalogBackgrounds = BACKGROUNDS.filter((bg) => bg.id !== 'custom')
   const availableBackgrounds = disableAnimatedThemes
-    ? BACKGROUNDS.filter((bg) => bg.category !== 'animated')
-    : BACKGROUNDS
+    ? catalogBackgrounds.filter((bg) => bg.category !== 'animated')
+    : catalogBackgrounds
 
   const currentId = selection[mode]
   const current = getBackgroundDefinition(currentId)
@@ -154,6 +158,8 @@ export function ThemesPage({
           {strings.settings.themes.blurHint}
         </p>
       </div>
+
+      <CustomBackgroundSection mode={mode} currentId={currentId} onSelect={onSelect} />
 
       <div>
         <p className="mb-2 text-sm font-medium text-[var(--panel-muted)]">

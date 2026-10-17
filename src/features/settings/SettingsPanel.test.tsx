@@ -5,38 +5,44 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CLOCK_SETTINGS } from '@/features/home/clock-settings'
 import { DEFAULT_QUOTES_SETTINGS } from '@/features/home/quotes-settings'
 import { DEFAULT_BACKGROUND_DISPLAY_SETTINGS } from '@/features/settings/background-display-settings'
+import { CustomBackgroundProvider } from '@/features/settings/CustomBackgroundProvider'
 import { DEFAULT_EXTRAS_SETTINGS } from '@/features/settings/extras-settings'
 import { DEFAULT_TIMER_SETTINGS } from '@/features/timer/timer-settings'
 import { ThemeProvider } from '@/shared/design-system'
+import { ToastProvider } from '@/shared/toast'
 
 import { CHANGELOG } from './changelog'
 import { SettingsPanel } from './SettingsPanel'
 
 function panel(open: boolean, onClose: () => void, extrasSettings = DEFAULT_EXTRAS_SETTINGS) {
   return (
-    <ThemeProvider>
-      <button type="button">Déclencheur</button>
-      <SettingsPanel
-        open={open}
-        onClose={onClose}
-        mode="home"
-        onModeChange={vi.fn()}
-        backgroundSelection={{ home: 'horizon', focus: 'horizon', ambient: 'horizon' }}
-        onBackgroundSelect={vi.fn()}
-        backgroundDisplaySettings={DEFAULT_BACKGROUND_DISPLAY_SETTINGS}
-        onBackgroundDisplaySettingsChange={vi.fn()}
-        dailyGoalMinutes={120}
-        onDailyGoalChange={vi.fn()}
-        timerSettings={DEFAULT_TIMER_SETTINGS}
-        onTimerSettingsChange={vi.fn()}
-        clockSettings={DEFAULT_CLOCK_SETTINGS}
-        onClockSettingsChange={vi.fn()}
-        quotesSettings={DEFAULT_QUOTES_SETTINGS}
-        onQuotesSettingsChange={vi.fn()}
-        extrasSettings={extrasSettings}
-        onExtrasSettingsChange={vi.fn()}
-      />
-    </ThemeProvider>
+    <ToastProvider>
+      <ThemeProvider>
+        <CustomBackgroundProvider>
+          <button type="button">Déclencheur</button>
+          <SettingsPanel
+            open={open}
+            onClose={onClose}
+            mode="home"
+            onModeChange={vi.fn()}
+            backgroundSelection={{ home: 'horizon', focus: 'horizon', ambient: 'horizon' }}
+            onBackgroundSelect={vi.fn()}
+            backgroundDisplaySettings={DEFAULT_BACKGROUND_DISPLAY_SETTINGS}
+            onBackgroundDisplaySettingsChange={vi.fn()}
+            dailyGoalMinutes={120}
+            onDailyGoalChange={vi.fn()}
+            timerSettings={DEFAULT_TIMER_SETTINGS}
+            onTimerSettingsChange={vi.fn()}
+            clockSettings={DEFAULT_CLOCK_SETTINGS}
+            onClockSettingsChange={vi.fn()}
+            quotesSettings={DEFAULT_QUOTES_SETTINGS}
+            onQuotesSettingsChange={vi.fn()}
+            extrasSettings={extrasSettings}
+            onExtrasSettingsChange={vi.fn()}
+          />
+        </CustomBackgroundProvider>
+      </ThemeProvider>
+    </ToastProvider>
   )
 }
 
