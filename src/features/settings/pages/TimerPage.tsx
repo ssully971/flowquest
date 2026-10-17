@@ -10,6 +10,7 @@ import type { TimerSettings } from '@/features/timer/timer-settings'
 import { SettingsToggleRow } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
+import { TallyIconSetPicker } from './TallyIconSetPicker'
 import { TimerDisplayStylePicker } from './TimerDisplayStylePicker'
 
 interface NumericStepperProps {
@@ -114,6 +115,14 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
         <TimerDisplayStylePicker
           value={settings.displayStyle}
           onChange={(displayStyle) => onChange({ ...settings, displayStyle })}
+        />
+      </div>
+
+      <div>
+        <p className="mb-2 text-sm font-medium text-[var(--panel-muted)]">{s.tallyIconSet}</p>
+        <TallyIconSetPicker
+          value={settings.tallyIconSet}
+          onChange={(tallyIconSet) => onChange({ ...settings, tallyIconSet })}
         />
       </div>
 

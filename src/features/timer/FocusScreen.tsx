@@ -10,8 +10,8 @@ import { useWakeLock } from '@/shared/hooks/useWakeLock'
 import { strings } from '@/shared/i18n'
 
 import type { SegmentKind } from './engine/timer-engine'
-import { CycleDots } from './components/CycleDots'
 import { SegmentTabs } from './components/SegmentTabs'
+import { SessionTally } from './components/SessionTally'
 import { TimerControls } from './components/TimerControls'
 import { TimerFace } from './components/TimerFace'
 import { getDurationForSegment } from './durations'
@@ -89,10 +89,11 @@ export function FocusScreen() {
 
         <SegmentTabs value={timer.segment} onChange={timer.selectSegment} />
 
-        <CycleDots
+        <SessionTally
           total={timerSettings.sessionsBeforeLongBreak}
           completed={timer.cycle.completedFocusCount}
           currentIsFocus={timer.segment === 'focus'}
+          iconSet={timerSettings.tallyIconSet}
         />
 
         <div role="timer" aria-label={`${strings.focus.timeRemaining} : ${displayLabel}`}>

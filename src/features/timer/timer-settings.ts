@@ -1,5 +1,7 @@
 import { POMODORO_DEFAULTS } from './durations'
 import type { PomodoroDurationsMs } from './durations'
+import { TALLY_ICON_SETS } from './tally-icon-set'
+import type { TallyIconSet } from './tally-icon-set'
 import { TIMER_DISPLAY_STYLES } from './timer-display-style'
 import type { TimerDisplayStyle } from './timer-display-style'
 
@@ -11,6 +13,7 @@ export interface TimerSettings {
   autoStartNext: boolean
   showTaskInPip: boolean
   displayStyle: TimerDisplayStyle
+  tallyIconSet: TallyIconSet
 }
 
 export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
@@ -21,10 +24,11 @@ export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
   autoStartNext: false,
   showTaskInPip: true,
   displayStyle: 'default',
+  tallyIconSet: 'dots',
 }
 
-export { TIMER_DISPLAY_STYLES }
-export type { TimerDisplayStyle }
+export { TIMER_DISPLAY_STYLES, TALLY_ICON_SETS }
+export type { TimerDisplayStyle, TallyIconSet }
 
 // Plages du §6.1 du cahier des charges.
 export const FOCUS_MINUTES_RANGE = { min: 10, max: 100, step: 5 }

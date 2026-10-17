@@ -317,6 +317,17 @@ export const fr = {
         'dot-matrix': 'Matrice de points',
         'pie-chart': 'Camembert',
       },
+      tallyIconSet: 'Icônes des sessions',
+      tallyIconSets: {
+        dots: 'Points',
+        stars: 'Étoiles',
+        flames: 'Flammes',
+        leaves: 'Feuilles',
+        coffee: 'Cafés',
+        stethoscope: 'Stéthoscopes',
+        hearts: 'Cœurs',
+        pills: 'Pilules',
+      },
     },
     clock: {
       title: 'Horloge',
