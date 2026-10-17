@@ -17,6 +17,7 @@ import type { AppMode } from '@/app/useAppMode'
 import type { ClockSettings } from '@/features/home/clock-settings'
 import type { QuotesSettings } from '@/features/home/quotes-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
+import { Logo } from '@/shared/design-system'
 import type { BackgroundId } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
@@ -197,6 +198,9 @@ export function SettingsPanel({
             <span className="text-sm font-semibold text-[var(--panel-text)]">
               {strings.settings.title}
             </span>
+          </div>
+          <div className="hidden px-5 pb-2 pt-6 sm:block">
+            <Logo tone="panel" className="h-5 w-auto" />
           </div>
           {NAV_ITEMS.map((item) => {
             const isActive = item.id === activePage
