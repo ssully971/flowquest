@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -13,7 +13,7 @@ vi.mock('@/shared/supabase/client', () => ({
 }))
 
 function renderPanel(open = true, onClose = () => {}) {
-  return render(
+  const utils = render(
     <div>
       <button type="button">Déclencheur</button>
       <div className="relative">
@@ -21,6 +21,18 @@ function renderPanel(open = true, onClose = () => {}) {
       </div>
     </div>,
   )
+  return {
+    ...utils,
+    setOpen: (nextOpen: boolean) =>
+      utils.rerender(
+        <div>
+          <button type="button">Déclencheur</button>
+          <div className="relative">
+            <NotesPanel open={nextOpen} onClose={onClose} />
+          </div>
+        </div>,
+      ),
+  }
 }
 
 let NotesPanel: typeof import('./NotesPanel').NotesPanel
@@ -41,12 +53,45 @@ describe('NotesPanel', () => {
     const user = userEvent.setup()
     renderPanel()
 
-    const textarea = await screen.findByPlaceholderText('Écris une note rapide…')
-    expect(textarea).toHaveValue('')
+    const editor = await screen.findByRole('textbox', { name: 'Écris une note rapide…' })
+    expect(editor).toBeEmptyDOMElement()
     expect(screen.getByText('0 mots · 0 caractères')).toBeInTheDocument()
 
-    await user.type(textarea, 'Deux mots')
-    expect(screen.getByText('2 mots · 9 caractères')).toBeInTheDocument()
+    await user.type(editor, 'Deux mots')
+    await waitFor(() => expect(screen.getByText('2 mots · 9 caractères')).toBeInTheDocument())
+  })
+
+  it('affiche les boutons de mise en forme (gras, italique, titre, listes)', async () => {
+    renderPanel()
+    await screen.findByRole('textbox', { name: 'Écris une note rapide…' })
+
+    expect(screen.getByRole('button', { name: 'Gras' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Italique' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Titre' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Liste à puces' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Liste de cases à cocher' })).toBeInTheDocument()
+  })
+
+  it('affiche le contenu déjà chargé quand le panneau s’ouvre après coup (lot 6)', async () => {
+    // Régression : si le contenu se charge (useNote) avant la première ouverture du
+    // panneau, `content` ne change plus une fois l'éditeur monté — sans re-synchroniser
+    // aussi sur `open`, la note s'afficherait vide à l'ouverture malgré un contenu
+    // déjà enregistré.
+    const db = await getDb()
+    await db.put('notes', { schemaVersion: 1, data: 'Note déjà enregistrée', updatedAt: Date.now() }, 'current')
+
+    const { setOpen } = renderPanel(false)
+    // Laisse le temps à useNote de charger le contenu existant pendant que le panneau
+    // est encore fermé (editorRef n'existe pas encore) : c'est précisément le scénario
+    // de la régression.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    })
+
+    setOpen(true)
+
+    const editor = await screen.findByRole('textbox', { name: 'Écris une note rapide…' })
+    await waitFor(() => expect(editor).toHaveTextContent('Note déjà enregistrée'))
   })
 
   it('ferme le panneau via Échap', async () => {
@@ -54,7 +99,7 @@ describe('NotesPanel', () => {
     const onClose = vi.fn()
     renderPanel(true, onClose)
 
-    await screen.findByPlaceholderText('Écris une note rapide…')
+    await screen.findByRole('textbox', { name: 'Écris une note rapide…' })
     await user.keyboard('{Escape}')
 
     expect(onClose).toHaveBeenCalled()
@@ -65,7 +110,7 @@ describe('NotesPanel', () => {
     const onClose = vi.fn()
     renderPanel(true, onClose)
 
-    await screen.findByPlaceholderText('Écris une note rapide…')
+    await screen.findByRole('textbox', { name: 'Écris une note rapide…' })
     await user.click(screen.getByRole('button', { name: 'Déclencheur' }))
 
     await waitFor(() => expect(onClose).toHaveBeenCalled())

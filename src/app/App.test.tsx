@@ -36,10 +36,10 @@ describe('App', () => {
     render(<App />)
 
     await user.click(screen.getByRole('button', { name: 'Bloc-notes' }))
-    const textarea = await screen.findByPlaceholderText('Écris une note rapide…')
-    await user.type(textarea, 'Idée de session')
+    const editor = await screen.findByRole('textbox', { name: 'Écris une note rapide…' })
+    await user.type(editor, 'Idée de session')
 
-    expect(textarea).toHaveValue('Idée de session')
+    expect(editor).toHaveTextContent('Idée de session')
   })
 
   it('bascule vers Focus et affiche le minuteur une fois restauré', async () => {

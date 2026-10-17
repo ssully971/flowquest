@@ -97,3 +97,69 @@ h3 {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
 }
+
+/* Lot 6 : éditeur de bloc-notes riche (gras, italique, titres, listes, cases, §8). Mise
+   en forme minimale du contenu produit par document.execCommand() — le HTML est assaini
+   (note-html.ts) avant d'être inséré, cette feuille ne fait que l'habiller. */
+.note-editor h2 {
+  margin: 0.5em 0 0.25em;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.note-editor h3 {
+  margin: 0.4em 0 0.2em;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.note-editor p {
+  margin: 0 0 0.4em;
+}
+
+.note-editor ul,
+.note-editor ol {
+  margin: 0 0 0.4em;
+  padding-left: 1.3em;
+}
+
+.note-editor ul {
+  list-style: disc;
+}
+
+.note-editor ol {
+  list-style: decimal;
+}
+
+.note-editor ul.checklist {
+  list-style: none;
+  padding-left: 0;
+}
+
+.note-editor ul.checklist li {
+  position: relative;
+  cursor: pointer;
+  padding-left: 1.5em;
+}
+
+.note-editor ul.checklist li::before {
+  position: absolute;
+  top: 0.15em;
+  left: 0;
+  width: 1em;
+  height: 1em;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: transparent;
+  content: '';
+}
+
+.note-editor ul.checklist li[data-checked='true'] {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.note-editor ul.checklist li[data-checked='true']::before {
+  background: var(--accent);
+  border-color: var(--accent);
+}

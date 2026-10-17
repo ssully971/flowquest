@@ -57,6 +57,11 @@ export const fr = {
     characters: 'caractères',
     saved: 'Enregistré',
     saving: 'Enregistrement…',
+    bold: 'Gras',
+    italic: 'Italique',
+    heading: 'Titre',
+    bulletList: 'Liste à puces',
+    checklist: 'Liste de cases à cocher',
   },
   appearance: {
     label: 'Apparence',
