@@ -163,4 +163,46 @@ describe('useTasks — CRUD local-first, synchro seulement si connecté', () => 
       ])
     })
   })
+
+  it('ajoute une sous-tâche liée à son parent (lot 6, §8)', async () => {
+    const { useTasks } = await import('./useTasks')
+    const { result } = renderHook(() => useTasks())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    await act(async () => {
+      await result.current.addTask('Parent')
+    })
+    await waitFor(() => expect(result.current.tasks).toHaveLength(1))
+    const parentId = result.current.tasks[0].id
+
+    await act(async () => {
+      await result.current.addTask('Sous-tâche', parentId)
+    })
+
+    await waitFor(() => expect(result.current.tasks).toHaveLength(2))
+    const subtask = result.current.tasks.find((t) => t.title === 'Sous-tâche')
+    expect(subtask?.parentId).toBe(parentId)
+  })
+
+  it('supprimer une tâche parente supprime aussi ses sous-tâches', async () => {
+    const { useTasks } = await import('./useTasks')
+    const { result } = renderHook(() => useTasks())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    await act(async () => {
+      await result.current.addTask('Parent')
+    })
+    const parentId = result.current.tasks[0].id
+    await act(async () => {
+      await result.current.addTask('Sous-tâche 1', parentId)
+      await result.current.addTask('Sous-tâche 2', parentId)
+    })
+    await waitFor(() => expect(result.current.tasks).toHaveLength(3))
+
+    await act(async () => {
+      await result.current.removeTask(parentId)
+    })
+
+    await waitFor(() => expect(result.current.tasks).toHaveLength(0))
+  })
 })

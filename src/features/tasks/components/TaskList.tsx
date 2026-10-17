@@ -14,7 +14,30 @@ interface TaskListProps {
   onRemove: (id: string) => void
   onSetActive: (id: string | null) => void
   onUpdateDetails: (id: string, update: TaskDetailsUpdate) => void
+  onAddSubtask: (parentId: string, title: string) => void
   onReorder: (orderedIds: string[]) => void
+}
+
+/** Un seul niveau de sous-tâches (§8) : chaque tâche de premier niveau, suivie de ses
+ * enfants directs — l'ordre de chaque groupe vient de `order`, pas de leur position
+ * d'origine dans ce tableau. */
+function buildNestedOrder(
+  order: string[],
+  byId: Map<string, TaskRecord>,
+): { task: TaskRecord; depth: 0 | 1 }[] {
+  const topLevelIds = order.filter((id) => !byId.get(id)?.parentId)
+  const result: { task: TaskRecord; depth: 0 | 1 }[] = []
+  for (const id of topLevelIds) {
+    const task = byId.get(id)
+    if (!task) continue
+    result.push({ task, depth: 0 })
+    for (const childId of order) {
+      if (byId.get(childId)?.parentId !== id) continue
+      const child = byId.get(childId)
+      if (child) result.push({ task: child, depth: 1 })
+    }
+  }
+  return result
 }
 
 /**
@@ -31,6 +54,7 @@ export function TaskList({
   onRemove,
   onSetActive,
   onUpdateDetails,
+  onAddSubtask,
   onReorder,
 }: TaskListProps) {
   const [order, setOrder] = useState<string[]>(() => tasks.map((task) => task.id))
@@ -43,7 +67,7 @@ export function TaskList({
   }, [tasks])
 
   const byId = new Map(tasks.map((task) => [task.id, task]))
-  const orderedTasks = order.map((id) => byId.get(id)).filter((task): task is TaskRecord => !!task)
+  const nestedOrder = buildNestedOrder(order, byId)
 
   const handleDragPointerDown = (event: ReactPointerEvent, id: string) => {
     draggingIdRef.current = id
@@ -57,6 +81,10 @@ export function TaskList({
     const row = el?.closest<HTMLElement>('[data-task-id]')
     const overId = row?.dataset.taskId
     if (!overId || overId === draggingId) return
+    // On ne glisse jamais une tâche de premier niveau au milieu des sous-tâches d'une
+    // autre, ni l'inverse : seules les tâches qui partagent le même parent (ou n'en ont
+    // aucune) peuvent s'échanger.
+    if ((byId.get(draggingId)?.parentId ?? null) !== (byId.get(overId)?.parentId ?? null)) return
 
     setOrder((prev) => {
       const from = prev.indexOf(draggingId)
@@ -86,16 +114,18 @@ export function TaskList({
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
     >
-      {orderedTasks.map((task) => (
+      {nestedOrder.map(({ task, depth }) => (
         <TaskRow
           key={task.id}
           task={task}
+          depth={depth}
           isActive={task.id === activeTaskId}
           onToggleDone={onToggleDone}
           onRename={onRename}
           onRemove={onRemove}
           onSetActive={onSetActive}
           onUpdateDetails={onUpdateDetails}
+          onAddSubtask={onAddSubtask}
           onDragPointerDown={handleDragPointerDown}
         />
       ))}

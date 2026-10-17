@@ -18,7 +18,7 @@ export interface TaskDetailsUpdate {
 export interface UseTasksResult {
   tasks: TaskRecord[]
   isLoading: boolean
-  addTask: (title: string) => Promise<void>
+  addTask: (title: string, parentId?: string | null) => Promise<void>
   toggleDone: (id: string) => Promise<void>
   renameTask: (id: string, title: string) => Promise<void>
   removeTask: (id: string) => Promise<void>
@@ -55,18 +55,19 @@ export function useTasks(): UseTasksResult {
     }
   }, [refresh])
 
-  const addTask = useCallback(async (title: string) => {
+  const addTask = useCallback(async (title: string, parentId: string | null = null) => {
     const trimmed = title.trim()
     if (!trimmed) return
     const current = await repo.listAll()
+    const siblingCount = current.filter((t) => t.parentId === parentId).length
     const task: TaskRecord = {
       id: crypto.randomUUID(),
       title: trimmed,
       emoji: null,
       color: null,
       etaMinutes: null,
-      parentId: null,
-      position: current.length,
+      parentId,
+      position: siblingCount,
       done: false,
       doneAt: null,
       createdAt: Date.now(),
@@ -115,9 +116,14 @@ export function useTasks(): UseTasksResult {
   }, [])
 
   const removeTask = useCallback(async (id: string) => {
-    await repo.remove(id)
+    const current = await repo.listAll()
+    // Les sous-tâches n'ont qu'un seul niveau (pas de petits-enfants) : supprimer un
+    // parent supprime ses enfants directs, en local comme côté Supabase (parent_id ON
+    // DELETE CASCADE côté serveur, mais IndexedDB ne connaît pas les contraintes SQL).
+    const idsToRemove = [id, ...current.filter((t) => t.parentId === id).map((t) => t.id)]
+    await Promise.all(idsToRemove.map((taskId) => repo.remove(taskId)))
     const userId = getCurrentUserId()
-    if (userId) void deleteTaskRemote(id)
+    if (userId) idsToRemove.forEach((taskId) => void deleteTaskRemote(taskId))
     notifyTasksChanged()
   }, [])
 

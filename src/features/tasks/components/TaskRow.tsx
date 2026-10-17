@@ -1,5 +1,5 @@
-import { Check, ChevronDown, ChevronRight, GripVertical, Target, X } from 'lucide-react'
-import type { PointerEvent as ReactPointerEvent } from 'react'
+import { Check, ChevronDown, ChevronRight, GripVertical, Plus, Target, X } from 'lucide-react'
+import type { FormEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 
 import type { TaskRecord } from '@/shared/storage/db'
@@ -11,21 +11,69 @@ import { TASK_EMOJIS } from '../task-emoji'
 
 interface TaskRowProps {
   task: TaskRecord
+  depth: 0 | 1
   isActive: boolean
   onToggleDone: (id: string) => void
   onRename: (id: string, title: string) => void
   onRemove: (id: string) => void
   onSetActive: (id: string | null) => void
   onUpdateDetails: (id: string, update: TaskDetailsUpdate) => void
+  onAddSubtask: (parentId: string, title: string) => void
   onDragPointerDown: (event: ReactPointerEvent, id: string) => void
+}
+
+function AddSubtaskForm({ onAdd }: { onAdd: (title: string) => void }) {
+  const s = strings.tasks
+  const [isOpen, setIsOpen] = useState(false)
+  const [title, setTitle] = useState('')
+
+  if (!isOpen) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="inline-flex items-center gap-1 self-start text-xs text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
+      >
+        <Plus size={14} strokeWidth={1.75} aria-hidden="true" />
+        {s.addSubtask}
+      </button>
+    )
+  }
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault()
+    if (!title.trim()) return
+    onAdd(title)
+    setTitle('')
+    setIsOpen(false)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex gap-2">
+      <input
+        autoFocus
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+        onBlur={() => {
+          if (!title.trim()) setIsOpen(false)
+        }}
+        placeholder={s.addPlaceholder}
+        className="h-8 flex-1 rounded-lg border border-[var(--line)] bg-transparent px-2 text-sm text-[var(--text)] outline-none transition-colors duration-200 focus:border-[var(--accent)]"
+      />
+    </form>
+  )
 }
 
 function TaskDetailsEditor({
   task,
+  allowSubtasks,
   onUpdateDetails,
+  onAddSubtask,
 }: {
   task: TaskRecord
+  allowSubtasks: boolean
   onUpdateDetails: (update: TaskDetailsUpdate) => void
+  onAddSubtask: (title: string) => void
 }) {
   const s = strings.tasks
 
@@ -88,18 +136,22 @@ function TaskDetailsEditor({
           className="h-8 w-28 rounded-lg border border-[var(--line)] bg-transparent px-2 text-sm text-[var(--text)] outline-none transition-colors duration-200 focus:border-[var(--accent)]"
         />
       </div>
+
+      {allowSubtasks ? <AddSubtaskForm onAdd={onAddSubtask} /> : null}
     </div>
   )
 }
 
 export function TaskRow({
   task,
+  depth,
   isActive,
   onToggleDone,
   onRename,
   onRemove,
   onSetActive,
   onUpdateDetails,
+  onAddSubtask,
   onDragPointerDown,
 }: TaskRowProps) {
   const [isEditing, setIsEditing] = useState(false)
@@ -128,7 +180,10 @@ export function TaskRow({
             ? 'border-[var(--accent)] bg-[var(--surface-2)]'
             : 'border-transparent hover:bg-[var(--surface-2)]'
         }`}
-        style={task.color ? { boxShadow: `inset 3px 0 0 ${task.color}` } : undefined}
+        style={{
+          marginLeft: depth * 20,
+          boxShadow: task.color ? `inset 3px 0 0 ${task.color}` : undefined,
+        }}
       >
         <button
           type="button"
@@ -226,7 +281,9 @@ export function TaskRow({
       {detailsOpen ? (
         <TaskDetailsEditor
           task={task}
+          allowSubtasks={depth === 0}
           onUpdateDetails={(update) => onUpdateDetails(task.id, update)}
+          onAddSubtask={(title) => onAddSubtask(task.id, title)}
         />
       ) : null}
     </li>

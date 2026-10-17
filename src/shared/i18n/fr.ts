@@ -47,6 +47,7 @@ export const fr = {
     etaPlaceholder: 'Durée (min)',
     noEmoji: 'Aucun emoji',
     noColor: 'Aucune couleur',
+    addSubtask: 'Ajouter une sous-tâche',
   },
   notes: {
     title: 'Bloc-notes',

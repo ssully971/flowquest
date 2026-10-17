@@ -30,12 +30,14 @@ function renderRow(task: TaskRecord, onUpdateDetails = vi.fn()) {
       <ul>
         <TaskRow
           task={task}
+          depth={0}
           isActive={false}
           onToggleDone={vi.fn()}
           onRename={vi.fn()}
           onRemove={vi.fn()}
           onSetActive={vi.fn()}
           onUpdateDetails={onUpdateDetails}
+          onAddSubtask={vi.fn()}
           onDragPointerDown={vi.fn()}
         />
       </ul>,

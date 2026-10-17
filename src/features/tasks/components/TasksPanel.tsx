@@ -108,6 +108,7 @@ export function TasksPanel({ open, onClose }: TasksPanelProps) {
           onRemove={handleRemove}
           onSetActive={setActiveTaskId}
           onUpdateDetails={(id, update) => void updateTaskDetails(id, update)}
+          onAddSubtask={(parentId, title) => void addTask(title, parentId)}
           onReorder={(ids) => void reorderTasks(ids)}
         />
       )}
