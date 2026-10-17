@@ -20,9 +20,12 @@ import type { TimerSettings } from '@/features/timer/timer-settings'
 import type { BackgroundId } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
+import { CHANGELOG } from './changelog'
+import { getLastSeenChangelogVersion, markChangelogSeen } from './changelog-seen'
 import type { ExtrasSettings } from './extras-settings'
 import type { SettingsPageId } from './page-id'
 import { AccountPage } from './pages/AccountPage'
+import { ChangelogPage } from './pages/ChangelogPage'
 import { ClockPage } from './pages/ClockPage'
 import { ExtrasPage } from './pages/ExtrasPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
@@ -92,9 +95,15 @@ export function SettingsPanel({
   const [mounted, setMounted] = useState(open)
   const [entered, setEntered] = useState(false)
   const [activePage, setActivePage] = useState<PageId>(() => extrasSettings.defaultSettingsTab)
+  const [lastSeenChangelogVersion, setLastSeenChangelogVersion] = useState(() =>
+    getLastSeenChangelogVersion(),
+  )
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  const latestChangelogVersion = CHANGELOG[0]?.version
+  const hasUnreadChangelog =
+    latestChangelogVersion !== undefined && lastSeenChangelogVersion !== latestChangelogVersion
 
   if (open && !mounted) {
     setMounted(true)
@@ -102,6 +111,10 @@ export function SettingsPanel({
   }
   if (!open && entered) {
     setEntered(false)
+  }
+  if (activePage === 'changelog' && hasUnreadChangelog && latestChangelogVersion !== undefined) {
+    markChangelogSeen(latestChangelogVersion)
+    setLastSeenChangelogVersion(latestChangelogVersion)
   }
 
   useEffect(() => {
@@ -206,6 +219,13 @@ export function SettingsPanel({
               >
                 <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
                 {item.label}
+                {item.id === 'changelog' && hasUnreadChangelog ? (
+                  <span
+                    aria-label={strings.settings.changelog.unreadBadge}
+                    className="h-1.5 w-1.5 shrink-0 rounded-full"
+                    style={{ background: 'var(--accent)' }}
+                  />
+                ) : null}
               </button>
             )
           })}
@@ -244,6 +264,8 @@ export function SettingsPanel({
             <ExtrasPage settings={extrasSettings} onChange={onExtrasSettingsChange} />
           ) : activePage === 'support' ? (
             <SupportPage />
+          ) : activePage === 'changelog' ? (
+            <ChangelogPage />
           ) : (
             <PlaceholderPage
               title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}

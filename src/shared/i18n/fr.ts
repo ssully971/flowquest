@@ -289,6 +289,7 @@ export const fr = {
     changelog: {
       title: 'Nouveautés',
       empty: 'Aucune nouveauté pour l’instant.',
+      unreadBadge: 'Nouveau',
     },
   },
 } as const

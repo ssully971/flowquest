@@ -8,6 +8,7 @@ import { DEFAULT_EXTRAS_SETTINGS } from '@/features/settings/extras-settings'
 import { DEFAULT_TIMER_SETTINGS } from '@/features/timer/timer-settings'
 import { ThemeProvider } from '@/shared/design-system'
 
+import { CHANGELOG } from './changelog'
 import { SettingsPanel } from './SettingsPanel'
 
 function panel(open: boolean, onClose: () => void, extrasSettings = DEFAULT_EXTRAS_SETTINGS) {
@@ -182,5 +183,46 @@ describe('SettingsPanel — onglet ouvert par défaut (§7.6 Extras)', () => {
     rerender(true)
     await screen.findByRole('dialog')
     expect(screen.getAllByText('Thèmes').length).toBeGreaterThan(0)
+  })
+})
+
+describe('SettingsPanel — badge « nouveau » sur Nouveautés (§7.9)', () => {
+  it('affiche le badge tant que la dernière entrée n’a pas été vue', async () => {
+    renderPanel(true)
+    await screen.findByRole('dialog')
+    expect(
+      screen
+        .getByRole('button', { name: /Nouveautés/ })
+        .querySelector('span[aria-label="Nouveau"]'),
+    ).not.toBeNull()
+  })
+
+  it('masque le badge après avoir ouvert Nouveautés, et il reste masqué après réouverture', async () => {
+    const user = userEvent.setup()
+    const { rerender } = renderPanel(true)
+    await screen.findByRole('dialog')
+
+    await user.click(screen.getByRole('button', { name: /Nouveautés/ }))
+    expect(screen.getByText(CHANGELOG[0].text)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(
+        screen
+          .getByRole('button', { name: /Nouveautés/ })
+          .querySelector('span[aria-label="Nouveau"]'),
+      ).toBeNull()
+    })
+
+    rerender(false)
+    const dialog = screen.getByRole('dialog', { name: 'Réglages' })
+    fireEvent.transitionEnd(dialog)
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    rerender(true)
+    await screen.findByRole('dialog')
+    expect(
+      screen
+        .getByRole('button', { name: /Nouveautés/ })
+        .querySelector('span[aria-label="Nouveau"]'),
+    ).toBeNull()
   })
 })
