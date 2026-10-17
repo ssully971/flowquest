@@ -128,6 +128,32 @@ export function computeDailyFocus(
   return result
 }
 
+export interface WeekFocus {
+  /** Lundi de la semaine (minuit local), en epoch ms. */
+  weekStart: number
+  focusSeconds: number
+  sessionsCount: number
+}
+
+/**
+ * Regroupe un historique jour par jour en semaines (lundi à dimanche) — utilisé par la
+ * courbe de tendance (§9) sur les longues périodes, où une barre par jour serait
+ * illisible (ex. un an = 365 barres).
+ */
+export function aggregateWeeklyFocus(days: DayFocus[]): WeekFocus[] {
+  const byWeek = new Map<number, WeekFocus>()
+  for (const day of days) {
+    const weekday = new Date(day.dayStart).getDay() // 0 = dimanche
+    const mondayOffset = (weekday + 6) % 7
+    const weekStart = day.dayStart - mondayOffset * DAY_MS
+    const existing = byWeek.get(weekStart) ?? { weekStart, focusSeconds: 0, sessionsCount: 0 }
+    existing.focusSeconds += day.focusSeconds
+    existing.sessionsCount += day.sessionsCount
+    byWeek.set(weekStart, existing)
+  }
+  return Array.from(byWeek.values()).sort((a, b) => a.weekStart - b.weekStart)
+}
+
 export const STATS_PERIODS = ['today', 'week', 'month', '3months', '6months', 'year', 'all'] as const
 export type StatsPeriod = (typeof STATS_PERIODS)[number]
 
@@ -142,6 +168,15 @@ const PERIOD_DAYS: Record<StatsPeriod, number | null> = {
   '6months': 182,
   year: 365,
   all: null,
+}
+
+/** Fenêtre (en jours) à afficher pour la tendance de focus sur la période choisie (§9 :
+ * « courbe sur la période choisie »), avec un minimum de 7 jours (un seul point n'a pas
+ * de courbe) et un plafond d'un an pour « depuis le début » (historique potentiellement
+ * illimité). */
+export function getTrendWindowDays(period: StatsPeriod): number {
+  const days = PERIOD_DAYS[period]
+  return days === null ? 365 : Math.max(7, days)
 }
 
 export interface PeriodStats {

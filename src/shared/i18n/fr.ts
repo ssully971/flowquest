@@ -327,8 +327,6 @@ export const fr = {
       unitHours: 'Heures',
       unitSessions: 'Sessions',
       trendTitle: 'Tendance de focus',
-      trend7d: '7 jours',
-      trend30d: '30 jours',
       period: 'Période',
       periods: {
         today: 'Aujourd’hui',

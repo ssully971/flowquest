@@ -3,12 +3,15 @@ import { describe, expect, it } from 'vitest'
 import type { FocusSessionRecord, TaskRecord } from '@/shared/storage/db'
 
 import {
+  aggregateWeeklyFocus,
   computeDailyFocus,
   computePeriodStats,
   computeStats,
   getNextStreakMilestone,
+  getTrendWindowDays,
   percentChange,
 } from './compute-stats'
+import type { DayFocus } from './compute-stats'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -259,5 +262,46 @@ describe('percentChange — variation vs période précédente, pour la flèche 
 
   it('renvoie null quand la période précédente est à 0 mais pas la courante (variation infinie)', () => {
     expect(percentChange(10, 0)).toBeNull()
+  })
+})
+
+describe('getTrendWindowDays — fenêtre d’affichage de la courbe de tendance (§9)', () => {
+  it('suit la longueur de la période, avec un minimum de 7 jours', () => {
+    expect(getTrendWindowDays('today')).toBe(7)
+    expect(getTrendWindowDays('week')).toBe(7)
+    expect(getTrendWindowDays('month')).toBe(30)
+    expect(getTrendWindowDays('year')).toBe(365)
+  })
+
+  it('plafonne « depuis le début » à un an', () => {
+    expect(getTrendWindowDays('all')).toBe(365)
+  })
+})
+
+describe('aggregateWeeklyFocus — regroupement en semaines (lundi à dimanche) pour les longues périodes', () => {
+  function day(dayStart: number, focusSeconds: number, sessionsCount: number): DayFocus {
+    return { dayStart, focusSeconds, sessionsCount, goalMet: false }
+  }
+
+  it('cumule les jours d’une même semaine (lundi à dimanche)', () => {
+    const monday = Date.UTC(2026, 0, 12) // lundi 12 janvier 2026
+    const sunday = monday + 6 * DAY_MS
+    const days = [day(monday, 600, 1), day(monday + DAY_MS, 300, 1), day(sunday, 900, 2)]
+
+    const weeks = aggregateWeeklyFocus(days)
+    expect(weeks).toEqual([{ weekStart: monday, focusSeconds: 1800, sessionsCount: 4 }])
+  })
+
+  it('sépare deux semaines distinctes, triées chronologiquement', () => {
+    const monday = Date.UTC(2026, 0, 12)
+    const nextMonday = monday + 7 * DAY_MS
+    const days = [day(nextMonday, 300, 1), day(monday, 600, 1)] // ordre volontairement inversé
+
+    const weeks = aggregateWeeklyFocus(days)
+    expect(weeks.map((w) => w.weekStart)).toEqual([monday, nextMonday])
+  })
+
+  it('renvoie un tableau vide pour un historique vide', () => {
+    expect(aggregateWeeklyFocus([])).toEqual([])
   })
 })

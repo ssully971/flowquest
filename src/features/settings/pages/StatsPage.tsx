@@ -1,6 +1,7 @@
 import { Minus, Plus } from 'lucide-react'
 import { useState } from 'react'
 
+import { getTrendWindowDays } from '@/features/stats/compute-stats'
 import type { StatsPeriod } from '@/features/stats/compute-stats'
 import {
   DAILY_GOAL_STEP_MINUTES,
@@ -16,8 +17,6 @@ import { strings } from '@/shared/i18n'
 import { CalendarSection } from './stats/CalendarSection'
 import { FocusTrend } from './stats/FocusTrend'
 import { PeriodStatCards } from './stats/PeriodStatCards'
-
-const TREND_DAYS = 30
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
@@ -35,9 +34,9 @@ interface StatsPageProps {
 
 export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProps) {
   const stats = useDashboardStats(dailyGoalMinutes)
-  const trendDays = useDailyFocusHistory(TREND_DAYS, dailyGoalMinutes)
   const [period, setPeriod] = useState<StatsPeriod>('week')
   const periodStats = usePeriodStats(period)
+  const trendDays = useDailyFocusHistory(getTrendWindowDays(period), dailyGoalMinutes)
   const s = strings.settings.stats
 
   const hasAnyData =
@@ -111,7 +110,7 @@ export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProp
       <CalendarSection dailyGoalMinutes={dailyGoalMinutes} />
 
       {trendDays ? (
-        <FocusTrend days7={trendDays.slice(-7)} days30={trendDays.slice(-30)} />
+        <FocusTrend days={trendDays} dailyGoalMinutes={dailyGoalMinutes} />
       ) : null}
     </div>
   )
