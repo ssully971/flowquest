@@ -56,9 +56,9 @@ describe('AppShell — mise en page en calques (pas de décalage par la barre du
     expect(bottomBar).not.toBeNull()
   })
 
-  it('le conteneur racine utilise 100svh (hauteur garantie visible, même avec la barre Safari affichée)', () => {
+  it('le conteneur racine utilise 100dvh (suit la barre d’outils Safari en temps réel, lot 3 : plus de bande vide quand elle se masque)', () => {
     const { container } = renderAppShell(<div>Contenu</div>)
-    expect(container.firstElementChild?.className).toContain('h-svh')
+    expect(container.firstElementChild?.className).toContain('h-dvh')
   })
 })
 

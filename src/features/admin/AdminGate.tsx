@@ -16,7 +16,7 @@ export function AdminGate() {
 
   if (status === 'loading') {
     return (
-      <div className="flex min-h-svh items-center justify-center bg-[var(--bg)] text-sm text-[var(--muted)]">
+      <div className="flex min-h-dvh items-center justify-center bg-[var(--bg)] text-sm text-[var(--muted)]">
         {strings.admin.loading}
       </div>
     )
@@ -24,7 +24,7 @@ export function AdminGate() {
 
   if (status !== 'authenticated' || profile?.role !== 'admin') {
     return (
-      <div className="flex min-h-svh flex-col items-center justify-center gap-4 bg-[var(--bg)] p-6 text-center text-[var(--text)]">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[var(--bg)] p-6 text-center text-[var(--text)]">
         <p className="text-sm text-[var(--muted)]">{strings.admin.denied}</p>
         <a href="/" className="text-sm text-[var(--accent)] underline-offset-2 hover:underline">
           {strings.admin.backHome}

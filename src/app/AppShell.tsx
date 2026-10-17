@@ -115,7 +115,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const CurrentBackground = getBackgroundDefinition(selection[mode]).Component
 
   return (
-    <div className="relative h-svh overflow-hidden">
+    <div className="relative h-dvh overflow-hidden">
       <CurrentBackground />
       <div key={mode} className="absolute inset-0" style={{ animation: 'screen-fade-in 200ms ease-out' }}>
         {children}

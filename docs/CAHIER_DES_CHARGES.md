@@ -368,6 +368,11 @@ Contrastes : texte courant ≥ 4,5:1, grand texte ≥ 3:1 sur les deux thèmes (
 - **Réglages > Thèmes** : titre 40 px ; apparence (segment Sombre / Clair / Système) ; onglets Accueil / Focus / Ambiant ; aperçu en direct (horloge sur le fond choisi) ; bibliothèque filtrable avec une grande vignette (fond actuel) et des vignettes plus petites, asymétriques.
 - **Mode ambiant** : non maquetté ; mêmes principes, minuteur compact en carte en haut à droite.
 - **Responsive** : vérifier 360 px, tablette (iPad en priorité) et ordinateur ; sur petit écran, la navigation des réglages passe au-dessus du contenu.
+- Hauteur plein écran en `100dvh` (pas `100svh`) : Safari iPad/iPhone redimensionne sa barre
+  d'outils en scrollant, et `svh` reste figée sur le pire cas (barre affichée), laissant une
+  bande vide en bas quand elle se masque. `dvh` suit la hauteur réellement visible. Corrigé
+  au lot 3 (bug remonté sur le fond « Respiration », mais le conteneur racine concerné est
+  partagé par tous les fonds).
 
 ### 20.7 Contenu initial
 - Citation de départ : « La vie est brève, l'art est long. » (Hippocrate), les suivantes viennent de l'admin.
