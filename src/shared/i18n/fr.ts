@@ -341,6 +341,8 @@ export const fr = {
       sessionsCount: 'Nombre de sessions',
       pauseTime: 'Temps de pause',
       tasksCompleted: 'Tâches terminées',
+      focusScore: 'Score de focus',
+      focusScoreHint: 'Taux de sessions menées à terme × régularité (jours actifs) sur la période.',
       session: 'session',
       sessions: 'sessions',
       task: 'tâche',

@@ -10,6 +10,7 @@ import {
 } from '@/features/stats/useDailyGoal'
 import { useDailyFocusHistory } from '@/features/stats/useDailyFocusHistory'
 import { useDashboardStats } from '@/features/stats/useDashboardStats'
+import { useFocusScore } from '@/features/stats/useFocusScore'
 import { usePeriodStats } from '@/features/stats/usePeriodStats'
 import { formatFocusDuration } from '@/features/stats/format'
 import { strings } from '@/shared/i18n'
@@ -36,6 +37,7 @@ export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProp
   const stats = useDashboardStats(dailyGoalMinutes)
   const [period, setPeriod] = useState<StatsPeriod>('week')
   const periodStats = usePeriodStats(period)
+  const focusScore = useFocusScore(period)
   const trendDays = useDailyFocusHistory(getTrendWindowDays(period), dailyGoalMinutes)
   const s = strings.settings.stats
 
@@ -103,7 +105,12 @@ export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProp
             />
           </div>
 
-          <PeriodStatCards period={period} onPeriodChange={setPeriod} stats={periodStats} />
+          <PeriodStatCards
+            period={period}
+            onPeriodChange={setPeriod}
+            stats={periodStats}
+            focusScore={focusScore}
+          />
         </>
       )}
 

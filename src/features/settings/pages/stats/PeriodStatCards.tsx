@@ -1,5 +1,5 @@
 import { percentChange, STATS_PERIODS } from '@/features/stats/compute-stats'
-import type { PeriodComparison, StatsPeriod } from '@/features/stats/compute-stats'
+import type { FocusScoreComparison, PeriodComparison, StatsPeriod } from '@/features/stats/compute-stats'
 import { formatFocusDuration } from '@/features/stats/format'
 import { strings } from '@/shared/i18n'
 
@@ -9,6 +9,7 @@ interface PeriodStatCardsProps {
   period: StatsPeriod
   onPeriodChange: (period: StatsPeriod) => void
   stats: PeriodComparison | null
+  focusScore: FocusScoreComparison | null
 }
 
 function StatDelta({ percent }: { percent: number | null }) {
@@ -29,21 +30,24 @@ function PeriodStatCard({
   label,
   value,
   percent,
+  hint,
 }: {
   label: string
   value: string
   percent: number | null
+  hint?: string
 }) {
   return (
     <div className="flex flex-col gap-1 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] px-5 py-4">
       <span className="text-xs text-[var(--panel-muted)]">{label}</span>
       <span className="text-2xl font-semibold text-[var(--panel-text)]">{value}</span>
       <StatDelta percent={percent} />
+      {hint ? <span className="text-[11px] text-[var(--panel-muted)]">{hint}</span> : null}
     </div>
   )
 }
 
-export function PeriodStatCards({ period, onPeriodChange, stats }: PeriodStatCardsProps) {
+export function PeriodStatCards({ period, onPeriodChange, stats, focusScore }: PeriodStatCardsProps) {
   const s = strings.settings.stats
   if (!stats) return null
   const { current, previous } = stats
@@ -85,6 +89,18 @@ export function PeriodStatCards({ period, onPeriodChange, stats }: PeriodStatCar
           value={`${current.tasksCompleted} ${current.tasksCompleted === 1 ? s.task : s.tasks}`}
           percent={previous ? percentChange(current.tasksCompleted, previous.tasksCompleted) : null}
         />
+        {focusScore ? (
+          <PeriodStatCard
+            label={s.focusScore}
+            value={`${focusScore.current.score} %`}
+            percent={
+              focusScore.previous
+                ? percentChange(focusScore.current.score, focusScore.previous.score)
+                : null
+            }
+            hint={s.focusScoreHint}
+          />
+        ) : null}
       </div>
     </div>
   )

@@ -220,6 +220,17 @@ function sumPeriodStats(
   }
 }
 
+/** Bornes d'une fenêtre glissante de `days` jours se terminant aujourd'hui, et de la
+ * fenêtre précédente de même longueur immédiatement avant — base commune à toutes les
+ * comparaisons « vs période précédente » du §9. */
+function getRollingWindow(
+  todayStart: number,
+  days: number,
+): { start: number; previousStart: number; previousEnd: number } {
+  const start = todayStart - (days - 1) * DAY_MS
+  return { start, previousStart: start - days * DAY_MS, previousEnd: start - 1 }
+}
+
 /**
  * Cartes « temps de focus / nombre de sessions / temps de pause / tâches terminées »
  * du §9, pour la période choisie, comparées à la période précédente de même longueur
@@ -238,13 +249,11 @@ export function computePeriodStats(
     return { current: sumPeriodStats(sessions, tasks, null, now), previous: null }
   }
 
-  const windowStart = todayStart - (days - 1) * DAY_MS
-  const previousWindowEnd = windowStart - 1
-  const previousWindowStart = windowStart - days * DAY_MS
+  const { start, previousStart, previousEnd } = getRollingWindow(todayStart, days)
 
   return {
-    current: sumPeriodStats(sessions, tasks, windowStart, now),
-    previous: sumPeriodStats(sessions, tasks, previousWindowStart, previousWindowEnd),
+    current: sumPeriodStats(sessions, tasks, start, now),
+    previous: sumPeriodStats(sessions, tasks, previousStart, previousEnd),
   }
 }
 
@@ -254,4 +263,83 @@ export function computePeriodStats(
 export function percentChange(current: number, previous: number): number | null {
   if (previous === 0) return current === 0 ? 0 : null
   return ((current - previous) / previous) * 100
+}
+
+export interface FocusScore {
+  /** Taux de complétion × régularité, arrondi, de 0 à 100. */
+  score: number
+  /** Part des sessions de focus lancées (terminées ou abandonnées) qui sont allées
+   * jusqu'au bout, arrondie, de 0 à 100. */
+  completionRate: number
+  /** Part des jours de la période avec au moins une session de focus lancée, arrondie,
+   * de 0 à 100. */
+  regularityRate: number
+}
+
+export interface FocusScoreComparison {
+  current: FocusScore
+  /** `null` pour « depuis le début » : aucune période précédente comparable. */
+  previous: FocusScore | null
+}
+
+const EMPTY_FOCUS_SCORE: FocusScore = { score: 0, completionRate: 0, regularityRate: 0 }
+
+function computeFocusScoreForWindow(
+  sessions: FocusSessionRecord[],
+  windowStart: number | null,
+  windowEnd: number,
+  totalDays: number,
+): FocusScore {
+  const inWindow = (timestamp: number) =>
+    (windowStart === null || timestamp >= windowStart) && timestamp <= windowEnd
+  const startedFocus = sessions.filter((session) => session.kind === 'focus' && inWindow(session.startedAt))
+  if (startedFocus.length === 0 || totalDays <= 0) return EMPTY_FOCUS_SCORE
+
+  const completionRate =
+    (startedFocus.filter((session) => session.completed).length / startedFocus.length) * 100
+
+  const activeDays = new Set(startedFocus.map((session) => startOfDay(session.startedAt))).size
+  const regularityRate = Math.min(100, (activeDays / totalDays) * 100)
+
+  return {
+    score: Math.round((completionRate / 100) * (regularityRate / 100) * 100),
+    completionRate: Math.round(completionRate),
+    regularityRate: Math.round(regularityRate),
+  }
+}
+
+/**
+ * Score de focus (§9, définition validée) : taux de sessions de focus lancées qui sont
+ * allées jusqu'au bout, pondéré par la régularité (part des jours de la période avec au
+ * moins une session). Pour « depuis le début », la période part de la toute première
+ * session de focus jamais lancée plutôt que d'une fenêtre fixe.
+ */
+export function computeFocusScore(
+  sessions: FocusSessionRecord[],
+  now: number,
+  period: StatsPeriod,
+): FocusScoreComparison {
+  const todayStart = startOfDay(now)
+  const days = PERIOD_DAYS[period]
+
+  if (days === null) {
+    const focusStartTimes = sessions
+      .filter((session) => session.kind === 'focus')
+      .map((session) => session.startedAt)
+    if (focusStartTimes.length === 0) return { current: EMPTY_FOCUS_SCORE, previous: null }
+
+    const earliestDay = startOfDay(Math.min(...focusStartTimes))
+    const totalDays = Math.round((todayStart - earliestDay) / DAY_MS) + 1
+    return {
+      current: computeFocusScoreForWindow(sessions, earliestDay, now, totalDays),
+      previous: null,
+    }
+  }
+
+  const { start, previousStart, previousEnd } = getRollingWindow(todayStart, days)
+
+  return {
+    current: computeFocusScoreForWindow(sessions, start, now, days),
+    previous: computeFocusScoreForWindow(sessions, previousStart, previousEnd, days),
+  }
 }

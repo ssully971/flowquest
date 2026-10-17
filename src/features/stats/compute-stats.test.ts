@@ -5,6 +5,7 @@ import type { FocusSessionRecord, TaskRecord } from '@/shared/storage/db'
 import {
   aggregateWeeklyFocus,
   computeDailyFocus,
+  computeFocusScore,
   computePeriodStats,
   computeStats,
   getNextStreakMilestone,
@@ -303,5 +304,54 @@ describe('aggregateWeeklyFocus — regroupement en semaines (lundi à dimanche) 
 
   it('renvoie un tableau vide pour un historique vide', () => {
     expect(aggregateWeeklyFocus([])).toEqual([])
+  })
+})
+
+describe('computeFocusScore — taux de complétion × régularité (§9, formule validée)', () => {
+  it('combine taux de complétion et régularité sur la période', () => {
+    const now = Date.UTC(2026, 0, 15, 20, 0, 0) // jeudi
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 1000, completed: true }),
+      session({ startedAt: now - 500, completed: false }),
+      session({ startedAt: now - DAY_MS, completed: true }),
+    ]
+    const { current } = computeFocusScore(sessions, now, 'week')
+    // 2 sessions terminées sur 3 lancées -> 66,67 % ; 2 jours actifs sur 7 -> 28,57 %
+    expect(current.completionRate).toBe(67)
+    expect(current.regularityRate).toBe(29)
+    expect(current.score).toBe(19) // round(0,6667 × 0,2857 × 100)
+  })
+
+  it('compare à la période précédente de même longueur', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0)
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 1000, completed: true }), // cette semaine : 1/1 complété
+      session({ startedAt: now - 10 * DAY_MS, completed: false }), // semaine précédente : 0/1 complété
+    ]
+    const { current, previous } = computeFocusScore(sessions, now, 'week')
+    expect(current.completionRate).toBe(100)
+    expect(previous?.completionRate).toBe(0)
+  })
+
+  it('aucune session lancée : score à 0', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0)
+    expect(computeFocusScore([], now, 'week').current).toEqual({
+      score: 0,
+      completionRate: 0,
+      regularityRate: 0,
+    })
+  })
+
+  it('« depuis le début » part de la toute première session de focus lancée, sans comparaison', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0)
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 2 * DAY_MS, completed: true }), // 1re session jamais lancée
+      session({ startedAt: now, completed: true }),
+    ]
+    const { current, previous } = computeFocusScore(sessions, now, 'all')
+    // Fenêtre de 3 jours (J-2 à J), 2 jours actifs -> régularité 66,67 %
+    expect(current.regularityRate).toBe(67)
+    expect(current.completionRate).toBe(100)
+    expect(previous).toBeNull()
   })
 })
