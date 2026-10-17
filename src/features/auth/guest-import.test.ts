@@ -52,7 +52,7 @@ describe('hasLocalGuestData — ne propose l’import que s’il y a vraiment qu
     await new IndexedDbSettingsRepository().save(
       {
         appearance: 'dark',
-        backgrounds: { home: 'brume', focus: 'horizon' },
+        backgrounds: { home: 'brume', focus: 'horizon', ambient: 'horizon' },
         activeTaskId: null,
         dailyGoalMinutes: 120,
         timerSettings: DEFAULT_TIMER_SETTINGS,
@@ -100,7 +100,7 @@ describe('importGuestDataToAccount — pousse les données locales vers le compt
     await new IndexedDbSettingsRepository().save(
       {
         appearance: 'dark',
-        backgrounds: { home: 'brume', focus: 'horizon' },
+        backgrounds: { home: 'brume', focus: 'horizon', ambient: 'horizon' },
         activeTaskId: null,
         dailyGoalMinutes: 120,
         timerSettings: DEFAULT_TIMER_SETTINGS,

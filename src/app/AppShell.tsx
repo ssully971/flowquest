@@ -39,6 +39,7 @@ interface AppShellProps {
 const MODE_OPTIONS: { value: AppMode; label: string }[] = [
   { value: 'home', label: strings.common.modeHome },
   { value: 'focus', label: strings.common.modeFocus },
+  { value: 'ambient', label: strings.common.modeAmbient },
 ]
 
 export function AppShell({ mode, onModeChange, children }: AppShellProps) {
@@ -54,6 +55,18 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isTasksOpen, setIsTasksOpen] = useState(false)
   const [isNotesOpen, setIsNotesOpen] = useState(false)
+  const [previousMode, setPreviousMode] = useState(mode)
+
+  // §5.3 : en mode Ambiant, le reste de l'écran doit rester libre (tâches/notes masquées).
+  // Fermés en phase de rendu (plutôt que dans un effet) pour éviter qu'un panneau resté
+  // ouvert ne réapparaisse dès qu'on quitte le mode Ambiant.
+  if (previousMode !== mode) {
+    setPreviousMode(mode)
+    if (mode === 'ambient') {
+      if (isTasksOpen) setIsTasksOpen(false)
+      if (isNotesOpen) setIsNotesOpen(false)
+    }
+  }
 
   useCurrentUserSync()
   useSettingsSync({
@@ -94,6 +107,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
     const randomId = () => pool[Math.floor(Math.random() * pool.length)].id
     setBackground('home', randomId())
     setBackground('focus', randomId())
+    setBackground('ambient', randomId())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -140,24 +154,28 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
             onChange={onModeChange}
             options={MODE_OPTIONS}
           />
-          <div className="relative">
-            <IconButton
-              icon={ListTodo}
-              label={strings.common.tasks}
-              aria-expanded={isTasksOpen}
-              onClick={() => setIsTasksOpen((prev) => !prev)}
-            />
-            <TasksPanel open={isTasksOpen} onClose={() => setIsTasksOpen(false)} />
-          </div>
-          <div className="relative">
-            <IconButton
-              icon={NotebookPen}
-              label={strings.common.notes}
-              aria-expanded={isNotesOpen}
-              onClick={() => setIsNotesOpen((prev) => !prev)}
-            />
-            <NotesPanel open={isNotesOpen} onClose={() => setIsNotesOpen(false)} />
-          </div>
+          {mode !== 'ambient' ? (
+            <div className="relative">
+              <IconButton
+                icon={ListTodo}
+                label={strings.common.tasks}
+                aria-expanded={isTasksOpen}
+                onClick={() => setIsTasksOpen((prev) => !prev)}
+              />
+              <TasksPanel open={isTasksOpen} onClose={() => setIsTasksOpen(false)} />
+            </div>
+          ) : null}
+          {mode !== 'ambient' ? (
+            <div className="relative">
+              <IconButton
+                icon={NotebookPen}
+                label={strings.common.notes}
+                aria-expanded={isNotesOpen}
+                onClick={() => setIsNotesOpen((prev) => !prev)}
+              />
+              <NotesPanel open={isNotesOpen} onClose={() => setIsNotesOpen(false)} />
+            </div>
+          ) : null}
         </div>
       </div>
 

@@ -20,7 +20,7 @@ function panel(open: boolean, onClose: () => void, extrasSettings = DEFAULT_EXTR
         onClose={onClose}
         mode="home"
         onModeChange={vi.fn()}
-        backgroundSelection={{ home: 'horizon', focus: 'horizon' }}
+        backgroundSelection={{ home: 'horizon', focus: 'horizon', ambient: 'horizon' }}
         onBackgroundSelect={vi.fn()}
         dailyGoalMinutes={120}
         onDailyGoalChange={vi.fn()}

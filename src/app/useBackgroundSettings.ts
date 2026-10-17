@@ -6,7 +6,11 @@ import type { BackgroundId } from '@/shared/design-system'
 import type { AppMode } from './useAppMode'
 
 const STORAGE_KEY = 'flowquest.backgrounds'
-const DEFAULTS: Record<AppMode, BackgroundId> = { home: 'horizon', focus: 'horizon' }
+const DEFAULTS: Record<AppMode, BackgroundId> = {
+  home: 'horizon',
+  focus: 'horizon',
+  ambient: 'horizon',
+}
 
 function isBackgroundId(value: unknown): value is BackgroundId {
   return typeof value === 'string' && (BACKGROUND_IDS as string[]).includes(value)
@@ -23,6 +27,7 @@ function readStored(): Record<AppMode, BackgroundId> {
     return {
       home: isBackgroundId(record.home) ? record.home : DEFAULTS.home,
       focus: isBackgroundId(record.focus) ? record.focus : DEFAULTS.focus,
+      ambient: isBackgroundId(record.ambient) ? record.ambient : DEFAULTS.ambient,
     }
   } catch {
     return DEFAULTS

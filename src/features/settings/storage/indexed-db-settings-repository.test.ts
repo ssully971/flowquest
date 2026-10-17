@@ -23,7 +23,11 @@ describe('IndexedDbSettingsRepository — persistance locale des réglages', () 
     const repo = new IndexedDbSettingsRepository()
     const settings = {
       appearance: 'dark' as const,
-      backgrounds: { home: 'aubergine' as const, focus: 'brume' as const },
+      backgrounds: {
+        home: 'aubergine' as const,
+        focus: 'brume' as const,
+        ambient: 'horizon' as const,
+      },
       activeTaskId: null,
       dailyGoalMinutes: 90,
       timerSettings: DEFAULT_TIMER_SETTINGS,

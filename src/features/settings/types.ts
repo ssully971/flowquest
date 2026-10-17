@@ -27,7 +27,7 @@ export interface AppSettings {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   appearance: 'system',
-  backgrounds: { home: 'horizon', focus: 'horizon' },
+  backgrounds: { home: 'horizon', focus: 'horizon', ambient: 'horizon' },
   activeTaskId: null,
   dailyGoalMinutes: DEFAULT_DAILY_GOAL_MINUTES,
   timerSettings: DEFAULT_TIMER_SETTINGS,

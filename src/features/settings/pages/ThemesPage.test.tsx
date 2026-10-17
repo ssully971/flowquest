@@ -14,7 +14,7 @@ function renderThemesPage(onSelect = vi.fn(), disableAnimatedThemes = false) {
         <ThemesPage
           mode="home"
           onModeChange={vi.fn()}
-          selection={{ home: 'horizon', focus: 'horizon' }}
+          selection={{ home: 'horizon', focus: 'horizon', ambient: 'horizon' }}
           onSelect={onSelect}
           disableAnimatedThemes={disableAnimatedThemes}
         />

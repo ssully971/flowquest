@@ -89,6 +89,7 @@ export function ThemesPage({
           options={[
             { value: 'home', label: strings.common.modeHome },
             { value: 'focus', label: strings.common.modeFocus },
+            { value: 'ambient', label: strings.common.modeAmbient },
           ]}
         />
       </div>

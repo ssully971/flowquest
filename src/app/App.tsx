@@ -5,6 +5,7 @@ import { HomeScreen } from '@/features/home/HomeScreen'
 import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
 import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
+import { AmbientScreen } from '@/features/timer/AmbientScreen'
 import { FocusScreen } from '@/features/timer/FocusScreen'
 import { TimerSettingsProvider } from '@/features/timer/TimerSettingsProvider'
 import { ThemeProvider } from '@/shared/design-system'
@@ -30,7 +31,13 @@ export function App() {
                       <AdminGate />
                     ) : (
                       <AppShell mode={mode} onModeChange={setMode}>
-                        {mode === 'home' ? <HomeScreen /> : <FocusScreen />}
+                        {mode === 'home' ? (
+                          <HomeScreen />
+                        ) : mode === 'focus' ? (
+                          <FocusScreen />
+                        ) : (
+                          <AmbientScreen />
+                        )}
                       </AppShell>
                     )}
                   </ExtrasSettingsProvider>

@@ -68,6 +68,16 @@ describe('App', () => {
     })
   })
 
+  it('bascule vers Ambiant, affiche le minuteur compact et masque Tâches/Bloc-notes (§5.3)', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('radio', { name: 'Ambiant' }))
+    expect(await screen.findByText('25:00')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tâches' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Bloc-notes' })).not.toBeInTheDocument()
+  })
+
   it('/admin affiche la garde de route au lieu du tableau de bord normal', () => {
     window.history.pushState({}, '', '/admin')
     render(<App />)

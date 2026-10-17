@@ -91,6 +91,7 @@ export const fr = {
     mode: 'Mode',
     modeHome: 'Accueil',
     modeFocus: 'Focus',
+    modeAmbient: 'Ambiant',
   },
   auth: {
     notConfigured:
