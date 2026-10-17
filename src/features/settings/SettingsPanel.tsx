@@ -21,6 +21,7 @@ import { Logo } from '@/shared/design-system'
 import type { BackgroundId } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
+import type { BackgroundDisplaySettings } from './background-display-settings'
 import { CHANGELOG } from './changelog'
 import { getLastSeenChangelogVersion, markChangelogSeen } from './changelog-seen'
 import type { ExtrasSettings } from './extras-settings'
@@ -58,6 +59,8 @@ interface SettingsPanelProps {
   onModeChange: (mode: AppMode) => void
   backgroundSelection: Record<AppMode, BackgroundId>
   onBackgroundSelect: (mode: AppMode, id: BackgroundId) => void
+  backgroundDisplaySettings: BackgroundDisplaySettings
+  onBackgroundDisplaySettingsChange: (settings: BackgroundDisplaySettings) => void
   dailyGoalMinutes: number
   onDailyGoalChange: (minutes: number) => void
   timerSettings: TimerSettings
@@ -77,6 +80,8 @@ export function SettingsPanel({
   onModeChange,
   backgroundSelection,
   onBackgroundSelect,
+  backgroundDisplaySettings,
+  onBackgroundDisplaySettingsChange,
   dailyGoalMinutes,
   onDailyGoalChange,
   timerSettings,
@@ -262,6 +267,8 @@ export function SettingsPanel({
                 selection={backgroundSelection}
                 onSelect={onBackgroundSelect}
                 disableAnimatedThemes={extrasSettings.disableAnimatedThemes}
+                backgroundDisplaySettings={backgroundDisplaySettings}
+                onBackgroundDisplaySettingsChange={onBackgroundDisplaySettingsChange}
               />
             ) : activePage === 'account' ? (
               <AccountPage />

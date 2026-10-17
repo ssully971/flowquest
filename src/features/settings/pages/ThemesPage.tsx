@@ -2,6 +2,8 @@ import { Monitor, Moon, Sun } from 'lucide-react'
 import { useState } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
+import { blurPercentToPx } from '@/features/settings/background-display-settings'
+import type { BackgroundDisplaySettings } from '@/features/settings/background-display-settings'
 import {
   BACKGROUNDS,
   BigDigits,
@@ -30,6 +32,8 @@ interface ThemesPageProps {
   selection: Record<AppMode, BackgroundId>
   onSelect: (mode: AppMode, id: BackgroundId) => void
   disableAnimatedThemes?: boolean
+  backgroundDisplaySettings: BackgroundDisplaySettings
+  onBackgroundDisplaySettingsChange: (settings: BackgroundDisplaySettings) => void
 }
 
 export function ThemesPage({
@@ -38,6 +42,8 @@ export function ThemesPage({
   selection,
   onSelect,
   disableAnimatedThemes = false,
+  backgroundDisplaySettings,
+  onBackgroundDisplaySettingsChange,
 }: ThemesPageProps) {
   const { appearance, setAppearance } = useTheme()
   const [category, setCategory] = useState<BackgroundCategory | 'all'>('all')
@@ -52,6 +58,7 @@ export function ThemesPage({
   const currentId = selection[mode]
   const current = getBackgroundDefinition(currentId)
   const CurrentPreview = current.Thumbnail ?? current.Component
+  const previewBlurPx = blurPercentToPx(backgroundDisplaySettings.blurPercent)
   const filtered =
     category === 'all'
       ? availableBackgrounds
@@ -103,11 +110,49 @@ export function ThemesPage({
           className="relative h-40 w-full max-w-sm overflow-hidden rounded-2xl border"
           style={{ borderColor: 'var(--panel-line)' }}
         >
-          <CurrentPreview />
+          <div
+            className="absolute inset-0"
+            style={
+              previewBlurPx > 0
+                ? { filter: `blur(${previewBlurPx}px)`, transform: 'scale(1.1)' }
+                : undefined
+            }
+          >
+            <CurrentPreview />
+          </div>
           <div className="relative flex h-full items-center justify-center">
             <BigDigits label="09:41" sizePx={56} />
           </div>
         </div>
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-baseline justify-between gap-3">
+          <p className="text-sm font-medium text-[var(--panel-muted)]">
+            {strings.settings.themes.blur}
+          </p>
+          <span className="text-xs text-[var(--panel-muted)]">
+            {backgroundDisplaySettings.blurPercent}%
+          </span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={backgroundDisplaySettings.blurPercent}
+          onChange={(event) =>
+            onBackgroundDisplaySettingsChange({
+              ...backgroundDisplaySettings,
+              blurPercent: Number(event.target.value),
+            })
+          }
+          aria-label={strings.settings.themes.blur}
+          className="w-full max-w-sm"
+        />
+        <p className="mt-1 text-xs text-[var(--panel-muted)]">
+          {strings.settings.themes.blurHint}
+        </p>
       </div>
 
       <div>

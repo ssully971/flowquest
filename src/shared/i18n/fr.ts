@@ -258,6 +258,8 @@ export const fr = {
         animated: 'Animé',
       },
       emptyCategory: 'Aucun fond dans cette catégorie pour l’instant.',
+      blur: 'Flou du fond',
+      blurHint: 'S’applique uniquement au fond, jamais au texte ni aux commandes.',
     },
     stats: {
       title: 'Stats',

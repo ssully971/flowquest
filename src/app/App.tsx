@@ -3,6 +3,7 @@ import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
 import { HomeScreen } from '@/features/home/HomeScreen'
 import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
+import { BackgroundDisplaySettingsProvider } from '@/features/settings/BackgroundDisplaySettingsProvider'
 import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
 import { AmbientScreen } from '@/features/timer/AmbientScreen'
@@ -27,19 +28,21 @@ export function App() {
               <ClockSettingsProvider>
                 <QuotesSettingsProvider>
                   <ExtrasSettingsProvider>
-                    {isAdminRoute ? (
-                      <AdminGate />
-                    ) : (
-                      <AppShell mode={mode} onModeChange={setMode}>
-                        {mode === 'home' ? (
-                          <HomeScreen />
-                        ) : mode === 'focus' ? (
-                          <FocusScreen />
-                        ) : (
-                          <AmbientScreen />
-                        )}
-                      </AppShell>
-                    )}
+                    <BackgroundDisplaySettingsProvider>
+                      {isAdminRoute ? (
+                        <AdminGate />
+                      ) : (
+                        <AppShell mode={mode} onModeChange={setMode}>
+                          {mode === 'home' ? (
+                            <HomeScreen />
+                          ) : mode === 'focus' ? (
+                            <FocusScreen />
+                          ) : (
+                            <AmbientScreen />
+                          )}
+                        </AppShell>
+                      )}
+                    </BackgroundDisplaySettingsProvider>
                   </ExtrasSettingsProvider>
                 </QuotesSettingsProvider>
               </ClockSettingsProvider>

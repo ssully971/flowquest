@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DEFAULT_CLOCK_SETTINGS } from '@/features/home/clock-settings'
 import { DEFAULT_QUOTES_SETTINGS } from '@/features/home/quotes-settings'
+import { DEFAULT_BACKGROUND_DISPLAY_SETTINGS } from '@/features/settings/background-display-settings'
 import { DEFAULT_EXTRAS_SETTINGS } from '@/features/settings/extras-settings'
 import { DEFAULT_TIMER_SETTINGS } from '@/features/timer/timer-settings'
 import { ThemeProvider } from '@/shared/design-system'
@@ -22,6 +23,8 @@ function panel(open: boolean, onClose: () => void, extrasSettings = DEFAULT_EXTR
         onModeChange={vi.fn()}
         backgroundSelection={{ home: 'horizon', focus: 'horizon', ambient: 'horizon' }}
         onBackgroundSelect={vi.fn()}
+        backgroundDisplaySettings={DEFAULT_BACKGROUND_DISPLAY_SETTINGS}
+        onBackgroundDisplaySettingsChange={vi.fn()}
         dailyGoalMinutes={120}
         onDailyGoalChange={vi.fn()}
         timerSettings={DEFAULT_TIMER_SETTINGS}

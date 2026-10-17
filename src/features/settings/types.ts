@@ -9,6 +9,8 @@ import { DEFAULT_DAILY_GOAL_MINUTES } from '@/features/stats/compute-stats'
 import { DEFAULT_TIMER_SETTINGS } from '@/features/timer/timer-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
 
+import { DEFAULT_BACKGROUND_DISPLAY_SETTINGS } from './background-display-settings'
+import type { BackgroundDisplaySettings } from './background-display-settings'
 import { DEFAULT_EXTRAS_SETTINGS } from './extras-settings'
 import type { ExtrasSettings } from './extras-settings'
 
@@ -17,6 +19,7 @@ export const SETTINGS_SCHEMA_VERSION = 1
 export interface AppSettings {
   appearance: Appearance
   backgrounds: Record<AppMode, BackgroundId>
+  backgroundDisplaySettings: BackgroundDisplaySettings
   activeTaskId: string | null
   dailyGoalMinutes: number
   timerSettings: TimerSettings
@@ -27,7 +30,8 @@ export interface AppSettings {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   appearance: 'system',
-  backgrounds: { home: 'horizon', focus: 'horizon', ambient: 'horizon' },
+  backgrounds: { home: 'horizon', focus: 'horizon', ambient: 'photo-fjord' },
+  backgroundDisplaySettings: DEFAULT_BACKGROUND_DISPLAY_SETTINGS,
   activeTaskId: null,
   dailyGoalMinutes: DEFAULT_DAILY_GOAL_MINUTES,
   timerSettings: DEFAULT_TIMER_SETTINGS,

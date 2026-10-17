@@ -6,6 +6,7 @@ import type { AppMode } from '@/app/useAppMode'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
 import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
+import { BackgroundDisplaySettingsProvider } from '@/features/settings/BackgroundDisplaySettingsProvider'
 import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
 import { TimerSettingsProvider } from '@/features/timer/TimerSettingsProvider'
@@ -24,9 +25,11 @@ function renderAppShell(children: ReactNode, mode: AppMode = 'home') {
               <ClockSettingsProvider>
                 <QuotesSettingsProvider>
                   <ExtrasSettingsProvider>
-                    <AppShell mode={mode} onModeChange={vi.fn()}>
-                      {children}
-                    </AppShell>
+                    <BackgroundDisplaySettingsProvider>
+                      <AppShell mode={mode} onModeChange={vi.fn()}>
+                        {children}
+                      </AppShell>
+                    </BackgroundDisplaySettingsProvider>
                   </ExtrasSettingsProvider>
                 </QuotesSettingsProvider>
               </ClockSettingsProvider>
