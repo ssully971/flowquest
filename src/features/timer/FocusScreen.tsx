@@ -11,12 +11,15 @@ import { useWakeLock } from '@/shared/hooks/useWakeLock'
 import { strings } from '@/shared/i18n'
 
 import type { SegmentKind, TimerMode } from './engine/timer-engine'
+import { GoalProgress } from './components/GoalProgress'
+import { GoalReachedPanel } from './components/GoalReachedPanel'
 import { SegmentTabs } from './components/SegmentTabs'
 import { SessionTally } from './components/SessionTally'
 import { TimerControls } from './components/TimerControls'
 import { TimerFace } from './components/TimerFace'
 import { getDurationMsForMode } from './durations'
 import { formatCountdown, formatElapsed } from './format'
+import { getGoalFocusSessions } from './session-goal'
 import { toDurationsMs } from './timer-settings'
 import { useTimerSettings } from './timer-settings-context'
 import { useFocusTimer } from './useFocusTimer'
@@ -80,6 +83,16 @@ export function FocusScreen() {
   )
   const progress =
     durationMs !== null && durationMs > 0 ? Math.min(1, snapshot.elapsedMs / durationMs) : 0
+  const goalTarget =
+    timer.mode === 'pomodoro'
+      ? getGoalFocusSessions({
+          goalType: timerSettings.sessionGoalType,
+          goalCount: timerSettings.sessionGoalCount,
+          goalMinutes: timerSettings.sessionGoalMinutes,
+          durations: toDurationsMs(timerSettings),
+          sessionsBeforeLongBreak: timerSettings.sessionsBeforeLongBreak,
+        })
+      : 0
 
   const handlePrimary = () => {
     if (snapshot.status === 'running') timer.pause()
@@ -126,25 +139,35 @@ export function FocusScreen() {
               currentIsFocus={timer.segment === 'focus'}
               iconSet={timerSettings.tallyIconSet}
             />
+
+            {goalTarget > 0 ? (
+              <GoalProgress completed={timer.goalProgress} target={goalTarget} />
+            ) : null}
           </>
         ) : null}
 
-        <div
-          role="timer"
-          aria-label={`${isStopwatch ? strings.focus.timeElapsed : strings.focus.timeRemaining} : ${displayLabel}`}
-        >
-          <TimerFace style={timerSettings.displayStyle} label={displayLabel} progress={progress} />
-        </div>
+        {timer.mode === 'pomodoro' && timer.goalReached ? (
+          <GoalReachedPanel completed={timer.goalProgress} onContinue={timer.continueAfterGoal} />
+        ) : (
+          <>
+            <div
+              role="timer"
+              aria-label={`${isStopwatch ? strings.focus.timeElapsed : strings.focus.timeRemaining} : ${displayLabel}`}
+            >
+              <TimerFace style={timerSettings.displayStyle} label={displayLabel} progress={progress} />
+            </div>
 
-        <TimerControls
-          status={snapshot.status}
-          onReset={timer.reset}
-          onPrimary={handlePrimary}
-          onSkip={timer.skip}
-          showSkip={timer.mode === 'pomodoro'}
-          onPictureInPicture={pip.toggle}
-          pipAvailable={pip.isSupported}
-        />
+            <TimerControls
+              status={snapshot.status}
+              onReset={timer.reset}
+              onPrimary={handlePrimary}
+              onSkip={timer.skip}
+              showSkip={timer.mode === 'pomodoro'}
+              onPictureInPicture={pip.toggle}
+              pipAvailable={pip.isSupported}
+            />
+          </>
+        )}
       </div>
 
       {pip.pipWindow

@@ -9,6 +9,7 @@ import { notifySegmentFinished, requestNotificationPermission } from './notifica
 import { advancePomodoroCycle, createPomodoroCycle } from './pomodoro-cycle'
 import type { PomodoroCycleState } from './pomodoro-cycle'
 import { recordSession } from './session-recorder'
+import { getGoalFocusSessions, isGoalReached } from './session-goal'
 import { IndexedDbTimerStateRepository } from './storage/indexed-db-timer-state-repository'
 import { SupabaseTimerStateRepository } from './storage/supabase-timer-state-repository'
 import { SyncingTimerStateRepository } from './storage/syncing-timer-state-repository'
@@ -28,6 +29,11 @@ export interface UseFocusTimerResult {
   segment: SegmentKind
   cycle: PomodoroCycleState
   snapshot: TimerSnapshot | null
+  /** Nombre de sessions de focus complétées depuis le dernier passage en mode pomodoro
+   * (indépendant de cycle.completedFocusCount, qui repart de 0 à chaque pause longue). */
+  goalProgress: number
+  goalReached: boolean
+  continueAfterGoal: () => void
   selectMode: (mode: TimerMode) => void
   selectSegment: (segment: SegmentKind) => void
   start: () => void
@@ -68,6 +74,8 @@ export function useFocusTimer(): UseFocusTimerResult {
   const { settings: timerSettings } = useTimerSettings()
   const [controller, setController] = useState<TimerController | null>(null)
   const [cycle, setCycle] = useState<PomodoroCycleState>(() => createPomodoroCycle())
+  const [goalProgress, setGoalProgress] = useState(0)
+  const [goalReached, setGoalReached] = useState(false)
   const [isReady, setIsReady] = useState(false)
   const [snapshot, refresh] = useTimerSnapshot(controller)
   const settledEndedAtRef = useRef<number | null>(null)
@@ -155,13 +163,40 @@ export function useFocusTimer(): UseFocusTimerResult {
     })
     void recordSession(state, snapshot.endedAt, true).then(() => {
       if (state.mode !== 'pomodoro') return
+
+      if (state.segment === 'focus') {
+        const target = getGoalFocusSessions({
+          goalType: config.sessionGoalType,
+          goalCount: config.sessionGoalCount,
+          goalMinutes: config.sessionGoalMinutes,
+          durations: toDurationsMs(config),
+          sessionsBeforeLongBreak: config.sessionsBeforeLongBreak,
+        })
+        const nextProgress = goalProgress + 1
+        const justReached = !isGoalReached(goalProgress, target) && isGoalReached(nextProgress, target)
+        setGoalProgress(nextProgress)
+        if (justReached) {
+          setGoalReached(true)
+          return
+        }
+      }
+
       void advanceToNext().then((nextController) => {
         if (!timerSettingsRef.current.autoStartNext) return
         if (timerSettingsRef.current.notificationsEnabled) requestNotificationPermission()
         void nextController.start().then(refresh)
       })
     })
-  }, [controller, snapshot, advanceToNext, refresh])
+  }, [controller, snapshot, advanceToNext, refresh, goalProgress])
+
+  const continueAfterGoal = useCallback(() => {
+    setGoalReached(false)
+    void advanceToNext().then((nextController) => {
+      if (!timerSettingsRef.current.autoStartNext) return
+      if (timerSettingsRef.current.notificationsEnabled) requestNotificationPermission()
+      void nextController.start().then(refresh)
+    })
+  }, [advanceToNext, refresh])
 
   const selectSegment = useCallback(
     (segment: SegmentKind) => {
@@ -203,6 +238,8 @@ export function useFocusTimer(): UseFocusTimerResult {
         )
         setCycle(createPomodoroCycle(segment))
         setController(nextController)
+        setGoalProgress(0)
+        setGoalReached(false)
       })()
     },
     [controller],
@@ -241,6 +278,9 @@ export function useFocusTimer(): UseFocusTimerResult {
     segment: controller?.getState().segment ?? cycle.segment,
     cycle,
     snapshot,
+    goalProgress,
+    goalReached,
+    continueAfterGoal,
     selectMode,
     selectSegment,
     start,
