@@ -9,7 +9,7 @@ import { useCooldown } from '../useCooldown'
 import { useUsernameAvailability } from '../useUsernameAvailability'
 import { getUsernameFormatIssue, isValidPassword } from '../validation'
 import { FormField } from './FormField'
-import { GoogleButton } from './GoogleButton'
+import { GoogleSignInButton } from './GoogleSignInButton'
 
 const RESEND_COOLDOWN_SECONDS = 45
 
@@ -25,7 +25,7 @@ interface SignUpFormProps {
 }
 
 export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
-  const { signUpWithEmail, signInWithGoogle, resendConfirmationEmail } = useAuth()
+  const { signUpWithEmail, resendConfirmationEmail } = useAuth()
   const { showToast } = useToast()
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -162,7 +162,7 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
         {strings.auth.signIn.orContinueWith}
         <span className="h-px flex-1 bg-[var(--panel-line)]" />
       </div>
-      <GoogleButton onClick={() => void signInWithGoogle()} label={strings.auth.signUp.google} />
+      <GoogleSignInButton label={strings.auth.signUp.google} />
       <button
         type="button"
         onClick={onSwitchToSignIn}

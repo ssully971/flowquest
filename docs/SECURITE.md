@@ -123,6 +123,22 @@ appareil ou d'une autre session — c'est ce qui garantit qu'aucune session n'es
   `started_at`/`ended_at`) est prévue pour une Edge Function de validation au moment
   d'implémenter la fin de session (hors périmètre de cette phase, qui pose le schéma).
 
+## Authentification
+
+- Mot de passe : vérifié côté client (`isValidPassword`) **et** par Supabase Auth
+  côté serveur — la validation client est un confort d'UX, jamais la seule barrière.
+- Connexion Google, deux mécanismes, voir `docs/GOOGLE_AUTH.md` :
+  - OAuth redirigé (`signInWithOAuth`), géré entièrement par Supabase.
+  - Google Identity Services (`signInWithIdToken`), actif seulement si
+    `VITE_GOOGLE_CLIENT_ID` est configuré. Un nonce aléatoire généré côté client
+    (`src/features/auth/google-identity.ts`) et son empreinte SHA-256 garantissent que
+    le jeton d'identité Google reçu correspond bien à cette tentative de connexion
+    précise (protection contre le rejeu d'un jeton intercepté ailleurs) ; Supabase
+    vérifie cette correspondance avant de créer la session.
+- Réinitialisation de mot de passe (`resetPasswordForEmail`) : le message affiché à
+  l'utilisateur est **volontairement identique** que l'adresse e-mail corresponde à un
+  compte existant ou non, pour ne jamais révéler si une adresse est inscrite.
+
 ## Comment vérifier soi-même l'isolation entre utilisateurs
 
 1. Crée deux comptes de test (A et B) dans Supabase Auth.

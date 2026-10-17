@@ -13,6 +13,7 @@ const rpcMock = vi.fn()
 const resendMock = vi.fn()
 const resetPasswordForEmailMock = vi.fn()
 const updateUserMock = vi.fn()
+const signInWithIdTokenMock = vi.fn()
 
 vi.mock('@/shared/supabase/client', () => ({
   isSupabaseConfigured: true,
@@ -23,6 +24,7 @@ vi.mock('@/shared/supabase/client', () => ({
       resend: (...args: unknown[]) => resendMock(...args),
       resetPasswordForEmail: (...args: unknown[]) => resetPasswordForEmailMock(...args),
       updateUser: (...args: unknown[]) => updateUserMock(...args),
+      signInWithIdToken: (...args: unknown[]) => signInWithIdTokenMock(...args),
     },
     from: (...args: unknown[]) => fromMock(...args),
     rpc: (...args: unknown[]) => rpcMock(...args),
@@ -57,6 +59,7 @@ function ProbeAccountState() {
     requestPasswordReset,
     updatePassword,
     clearPasswordRecovery,
+    signInWithGoogleIdToken,
   } = useAuth()
   return (
     <div>
@@ -78,6 +81,12 @@ function ProbeAccountState() {
       </button>
       <button type="button" onClick={clearPasswordRecovery}>
         Annuler la réinitialisation
+      </button>
+      <button
+        type="button"
+        onClick={() => void signInWithGoogleIdToken('fake-id-token', 'fake-nonce')}
+      >
+        Connexion Google (ID token)
       </button>
     </div>
   )
@@ -101,6 +110,7 @@ beforeEach(() => {
   resendMock.mockReset()
   resetPasswordForEmailMock.mockReset()
   updateUserMock.mockReset()
+  signInWithIdTokenMock.mockReset()
   getSessionMock.mockResolvedValue({ data: { session: { user: SESSION_USER } } })
   onAuthStateChangeMock.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } })
 })
@@ -289,5 +299,21 @@ describe('AuthProvider — renvoi d’e-mail et réinitialisation du mot de pass
     await user.click(screen.getByRole('button', { name: 'Mettre à jour le mot de passe' }))
     expect(updateUserMock).toHaveBeenCalledWith({ password: 'Nouveau1234' })
     await waitFor(() => expect(screen.getByTestId('password-recovery')).toHaveTextContent('false'))
+  })
+
+  it('se connecte via signInWithIdToken (Google Identity Services)', async () => {
+    fromMock.mockReturnValue(selectQuery({ data: PROFILE_ROW, error: null }))
+    signInWithIdTokenMock.mockResolvedValue({ error: null })
+    const user = await import('@testing-library/user-event').then((m) => m.default.setup())
+
+    renderProbe()
+    await waitFor(() => expect(screen.getByTestId('profile-state')).toHaveTextContent('loaded'))
+
+    await user.click(screen.getByRole('button', { name: 'Connexion Google (ID token)' }))
+    expect(signInWithIdTokenMock).toHaveBeenCalledWith({
+      provider: 'google',
+      token: 'fake-id-token',
+      nonce: 'fake-nonce',
+    })
   })
 })

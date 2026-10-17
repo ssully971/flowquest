@@ -5,7 +5,7 @@ import { strings } from '@/shared/i18n'
 
 import { useAuth } from '../useAuth'
 import { FormField } from './FormField'
-import { GoogleButton } from './GoogleButton'
+import { GoogleSignInButton } from './GoogleSignInButton'
 
 interface SignInFormProps {
   onSwitchToSignUp: () => void
@@ -13,7 +13,7 @@ interface SignInFormProps {
 }
 
 export function SignInForm({ onSwitchToSignUp, onForgotPassword }: SignInFormProps) {
-  const { signInWithEmail, signInWithGoogle } = useAuth()
+  const { signInWithEmail } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -69,7 +69,7 @@ export function SignInForm({ onSwitchToSignUp, onForgotPassword }: SignInFormPro
         {strings.auth.signIn.orContinueWith}
         <span className="h-px flex-1 bg-[var(--panel-line)]" />
       </div>
-      <GoogleButton onClick={() => void signInWithGoogle()} label={strings.auth.signIn.google} />
+      <GoogleSignInButton label={strings.auth.signIn.google} />
       <button
         type="button"
         onClick={onSwitchToSignUp}

@@ -159,6 +159,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [showToast])
 
+  const signInWithGoogleIdToken = useCallback(
+    async (idToken: string, nonce: string) => {
+      if (!supabase) throw new Error('Supabase non configuré')
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+        nonce,
+      })
+      if (error) {
+        console.error('[Flowquest] Échec de la connexion Google (ID token) :', error)
+        showToast({ type: 'error', message: translateAuthError(error.message) })
+        throw error
+      }
+    },
+    [showToast],
+  )
+
   const resendConfirmationEmail = useCallback(
     async (email: string) => {
       if (!supabase) throw new Error('Supabase non configuré')
@@ -244,6 +261,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUpWithEmail,
       signInWithEmail,
       signInWithGoogle,
+      signInWithGoogleIdToken,
       signOut,
       updateUsername,
       resendConfirmationEmail,
@@ -263,6 +281,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUpWithEmail,
       signInWithEmail,
       signInWithGoogle,
+      signInWithGoogleIdToken,
       signOut,
       updateUsername,
       resendConfirmationEmail,
