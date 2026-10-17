@@ -59,6 +59,7 @@ export const fr = {
   focus: {
     question: 'Sur quoi te concentres-tu ?',
     noActiveTask: 'Aucune tâche active',
+    timeRemaining: 'Temps restant',
     tabs: {
       focus: 'Focus',
       shortBreak: 'Pause courte',
@@ -307,6 +308,15 @@ export const fr = {
       showTaskInPipHint: 'Le nom de la tâche active apparaît dans la fenêtre flottante.',
       decrease: 'Diminuer',
       increase: 'Augmenter',
+      displayStyle: 'Style d’affichage',
+      displayStyles: {
+        default: 'Classique',
+        flip: 'Flip',
+        'progress-bar': 'Barre de progression',
+        gauge: 'Jauge',
+        'dot-matrix': 'Matrice de points',
+        'pie-chart': 'Camembert',
+      },
     },
     clock: {
       title: 'Horloge',

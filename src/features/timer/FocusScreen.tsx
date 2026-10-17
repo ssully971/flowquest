@@ -13,8 +13,7 @@ import type { SegmentKind } from './engine/timer-engine'
 import { CycleDots } from './components/CycleDots'
 import { SegmentTabs } from './components/SegmentTabs'
 import { TimerControls } from './components/TimerControls'
-import { TimerDisplay } from './components/TimerDisplay'
-import { TimerPath } from './components/TimerPath'
+import { TimerFace } from './components/TimerFace'
 import { getDurationForSegment } from './durations'
 import { formatCountdown } from './format'
 import { toDurationsMs } from './timer-settings'
@@ -96,9 +95,8 @@ export function FocusScreen() {
           currentIsFocus={timer.segment === 'focus'}
         />
 
-        <div className="flex w-full flex-col items-center gap-5">
-          <TimerDisplay label={displayLabel} />
-          <TimerPath progress={progress} />
+        <div role="timer" aria-label={`${strings.focus.timeRemaining} : ${displayLabel}`}>
+          <TimerFace style={timerSettings.displayStyle} label={displayLabel} progress={progress} />
         </div>
 
         <TimerControls

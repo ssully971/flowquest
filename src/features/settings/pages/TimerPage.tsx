@@ -10,6 +10,8 @@ import type { TimerSettings } from '@/features/timer/timer-settings'
 import { SettingsToggleRow } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
+import { TimerDisplayStylePicker } from './TimerDisplayStylePicker'
+
 interface NumericStepperProps {
   label: string
   value: number
@@ -104,6 +106,14 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
           max={SESSIONS_BEFORE_LONG_BREAK_RANGE.max}
           step={SESSIONS_BEFORE_LONG_BREAK_RANGE.step}
           onChange={(sessionsBeforeLongBreak) => onChange({ ...settings, sessionsBeforeLongBreak })}
+        />
+      </div>
+
+      <div>
+        <p className="mb-2 text-sm font-medium text-[var(--panel-muted)]">{s.displayStyle}</p>
+        <TimerDisplayStylePicker
+          value={settings.displayStyle}
+          onChange={(displayStyle) => onChange({ ...settings, displayStyle })}
         />
       </div>
 

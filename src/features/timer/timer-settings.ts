@@ -1,5 +1,7 @@
 import { POMODORO_DEFAULTS } from './durations'
 import type { PomodoroDurationsMs } from './durations'
+import { TIMER_DISPLAY_STYLES } from './timer-display-style'
+import type { TimerDisplayStyle } from './timer-display-style'
 
 export interface TimerSettings {
   focusMinutes: number
@@ -8,6 +10,7 @@ export interface TimerSettings {
   sessionsBeforeLongBreak: number
   autoStartNext: boolean
   showTaskInPip: boolean
+  displayStyle: TimerDisplayStyle
 }
 
 export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
@@ -17,7 +20,11 @@ export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
   sessionsBeforeLongBreak: POMODORO_DEFAULTS.sessionsBeforeLongBreak,
   autoStartNext: false,
   showTaskInPip: true,
+  displayStyle: 'default',
 }
+
+export { TIMER_DISPLAY_STYLES }
+export type { TimerDisplayStyle }
 
 // Plages du §6.1 du cahier des charges.
 export const FOCUS_MINUTES_RANGE = { min: 10, max: 100, step: 5 }

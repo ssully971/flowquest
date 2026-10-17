@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -13,7 +13,11 @@ describe('TimerPage — durées Pomodoro et démarrage automatique', () => {
     expect(screen.getByText('25 min')).toBeInTheDocument()
     expect(screen.getByText('5 min')).toBeInTheDocument()
     expect(screen.getByText('10 min')).toBeInTheDocument()
-    expect(screen.getByText('4')).toBeInTheDocument()
+
+    const sessionsStepper = screen
+      .getByText('Sessions avant la pause longue')
+      .closest('div') as HTMLElement
+    expect(within(sessionsStepper).getByText('4')).toBeInTheDocument()
   })
 
   it('augmente la durée de focus de 5 min au clic sur +', async () => {
