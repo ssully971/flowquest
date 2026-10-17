@@ -5,9 +5,15 @@ import {
   MAX_DAILY_GOAL_MINUTES,
   MIN_DAILY_GOAL_MINUTES,
 } from '@/features/stats/useDailyGoal'
+import { useDailyFocusHistory } from '@/features/stats/useDailyFocusHistory'
 import { useDashboardStats } from '@/features/stats/useDashboardStats'
 import { formatFocusDuration } from '@/features/stats/format'
 import { strings } from '@/shared/i18n'
+
+import { FocusCalendar } from './stats/FocusCalendar'
+import { FocusTrend } from './stats/FocusTrend'
+
+const CALENDAR_DAYS = 84
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
@@ -25,6 +31,7 @@ interface StatsPageProps {
 
 export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProps) {
   const stats = useDashboardStats(dailyGoalMinutes)
+  const calendarDays = useDailyFocusHistory(CALENDAR_DAYS, dailyGoalMinutes)
   const s = strings.settings.stats
 
   const hasAnyData =
@@ -92,6 +99,13 @@ export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProp
           />
         </div>
       )}
+
+      {calendarDays ? (
+        <>
+          <FocusCalendar days={calendarDays} dailyGoalMinutes={dailyGoalMinutes} />
+          <FocusTrend days7={calendarDays.slice(-7)} days30={calendarDays.slice(-30)} />
+        </>
+      ) : null}
     </div>
   )
 }

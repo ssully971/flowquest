@@ -78,3 +78,40 @@ export function computeStats(
     dailyGoalMinutes,
   }
 }
+
+export interface DayFocus {
+  /** Début du jour (minuit local), en epoch ms — clé stable pour une grille/un graphe. */
+  dayStart: number
+  focusSeconds: number
+  goalMet: boolean
+}
+
+/**
+ * Historique jour par jour du temps de focus, sur une fenêtre de `days` jours se
+ * terminant aujourd'hui inclus — base commune au calendrier de régularité façon GitHub
+ * et à la courbe de tendance (§9 du cahier des charges, périmètre restreint à cette
+ * phase : pas de score de focus, pas de sélecteur de période au-delà de 7/30 jours).
+ */
+export function computeDailyFocus(
+  sessions: FocusSessionRecord[],
+  now: number = Date.now(),
+  days: number,
+  dailyGoalMinutes: number = DEFAULT_DAILY_GOAL_MINUTES,
+): DayFocus[] {
+  const completedFocus = sessions.filter((session) => session.kind === 'focus' && session.completed)
+  const secondsByDay = new Map<number, number>()
+  for (const session of completedFocus) {
+    const day = startOfDay(session.startedAt)
+    secondsByDay.set(day, (secondsByDay.get(day) ?? 0) + session.actualSeconds)
+  }
+
+  const goalSeconds = dailyGoalMinutes * 60
+  const todayStart = startOfDay(now)
+  const result: DayFocus[] = []
+  for (let offset = days - 1; offset >= 0; offset--) {
+    const dayStart = todayStart - offset * DAY_MS
+    const focusSeconds = secondsByDay.get(dayStart) ?? 0
+    result.push({ dayStart, focusSeconds, goalMet: focusSeconds >= goalSeconds })
+  }
+  return result
+}

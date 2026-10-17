@@ -214,6 +214,11 @@ export const fr = {
       days: 'jours',
       day: 'jour',
       empty: 'Termine ta première session de focus pour voir tes statistiques ici.',
+      calendarTitle: 'Calendrier de focus',
+      calendarNoFocus: 'Aucune session',
+      trendTitle: 'Tendance de focus',
+      trend7d: '7 jours',
+      trend30d: '30 jours',
     },
     timer: {
       title: 'Minuteur',
