@@ -9,7 +9,9 @@ const STORAGE_KEY = 'flowquest.backgrounds'
 const DEFAULTS: Record<AppMode, BackgroundId> = {
   home: 'horizon',
   focus: 'horizon',
-  ambient: 'horizon',
+  // Lot 3 : le mode Ambiant démarre sur un paysage (catégorie « scenic ») plutôt que sur le
+  // dégradé par défaut des autres modes.
+  ambient: 'photo-fjord',
 }
 
 function isBackgroundId(value: unknown): value is BackgroundId {

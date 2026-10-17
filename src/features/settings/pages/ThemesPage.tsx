@@ -51,6 +51,7 @@ export function ThemesPage({
 
   const currentId = selection[mode]
   const current = getBackgroundDefinition(currentId)
+  const CurrentPreview = current.Thumbnail ?? current.Component
   const filtered =
     category === 'all'
       ? availableBackgrounds
@@ -102,7 +103,7 @@ export function ThemesPage({
           className="relative h-40 w-full max-w-sm overflow-hidden rounded-2xl border"
           style={{ borderColor: 'var(--panel-line)' }}
         >
-          <current.Component />
+          <CurrentPreview />
           <div className="relative flex h-full items-center justify-center">
             <BigDigits label="09:41" sizePx={56} />
           </div>
@@ -135,26 +136,30 @@ export function ThemesPage({
           </p>
         ) : (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-            {filtered.map((bg) => (
-              <button
-                key={bg.id}
-                type="button"
-                onClick={() => onSelect(mode, bg.id)}
-                aria-pressed={bg.id === currentId}
-                className={`relative aspect-square overflow-hidden rounded-xl border transition-shadow duration-200 ${
-                  bg.id === currentId ? 'ring-2 ring-[var(--accent)]' : ''
-                }`}
-                style={{ borderColor: 'var(--panel-line)' }}
-              >
-                <bg.Component />
-                <span
-                  className="absolute inset-x-0 bottom-0 px-2 py-1 text-left text-xs text-[var(--text)]"
-                  style={{ background: 'var(--scrim)' }}
+            {filtered.map((bg) => {
+              const Tile = bg.Thumbnail ?? bg.Component
+              return (
+                <button
+                  key={bg.id}
+                  type="button"
+                  onClick={() => onSelect(mode, bg.id)}
+                  aria-pressed={bg.id === currentId}
+                  title={bg.credit}
+                  className={`relative aspect-square overflow-hidden rounded-xl border transition-shadow duration-200 ${
+                    bg.id === currentId ? 'ring-2 ring-[var(--accent)]' : ''
+                  }`}
+                  style={{ borderColor: 'var(--panel-line)' }}
                 >
-                  {bg.label}
-                </span>
-              </button>
-            ))}
+                  <Tile />
+                  <span
+                    className="absolute inset-x-0 bottom-0 px-2 py-1 text-left text-xs text-[var(--text)]"
+                    style={{ background: 'var(--scrim)' }}
+                  >
+                    {bg.label}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         )}
       </div>

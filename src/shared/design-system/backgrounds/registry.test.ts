@@ -41,3 +41,30 @@ describe('backgrounds registry — bibliothèque par catégories (§7.1 du cahie
     expect(def).toBe(BACKGROUNDS[0])
   })
 })
+
+describe('backgrounds registry — fonds photo du lot 3', () => {
+  it('ajoute 14 fonds photo (dégradés sombres/clairs, paysages, abstrait)', () => {
+    const photoBackgrounds = BACKGROUNDS.filter((bg) => bg.id.startsWith('photo-'))
+    expect(photoBackgrounds.length).toBe(14)
+  })
+
+  it('chaque fond photo fournit une vignette légère distincte du rendu plein écran', () => {
+    const photoBackgrounds = BACKGROUNDS.filter((bg) => bg.id.startsWith('photo-'))
+    for (const bg of photoBackgrounds) {
+      expect(bg.Thumbnail).toBeDefined()
+      expect(bg.Thumbnail).not.toBe(bg.Component)
+    }
+  })
+
+  it('les libellés des fonds photo ne reprennent pas ceux des fonds en CSS déjà existants (évite la confusion)', () => {
+    const cssLabels = new Set(
+      BACKGROUNDS.filter((bg) => !bg.id.startsWith('photo-')).map((bg) => bg.label),
+    )
+    const photoLabels = BACKGROUNDS.filter((bg) => bg.id.startsWith('photo-')).map(
+      (bg) => bg.label,
+    )
+    for (const label of photoLabels) {
+      expect(cssLabels.has(label)).toBe(false)
+    }
+  })
+})
