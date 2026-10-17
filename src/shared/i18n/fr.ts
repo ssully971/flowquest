@@ -54,6 +54,18 @@ export const fr = {
       active: 'Publiée',
       inactive: 'Brouillon',
     },
+    support: {
+      filterAll: 'Tous',
+      filterPending: 'Non traités',
+      filterProcessed: 'Traités',
+      empty: 'Aucun message.',
+      markProcessed: 'Marquer traité',
+      markPending: 'Marquer non traité',
+      actionError: 'L’action a échoué. Réessaie.',
+      statusPending: 'Non traité',
+      statusProcessed: 'Traité',
+      guestEmail: 'Invité',
+    },
   },
   backup: {
     title: 'Sauvegarde locale',
