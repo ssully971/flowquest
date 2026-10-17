@@ -164,7 +164,7 @@ describe('SettingsPanel — onglet ouvert par défaut (§7.6 Extras)', () => {
     ).toBeInTheDocument()
   })
 
-  it('revient sur l’onglet par défaut à chaque réouverture, même après avoir changé d’onglet', async () => {
+  it('se souvient du dernier onglet ouvert à la réouverture, plutôt que de revenir au défaut configuré (lot 2)', async () => {
     const user = userEvent.setup()
     const { rerender } = renderPanel(true, {
       ...DEFAULT_EXTRAS_SETTINGS,
@@ -182,7 +182,14 @@ describe('SettingsPanel — onglet ouvert par défaut (§7.6 Extras)', () => {
 
     rerender(true)
     await screen.findByRole('dialog')
-    expect(screen.getAllByText('Thèmes').length).toBeGreaterThan(0)
+    expect(screen.getByText('Durée de focus')).toBeInTheDocument()
+  })
+
+  it('le dernier onglet survit à un rechargement complet (persisté, pas seulement en mémoire)', async () => {
+    window.localStorage.setItem('flowquest.settingsLastPage', 'timer')
+    renderPanel(true, { ...DEFAULT_EXTRAS_SETTINGS, defaultSettingsTab: 'themes' })
+    await screen.findByRole('dialog')
+    expect(screen.getByText('Durée de focus')).toBeInTheDocument()
   })
 })
 

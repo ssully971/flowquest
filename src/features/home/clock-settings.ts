@@ -29,7 +29,7 @@ export interface ClockSettings {
 
 export const DEFAULT_CLOCK_SETTINGS: ClockSettings = {
   format: '24h',
-  size: 'normal',
+  size: 'small',
   showSeconds: false,
   showGreeting: true,
   flipClock: false,

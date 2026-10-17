@@ -345,7 +345,7 @@ Contrastes : texte courant ≥ 4,5:1, grand texte ≥ 3:1 sur les deux thèmes (
 - **Titres, horloge, minuteur : Bricolage Grotesque** (graisses 500 à 800, axe optique).
 - **Interface et texte : Instrument Sans** (400, 500, 600).
 - Pas d'Inter ni de Roboto. Polices auto-hébergées en production (même famille que le style d'horloge « Default »).
-- Échelle fixe : **14 / 16 / 20 / 28 / 40 px** pour l'interface ; affichage de l'horloge à **208 px** (accueil) et du minuteur à **176 px** (focus), graisse 800, interlettrage −0,04 em, chiffres tabulaires.
+- Échelle fixe : **14 / 16 / 20 / 28 / 40 px** pour l'interface ; horloge calculée depuis une base de **208 px** (accueil) multipliée par la taille choisie (Petite ≈ **129 px**, Normale = 208 px, Énorme ≈ 281 px — Réglages > Horloge) — **Petite est la taille par défaut au lot 2** (anciennement Normale) — et minuteur à **176 px** (focus), graisse 800, interlettrage −0,04 em, chiffres tabulaires.
 - Titres : interligne 1,1 à 1,2 ; texte : 1,4 à 1,5. Les deux-points de l'horloge sont en `--accent`, avec une marge de 0,1 em de chaque côté (ils ne doivent pas coller aux chiffres).
 - Les 12 styles d'horloge et de minuteur (§7.2) restent des **préférences utilisateur** : l'identité ci-dessus est le style par défaut.
 

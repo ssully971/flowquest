@@ -24,6 +24,7 @@ import { strings } from '@/shared/i18n'
 import { CHANGELOG } from './changelog'
 import { getLastSeenChangelogVersion, markChangelogSeen } from './changelog-seen'
 import type { ExtrasSettings } from './extras-settings'
+import { getLastSettingsPage, setLastSettingsPage } from './last-page'
 import type { SettingsPageId } from './page-id'
 import { AccountPage } from './pages/AccountPage'
 import { ChangelogPage } from './pages/ChangelogPage'
@@ -95,7 +96,9 @@ export function SettingsPanel({
   // referme alors le panneau qu'on venait de rouvrir.
   const [mounted, setMounted] = useState(open)
   const [entered, setEntered] = useState(false)
-  const [activePage, setActivePage] = useState<PageId>(() => extrasSettings.defaultSettingsTab)
+  const [activePage, setActivePage] = useState<PageId>(
+    () => getLastSettingsPage() ?? extrasSettings.defaultSettingsTab,
+  )
   const [lastSeenChangelogVersion, setLastSeenChangelogVersion] = useState(() =>
     getLastSeenChangelogVersion(),
   )
@@ -108,7 +111,7 @@ export function SettingsPanel({
 
   if (open && !mounted) {
     setMounted(true)
-    setActivePage(extrasSettings.defaultSettingsTab)
+    setActivePage(getLastSettingsPage() ?? extrasSettings.defaultSettingsTab)
   }
   if (!open && entered) {
     setEntered(false)
@@ -116,6 +119,11 @@ export function SettingsPanel({
   if (activePage === 'changelog' && hasUnreadChangelog && latestChangelogVersion !== undefined) {
     markChangelogSeen(latestChangelogVersion)
     setLastSeenChangelogVersion(latestChangelogVersion)
+  }
+
+  const handleSelectPage = (page: PageId) => {
+    setActivePage(page)
+    setLastSettingsPage(page)
   }
 
   useEffect(() => {
@@ -209,7 +217,7 @@ export function SettingsPanel({
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setActivePage(item.id)}
+                onClick={() => handleSelectPage(item.id)}
                 className={`flex shrink-0 items-center gap-3 border-l-[3px] px-5 py-3 text-left text-sm transition-colors duration-200 ${
                   isActive
                     ? 'text-[var(--panel-text)]'

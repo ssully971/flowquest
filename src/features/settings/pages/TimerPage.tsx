@@ -7,6 +7,7 @@ import {
   SHORT_BREAK_MINUTES_RANGE,
 } from '@/features/timer/timer-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
+import { SettingsToggleRow } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 interface NumericStepperProps {
@@ -106,51 +107,19 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
         />
       </div>
 
-      <div className="flex max-w-md flex-col gap-1 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] px-5 py-4">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm text-[var(--panel-text)]">{s.autoStartNext}</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={settings.autoStartNext}
-            aria-label={s.autoStartNext}
-            onClick={() => onChange({ ...settings, autoStartNext: !settings.autoStartNext })}
-            className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${
-              settings.autoStartNext ? 'bg-[var(--accent)]' : 'bg-[var(--panel-line)]'
-            }`}
-          >
-            <span
-              className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${
-                settings.autoStartNext ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
-        <p className="text-xs text-[var(--panel-muted)]">{s.autoStartNextHint}</p>
-      </div>
+      <SettingsToggleRow
+        label={s.autoStartNext}
+        hint={s.autoStartNextHint}
+        checked={settings.autoStartNext}
+        onToggle={() => onChange({ ...settings, autoStartNext: !settings.autoStartNext })}
+      />
 
-      <div className="flex max-w-md flex-col gap-1 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] px-5 py-4">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm text-[var(--panel-text)]">{s.showTaskInPip}</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={settings.showTaskInPip}
-            aria-label={s.showTaskInPip}
-            onClick={() => onChange({ ...settings, showTaskInPip: !settings.showTaskInPip })}
-            className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${
-              settings.showTaskInPip ? 'bg-[var(--accent)]' : 'bg-[var(--panel-line)]'
-            }`}
-          >
-            <span
-              className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${
-                settings.showTaskInPip ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
-        <p className="text-xs text-[var(--panel-muted)]">{s.showTaskInPipHint}</p>
-      </div>
+      <SettingsToggleRow
+        label={s.showTaskInPip}
+        hint={s.showTaskInPipHint}
+        checked={settings.showTaskInPip}
+        onToggle={() => onChange({ ...settings, showTaskInPip: !settings.showTaskInPip })}
+      />
     </div>
   )
 }

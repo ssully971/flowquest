@@ -1,38 +1,8 @@
 import { pickDailyQuote } from '@/features/home/quotes'
 import type { QuoteCategory } from '@/features/home/quotes'
 import type { QuotesSettings } from '@/features/home/quotes-settings'
-import { SegmentedControl } from '@/shared/design-system'
+import { SegmentedControl, SettingsToggleRow } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
-
-interface ToggleRowProps {
-  label: string
-  checked: boolean
-  onToggle: () => void
-}
-
-function ToggleRow({ label, checked, onToggle }: ToggleRowProps) {
-  return (
-    <div className="flex max-w-md items-center justify-between gap-3 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] px-5 py-4">
-      <span className="text-sm text-[var(--panel-text)]">{label}</span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        aria-label={label}
-        onClick={onToggle}
-        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${
-          checked ? 'bg-[var(--accent)]' : 'bg-[var(--panel-line)]'
-        }`}
-      >
-        <span
-          className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${
-            checked ? 'translate-x-6' : 'translate-x-1'
-          }`}
-        />
-      </button>
-    </div>
-  )
-}
 
 interface QuotesPageProps {
   settings: QuotesSettings
@@ -62,12 +32,12 @@ export function QuotesPage({ settings, onChange }: QuotesPageProps) {
         </figure>
       </div>
 
-      <ToggleRow
+      <SettingsToggleRow
         label={s.showOnHome}
         checked={settings.showOnHome}
         onToggle={() => onChange({ ...settings, showOnHome: !settings.showOnHome })}
       />
-      <ToggleRow
+      <SettingsToggleRow
         label={s.showOnFocus}
         checked={settings.showOnFocus}
         onToggle={() => onChange({ ...settings, showOnFocus: !settings.showOnFocus })}

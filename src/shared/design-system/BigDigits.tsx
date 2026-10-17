@@ -39,16 +39,18 @@ export function BigDigits({
           fontVariantNumeric: 'tabular-nums',
         }}
       >
-        {parts.map((part, index) => (
-          <span key={index}>
-            {index > 0 ? <span className="mx-[0.1em] text-[var(--accent)]">:</span> : null}
-            <span
-              key={flip ? part : undefined}
-              className="inline-block"
-              style={flip ? { animation: 'clock-flip 320ms ease-out' } : undefined}
-            >
-              {part}
-            </span>
+        {parts.map((part, partIndex) => (
+          <span key={partIndex}>
+            {partIndex > 0 ? <span className="mx-[0.1em] text-[var(--accent)]">:</span> : null}
+            {part.split('').map((digit, digitIndex) => (
+              <span
+                key={flip ? `${partIndex}-${digitIndex}-${digit}` : `${partIndex}-${digitIndex}`}
+                className="inline-block"
+                style={flip ? { animation: 'clock-flip 320ms ease-out' } : undefined}
+              >
+                {digit}
+              </span>
+            ))}
           </span>
         ))}
       </div>

@@ -1,0 +1,53 @@
+import { render } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+
+import { BigDigits } from './BigDigits'
+
+function getDigitNodes(container: HTMLElement): Element[] {
+  return Array.from(container.querySelectorAll('.inline-block'))
+}
+
+describe('BigDigits — animation « flip » chiffre par chiffre (lot 2)', () => {
+  it('ne remonte (et donc ne réanime) que le chiffre qui change réellement', () => {
+    const { container, rerender } = render(<BigDigits label="05:30" sizePx={100} flip />)
+    const before = getDigitNodes(container)
+    expect(before.map((node) => node.textContent)).toEqual(['0', '5', '3', '0'])
+
+    rerender(<BigDigits label="05:31" sizePx={100} flip />)
+    const after = getDigitNodes(container)
+    expect(after.map((node) => node.textContent)).toEqual(['0', '5', '3', '1'])
+
+    // Les trois premiers chiffres n'ont pas changé : mêmes nœuds DOM, jamais remontés.
+    expect(after[0]).toBe(before[0])
+    expect(after[1]).toBe(before[1])
+    expect(after[2]).toBe(before[2])
+    // Le dernier chiffre a changé : nouveau nœud (remonté, donc l'animation CSS se relance).
+    expect(after[3]).not.toBe(before[3])
+  })
+
+  it('une retenue (29→30, les minutes ET la dizaine changent) ne réanime que les chiffres concernés', () => {
+    const { container, rerender } = render(<BigDigits label="05:29" sizePx={100} flip />)
+    const before = getDigitNodes(container)
+
+    rerender(<BigDigits label="05:30" sizePx={100} flip />)
+    const after = getDigitNodes(container)
+
+    // Heures inchangées.
+    expect(after[0]).toBe(before[0])
+    expect(after[1]).toBe(before[1])
+    // Dizaine et unité des minutes ont changé (29 → 30) : toutes deux remontées.
+    expect(after[2]).not.toBe(before[2])
+    expect(after[3]).not.toBe(before[3])
+  })
+
+  it('sans flip, aucun chiffre n’est jamais remonté, même quand sa valeur change', () => {
+    const { container, rerender } = render(<BigDigits label="05:30" sizePx={100} />)
+    const before = getDigitNodes(container)
+
+    rerender(<BigDigits label="05:31" sizePx={100} />)
+    const after = getDigitNodes(container)
+
+    expect(after[3]).toBe(before[3])
+    expect(after[3].textContent).toBe('1')
+  })
+})
