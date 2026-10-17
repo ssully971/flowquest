@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -82,6 +83,19 @@ describe('AppShell — Réglages et Plein écran à gauche, Tâches/Notes à dro
       el.getAttribute('aria-label'),
     )
     expect(labels.slice(-2)).toEqual(['Tâches', 'Bloc-notes'])
+  })
+})
+
+describe('AppShell — pastille de série (lot 4 : panneau de détail)', () => {
+  it('ouvre le panneau de détail de la série au clic sur la pastille', async () => {
+    const user = userEvent.setup()
+    renderAppShell(<div>Contenu</div>)
+
+    const streakButton = screen.getByRole('button', { name: /Série/ })
+    expect(screen.queryByRole('dialog', { name: 'Série' })).not.toBeInTheDocument()
+
+    await user.click(streakButton)
+    expect(screen.getByRole('dialog', { name: 'Série' })).toBeInTheDocument()
   })
 })
 

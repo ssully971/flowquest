@@ -6,7 +6,7 @@ import { DEFAULT_EXTRAS_SETTINGS } from '@/features/settings/extras-settings'
 
 import { ExtrasPage } from './ExtrasPage'
 
-describe('ExtrasPage — nom affiché, thèmes animés, mode épuré, veille, randomiseur, onglet par défaut', () => {
+describe('ExtrasPage — nom affiché, thèmes animés, mode épuré, veille, randomiseur, série, onglet par défaut', () => {
   it('change le nom affiché', async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()
@@ -47,6 +47,15 @@ describe('ExtrasPage — nom affiché, thèmes animés, mode épuré, veille, ra
 
     await user.click(screen.getByRole('switch', { name: 'Thème aléatoire à chaque chargement' }))
     expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_EXTRAS_SETTINGS, themeRandomizer: true })
+  })
+
+  it('bascule l’affichage de la série sur l’accueil', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<ExtrasPage settings={DEFAULT_EXTRAS_SETTINGS} onChange={onChange} />)
+
+    await user.click(screen.getByRole('switch', { name: 'Afficher la série sur l’accueil' }))
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_EXTRAS_SETTINGS, showStreak: false })
   })
 
   it('change l’onglet des réglages ouvert par défaut', async () => {

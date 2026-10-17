@@ -110,6 +110,20 @@ export const fr = {
     modeFocus: 'Focus',
     modeAmbient: 'Ambiant',
   },
+  streak: {
+    title: 'Série',
+    close: 'Fermer',
+    current: 'Série actuelle',
+    record: 'Record',
+    nextMilestone: 'Prochain palier',
+    nextMilestoneIn: 'dans',
+    thisWeek: 'Les 7 derniers jours',
+    day: 'jour',
+    days: 'jours',
+    // Index = Date#getDay() (0 = dimanche ... 6 = samedi), pas l'ordre d'affichage.
+    weekdayLetters: ['D', 'L', 'M', 'M', 'J', 'V', 'S'],
+    empty: 'Termine ta première session de focus pour démarrer ta série.',
+  },
   pwa: {
     installMessage: 'Ajoute Flowquest à l’écran d’accueil pour recevoir l’alerte de fin.',
     iosInstructions: 'Appuie sur Partager, puis « Sur l’écran d’accueil ».',
@@ -402,6 +416,8 @@ export const fr = {
       preventSleepUnsupported: 'Non pris en charge par ce navigateur.',
       themeRandomizer: 'Thème aléatoire à chaque chargement',
       themeRandomizerHint: 'Change de fond au hasard à chaque ouverture de l’application.',
+      showStreak: 'Afficher la série sur l’accueil',
+      showStreakHint: 'La pastille avec la flamme, en bas à droite de l’écran d’accueil.',
       defaultSettingsTab: 'Onglet des réglages ouvert par défaut',
     },
     support: {

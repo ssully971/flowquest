@@ -79,6 +79,15 @@ export function computeStats(
   }
 }
 
+const STREAK_MILESTONES = [3, 7, 14, 30, 60, 100, 200, 365]
+
+/** Prochain palier de série (lot 4, panneau de détail) : le plus petit palier connu
+ * strictement supérieur à la série actuelle, ou le prochain multiple de 100 au-delà. */
+export function getNextStreakMilestone(currentStreakDays: number): number {
+  const next = STREAK_MILESTONES.find((milestone) => milestone > currentStreakDays)
+  return next ?? Math.ceil((currentStreakDays + 1) / 100) * 100
+}
+
 export interface DayFocus {
   /** Début du jour (minuit local), en epoch ms — clé stable pour une grille/un graphe. */
   dayStart: number

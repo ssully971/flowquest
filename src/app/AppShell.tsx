@@ -12,6 +12,7 @@ import { useBackgroundDisplaySettings } from '@/features/settings/background-dis
 import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { SettingsPanel } from '@/features/settings/SettingsPanel'
 import { useSettingsSync } from '@/features/settings/useSettingsSync'
+import { StreakPanel } from '@/features/stats/components/StreakPanel'
 import { useDailyGoal } from '@/features/stats/useDailyGoal'
 import { useDashboardStats } from '@/features/stats/useDashboardStats'
 import { useSessionSync } from '@/features/stats/useSessionSync'
@@ -60,6 +61,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isTasksOpen, setIsTasksOpen] = useState(false)
   const [isNotesOpen, setIsNotesOpen] = useState(false)
+  const [isStreakOpen, setIsStreakOpen] = useState(false)
   const [previousMode, setPreviousMode] = useState(mode)
 
   // §5.3 : en mode Ambiant, le reste de l'écran doit rester libre (tâches/notes masquées).
@@ -70,6 +72,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
     if (mode === 'ambient') {
       if (isTasksOpen) setIsTasksOpen(false)
       if (isNotesOpen) setIsNotesOpen(false)
+      if (isStreakOpen) setIsStreakOpen(false)
     }
   }
 
@@ -158,13 +161,21 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
           data-testid="right-button-group"
           className="flex flex-wrap items-center justify-center gap-3"
         >
-          <div
-            className="flex h-12 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 text-sm text-[var(--muted)]"
-            aria-label={`${strings.common.streak} : ${stats?.currentStreakDays ?? 0}`}
-          >
-            <Flame size={18} strokeWidth={1.75} aria-hidden="true" />
-            <span>{stats?.currentStreakDays ?? 0}</span>
-          </div>
+          {extrasSettings.showStreak ? (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsStreakOpen((prev) => !prev)}
+                aria-expanded={isStreakOpen}
+                aria-label={`${strings.common.streak} : ${stats?.currentStreakDays ?? 0}`}
+                className="flex h-12 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
+              >
+                <Flame size={18} strokeWidth={1.75} aria-hidden="true" />
+                <span>{stats?.currentStreakDays ?? 0}</span>
+              </button>
+              <StreakPanel open={isStreakOpen} onClose={() => setIsStreakOpen(false)} stats={stats} />
+            </div>
+          ) : null}
           <SegmentedControl
             ariaLabel={strings.common.mode}
             value={mode}

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { FocusSessionRecord } from '@/shared/storage/db'
 
-import { computeDailyFocus, computeStats } from './compute-stats'
+import { computeDailyFocus, computeStats, getNextStreakMilestone } from './compute-stats'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -149,5 +149,19 @@ describe('computeDailyFocus — historique jour par jour (calendrier et tendance
     const now = Date.UTC(2026, 0, 15, 12, 0, 0)
     const result = computeDailyFocus([], now, 3, 120)
     expect(result.every((day) => day.focusSeconds === 0 && !day.goalMet)).toBe(true)
+  })
+})
+
+describe('getNextStreakMilestone — panneau de détail de la série (lot 4)', () => {
+  it('renvoie le plus petit palier connu strictement supérieur à la série actuelle', () => {
+    expect(getNextStreakMilestone(0)).toBe(3)
+    expect(getNextStreakMilestone(3)).toBe(7)
+    expect(getNextStreakMilestone(5)).toBe(7)
+    expect(getNextStreakMilestone(99)).toBe(100)
+  })
+
+  it('au-delà du dernier palier connu, renvoie le prochain multiple de 100', () => {
+    expect(getNextStreakMilestone(365)).toBe(400)
+    expect(getNextStreakMilestone(420)).toBe(500)
   })
 })

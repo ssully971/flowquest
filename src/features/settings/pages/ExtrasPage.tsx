@@ -66,6 +66,13 @@ export function ExtrasPage({ settings, onChange }: ExtrasPageProps) {
         onToggle={() => onChange({ ...settings, themeRandomizer: !settings.themeRandomizer })}
       />
 
+      <SettingsToggleRow
+        label={s.showStreak}
+        hint={s.showStreakHint}
+        checked={settings.showStreak}
+        onToggle={() => onChange({ ...settings, showStreak: !settings.showStreak })}
+      />
+
       <div>
         <p className="mb-2 text-sm font-medium text-[var(--panel-muted)]">{s.defaultSettingsTab}</p>
         <div className="flex flex-wrap gap-2">
