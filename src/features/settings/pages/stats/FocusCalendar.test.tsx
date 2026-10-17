@@ -16,6 +16,7 @@ function buildEmptyDays(count: number, startDayStart: number): DayFocus[] {
   return Array.from({ length: count }, (_, i) => ({
     dayStart: startDayStart + i * DAY_MS,
     focusSeconds: 0,
+    sessionsCount: 0,
     goalMet: false,
   }))
 }
@@ -24,8 +25,8 @@ describe('FocusCalendar — calendrier de régularité façon GitHub (§9 du cah
   it('affiche une cellule par jour fourni, avec sa durée dans le libellé', () => {
     const monday = Date.UTC(2026, 0, 12) // lundi 12 janvier 2026
     const days: DayFocus[] = [
-      { dayStart: monday, focusSeconds: 1800, goalMet: false },
-      { dayStart: monday + DAY_MS, focusSeconds: 7200, goalMet: true },
+      { dayStart: monday, focusSeconds: 1800, sessionsCount: 1, goalMet: false },
+      { dayStart: monday + DAY_MS, focusSeconds: 7200, sessionsCount: 3, goalMet: true },
     ]
     render(<FocusCalendar days={days} dailyGoalMinutes={120} />)
 
@@ -39,7 +40,7 @@ describe('FocusCalendar — calendrier de régularité façon GitHub (§9 du cah
     const monday = Date.UTC(2026, 0, 12)
     render(
       <FocusCalendar
-        days={[{ dayStart: monday, focusSeconds: 0, goalMet: false }]}
+        days={[{ dayStart: monday, focusSeconds: 0, sessionsCount: 0, goalMet: false }]}
         dailyGoalMinutes={120}
       />,
     )

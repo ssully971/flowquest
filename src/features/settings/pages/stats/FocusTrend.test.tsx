@@ -12,6 +12,7 @@ function buildDays(count: number, startDayStart: number): DayFocus[] {
   return Array.from({ length: count }, (_, i) => ({
     dayStart: startDayStart + i * DAY_MS,
     focusSeconds: i * 600,
+    sessionsCount: i,
     goalMet: i % 2 === 0,
   }))
 }

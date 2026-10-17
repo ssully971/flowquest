@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import type { FocusSessionRecord } from '@/shared/storage/db'
+import type { FocusSessionRecord, TaskRecord } from '@/shared/storage/db'
 
-import { computeDailyFocus, computeStats, getNextStreakMilestone } from './compute-stats'
+import {
+  computeDailyFocus,
+  computePeriodStats,
+  computeStats,
+  getNextStreakMilestone,
+  percentChange,
+} from './compute-stats'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -18,6 +24,18 @@ function session(
     completed: true,
     taskId: null,
     syncedAt: null,
+    ...overrides,
+  }
+}
+
+function task(overrides: Partial<TaskRecord> & { doneAt: number }): TaskRecord {
+  return {
+    id: crypto.randomUUID(),
+    title: 'Tâche',
+    position: 0,
+    done: true,
+    createdAt: overrides.doneAt,
+    updatedAt: overrides.doneAt,
     ...overrides,
   }
 }
@@ -150,6 +168,17 @@ describe('computeDailyFocus — historique jour par jour (calendrier et tendance
     const result = computeDailyFocus([], now, 3, 120)
     expect(result.every((day) => day.focusSeconds === 0 && !day.goalMet)).toBe(true)
   })
+
+  it('compte le nombre de sessions de focus terminées par jour (lot 5, calendrier en sessions)', () => {
+    const now = Date.UTC(2026, 0, 15, 20, 0, 0)
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 2000, actualSeconds: 600 }),
+      session({ startedAt: now - 1000, actualSeconds: 300 }),
+      session({ startedAt: now - 500, kind: 'short_break', actualSeconds: 300 }),
+    ]
+    const result = computeDailyFocus(sessions, now, 1, 120)
+    expect(result[0].sessionsCount).toBe(2)
+  })
 })
 
 describe('getNextStreakMilestone — panneau de détail de la série (lot 4)', () => {
@@ -163,5 +192,72 @@ describe('getNextStreakMilestone — panneau de détail de la série (lot 4)', (
   it('au-delà du dernier palier connu, renvoie le prochain multiple de 100', () => {
     expect(getNextStreakMilestone(365)).toBe(400)
     expect(getNextStreakMilestone(420)).toBe(500)
+  })
+})
+
+describe('computePeriodStats — cartes de la période choisie, comparées à la période précédente (lot 5)', () => {
+  it('cumule temps de focus, nombre de sessions, temps de pause et tâches terminées « aujourd’hui »', () => {
+    const now = Date.UTC(2026, 0, 15, 20, 0, 0)
+    const todayStart = Date.UTC(2026, 0, 15)
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 1000, actualSeconds: 1200 }),
+      session({ startedAt: now - 500, kind: 'short_break', actualSeconds: 300 }),
+      session({ startedAt: now - 2 * DAY_MS, actualSeconds: 900 }), // hier : hors "aujourd'hui"
+    ]
+    const tasks: TaskRecord[] = [
+      task({ doneAt: now - 200 }),
+      task({ doneAt: todayStart - 1 }), // hier (juste avant minuit) : hors "aujourd'hui"
+    ]
+
+    const { current } = computePeriodStats(sessions, tasks, now, 'today')
+    expect(current).toEqual({
+      focusSeconds: 1200,
+      sessionsCount: 1,
+      pauseSeconds: 300,
+      tasksCompleted: 1,
+    })
+  })
+
+  it('compare à la période précédente de même longueur (semaine)', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0) // jeudi
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 1000, actualSeconds: 1500 }), // cette semaine
+      session({ startedAt: now - 10 * DAY_MS, actualSeconds: 3000 }), // semaine précédente (J-10 à J-14)
+      session({ startedAt: now - 20 * DAY_MS, actualSeconds: 9999 }), // bien avant : ni l'une ni l'autre
+    ]
+
+    const { current, previous } = computePeriodStats(sessions, [], now, 'week')
+    expect(current.focusSeconds).toBe(1500)
+    expect(previous?.focusSeconds).toBe(3000)
+  })
+
+  it('« depuis le début » n’a pas de période précédente comparable', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0)
+    const { previous } = computePeriodStats([], [], now, 'all')
+    expect(previous).toBeNull()
+  })
+
+  it('« depuis le début » cumule tout, sans borne basse', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0)
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 1000 * DAY_MS, actualSeconds: 1500 }),
+    ]
+    const { current } = computePeriodStats(sessions, [], now, 'all')
+    expect(current.focusSeconds).toBe(1500)
+  })
+})
+
+describe('percentChange — variation vs période précédente, pour la flèche du §9', () => {
+  it('calcule un pourcentage de variation classique', () => {
+    expect(percentChange(150, 100)).toBe(50)
+    expect(percentChange(50, 100)).toBe(-50)
+  })
+
+  it('renvoie 0 quand les deux valeurs sont nulles (aucun changement)', () => {
+    expect(percentChange(0, 0)).toBe(0)
+  })
+
+  it('renvoie null quand la période précédente est à 0 mais pas la courante (variation infinie)', () => {
+    expect(percentChange(10, 0)).toBeNull()
   })
 })

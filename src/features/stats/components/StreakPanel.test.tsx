@@ -68,8 +68,8 @@ describe('StreakPanel', () => {
 
   it('affiche une pastille par jour de la semaine, étiquetée par jour', () => {
     mockWeek.mockReturnValueOnce([
-      { dayStart: Date.UTC(2026, 0, 14), focusSeconds: 0, goalMet: false },
-      { dayStart: Date.UTC(2026, 0, 15), focusSeconds: 7200, goalMet: true },
+      { dayStart: Date.UTC(2026, 0, 14), focusSeconds: 0, sessionsCount: 0, goalMet: false },
+      { dayStart: Date.UTC(2026, 0, 15), focusSeconds: 7200, sessionsCount: 3, goalMet: true },
     ])
     renderPanel({ stats: stats({ currentStreakDays: 1, longestStreakDays: 1 }) })
 
