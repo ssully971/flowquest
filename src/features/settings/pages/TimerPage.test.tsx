@@ -45,4 +45,18 @@ describe('TimerPage — durées Pomodoro et démarrage automatique', () => {
     await user.click(toggle)
     expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_TIMER_SETTINGS, autoStartNext: true })
   })
+
+  it('bascule l’affichage de la tâche dans le PiP (§6.3)', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<TimerPage settings={DEFAULT_TIMER_SETTINGS} onChange={onChange} />)
+
+    const toggle = screen.getByRole('switch', {
+      name: 'Afficher la tâche dans l’Image dans l’image',
+    })
+    expect(toggle).toHaveAttribute('aria-checked', 'true')
+
+    await user.click(toggle)
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_TIMER_SETTINGS, showTaskInPip: false })
+  })
 })

@@ -1,0 +1,99 @@
+import { act, renderHook, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { usePictureInPicture } from './usePictureInPicture'
+
+const CONTENT = { segmentLabel: 'Focus', timeLabel: '24:59', taskLabel: null as string | null }
+
+function cleanupGlobals() {
+  Reflect.deleteProperty(window, 'documentPictureInPicture')
+  Reflect.deleteProperty(document, 'pictureInPictureEnabled')
+  Reflect.deleteProperty(document, 'pictureInPictureElement')
+  Reflect.deleteProperty(document, 'exitPictureInPicture')
+  Reflect.deleteProperty(HTMLVideoElement.prototype, 'requestPictureInPicture')
+  Reflect.deleteProperty(HTMLCanvasElement.prototype, 'captureStream')
+  for (const video of document.querySelectorAll('video')) video.remove()
+}
+
+describe('usePictureInPicture — Document PiP et repli vidéo/canvas (§6.3 du cahier des charges)', () => {
+  afterEach(() => {
+    cleanupGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('signale l’absence de support quand aucune API PiP n’est disponible', () => {
+    const { result } = renderHook(() => usePictureInPicture(CONTENT))
+    expect(result.current.isSupported).toBe(false)
+    expect(result.current.mode).toBeNull()
+  })
+
+  it('utilise le Document PiP quand il est disponible, et l’ouvre/le ferme au clic', async () => {
+    const fakeWindow = { addEventListener: vi.fn(), close: vi.fn() } as unknown as Window
+    const pip = {
+      window: null as Window | null,
+      requestWindow: vi.fn().mockResolvedValue(fakeWindow),
+    }
+    Object.defineProperty(window, 'documentPictureInPicture', { value: pip, configurable: true })
+
+    const { result } = renderHook(() => usePictureInPicture(CONTENT))
+    expect(result.current.mode).toBe('document')
+    expect(result.current.isSupported).toBe(true)
+
+    act(() => result.current.toggle())
+    await waitFor(() => expect(result.current.pipWindow).toBe(fakeWindow))
+    expect(pip.requestWindow).toHaveBeenCalled()
+
+    // Le navigateur mettrait lui-même à jour `documentPictureInPicture.window` une fois
+    // la fenêtre ouverte.
+    pip.window = fakeWindow
+    act(() => result.current.toggle())
+    expect(fakeWindow.close).toHaveBeenCalled()
+  })
+
+  it('se replie sur le PiP vidéo classique quand Document PiP est indisponible', async () => {
+    Object.defineProperty(document, 'pictureInPictureEnabled', { value: true, configurable: true })
+    HTMLVideoElement.prototype.requestPictureInPicture = vi
+      .fn()
+      .mockResolvedValue({} as PictureInPictureWindow)
+    HTMLCanvasElement.prototype.captureStream = vi.fn().mockReturnValue({} as MediaStream)
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+
+    const { result } = renderHook(() => usePictureInPicture(CONTENT))
+    expect(result.current.mode).toBe('video')
+    expect(result.current.isSupported).toBe(true)
+    expect(result.current.isActive).toBe(false)
+
+    const videoEl = document.querySelector('video')
+    expect(videoEl).not.toBeNull()
+
+    act(() => result.current.toggle())
+    await waitFor(() => expect(HTMLVideoElement.prototype.requestPictureInPicture).toHaveBeenCalled())
+    expect(HTMLCanvasElement.prototype.captureStream).toHaveBeenCalledWith(2)
+
+    act(() => {
+      videoEl?.dispatchEvent(new Event('enterpictureinpicture'))
+    })
+    expect(result.current.isActive).toBe(true)
+
+    Object.defineProperty(document, 'pictureInPictureElement', {
+      value: videoEl,
+      configurable: true,
+    })
+    document.exitPictureInPicture = vi.fn().mockResolvedValue(undefined)
+
+    act(() => result.current.toggle())
+    expect(document.exitPictureInPicture).toHaveBeenCalled()
+  })
+
+  it('n’affiche rien dans la fenêtre PiP quand le hook est démonté (nettoyage)', () => {
+    Object.defineProperty(document, 'pictureInPictureEnabled', { value: true, configurable: true })
+    HTMLVideoElement.prototype.requestPictureInPicture = vi.fn()
+    HTMLCanvasElement.prototype.captureStream = vi.fn()
+
+    const { unmount } = renderHook(() => usePictureInPicture(CONTENT))
+    expect(document.querySelector('video')).not.toBeNull()
+
+    unmount()
+    expect(document.querySelector('video')).toBeNull()
+  })
+})

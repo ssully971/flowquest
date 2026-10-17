@@ -128,6 +128,29 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
         </div>
         <p className="text-xs text-[var(--panel-muted)]">{s.autoStartNextHint}</p>
       </div>
+
+      <div className="flex max-w-md flex-col gap-1 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] px-5 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm text-[var(--panel-text)]">{s.showTaskInPip}</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={settings.showTaskInPip}
+            aria-label={s.showTaskInPip}
+            onClick={() => onChange({ ...settings, showTaskInPip: !settings.showTaskInPip })}
+            className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${
+              settings.showTaskInPip ? 'bg-[var(--accent)]' : 'bg-[var(--panel-line)]'
+            }`}
+          >
+            <span
+              className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${
+                settings.showTaskInPip ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+        <p className="text-xs text-[var(--panel-muted)]">{s.showTaskInPipHint}</p>
+      </div>
     </div>
   )
 }

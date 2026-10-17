@@ -9,6 +9,7 @@ import { useCurrentTime } from '@/shared/hooks/useCurrentTime'
 import { useWakeLock } from '@/shared/hooks/useWakeLock'
 import { strings } from '@/shared/i18n'
 
+import type { SegmentKind } from './engine/timer-engine'
 import { CycleDots } from './components/CycleDots'
 import { SegmentTabs } from './components/SegmentTabs'
 import { TimerControls } from './components/TimerControls'
@@ -21,9 +22,19 @@ import { useTimerSettings } from './timer-settings-context'
 import { useFocusTimer } from './useFocusTimer'
 import { usePictureInPicture } from './usePictureInPicture'
 
+function getSegmentLabel(segment: SegmentKind): string {
+  switch (segment) {
+    case 'short_break':
+      return strings.focus.tabs.shortBreak
+    case 'long_break':
+      return strings.focus.tabs.longBreak
+    default:
+      return strings.focus.tabs.focus
+  }
+}
+
 export function FocusScreen() {
   const timer = useFocusTimer()
-  const pip = usePictureInPicture()
   const { activeTaskId } = useActiveTask()
   const { tasks } = useTasks()
   const { settings: timerSettings } = useTimerSettings()
@@ -34,6 +45,13 @@ export function FocusScreen() {
   useWakeLock(extrasSettings.preventSleep && timer.snapshot?.status === 'running')
   const activeTask = tasks.find((task) => task.id === activeTaskId) ?? null
 
+  const displayLabel = formatCountdown(timer.snapshot?.remainingMs ?? 0)
+  const pip = usePictureInPicture({
+    segmentLabel: getSegmentLabel(timer.segment),
+    timeLabel: displayLabel,
+    taskLabel: timerSettings.showTaskInPip ? activeTask?.title : null,
+  })
+
   if (!timer.isReady || !timer.snapshot) {
     return <div className="h-full" />
   }
@@ -41,7 +59,6 @@ export function FocusScreen() {
   const { snapshot } = timer
   const durationMs = getDurationForSegment(timer.segment, toDurationsMs(timerSettings))
   const progress = durationMs > 0 ? Math.min(1, snapshot.elapsedMs / durationMs) : 0
-  const displayLabel = formatCountdown(snapshot.remainingMs ?? 0)
 
   const handlePrimary = () => {
     if (snapshot.status === 'running') timer.pause()
@@ -109,16 +126,15 @@ export function FocusScreen() {
                 gap: 4,
               }}
             >
-              <div style={{ fontSize: 14, opacity: 0.7 }}>
-                {timer.segment === 'focus'
-                  ? strings.focus.tabs.focus
-                  : timer.segment === 'short_break'
-                    ? strings.focus.tabs.shortBreak
-                    : strings.focus.tabs.longBreak}
-              </div>
+              <div style={{ fontSize: 14, opacity: 0.7 }}>{getSegmentLabel(timer.segment)}</div>
               <div style={{ fontSize: 40, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
                 {displayLabel}
               </div>
+              {timerSettings.showTaskInPip && activeTask ? (
+                <div style={{ fontSize: 12, opacity: 0.6, maxWidth: '90%', textAlign: 'center' }}>
+                  {activeTask.title}
+                </div>
+              ) : null}
             </div>,
             pip.pipWindow.document.body,
           )

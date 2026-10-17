@@ -7,6 +7,7 @@ export interface TimerSettings {
   longBreakMinutes: number
   sessionsBeforeLongBreak: number
   autoStartNext: boolean
+  showTaskInPip: boolean
 }
 
 export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
@@ -15,6 +16,7 @@ export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
   longBreakMinutes: POMODORO_DEFAULTS.longBreakMs / 60_000,
   sessionsBeforeLongBreak: POMODORO_DEFAULTS.sessionsBeforeLongBreak,
   autoStartNext: false,
+  showTaskInPip: true,
 }
 
 // Plages du §6.1 du cahier des charges.

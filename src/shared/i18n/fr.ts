@@ -224,6 +224,8 @@ export const fr = {
       autoStartNext: 'Démarrage automatique du segment suivant',
       autoStartNextHint:
         'À la fin d’un segment, le suivant démarre seul, sans attendre que tu appuies sur Démarrer.',
+      showTaskInPip: 'Afficher la tâche dans l’Image dans l’image',
+      showTaskInPipHint: 'Le nom de la tâche active apparaît dans la fenêtre flottante.',
       decrease: 'Diminuer',
       increase: 'Augmenter',
     },
