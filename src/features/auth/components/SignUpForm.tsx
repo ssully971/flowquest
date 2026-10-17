@@ -4,9 +4,17 @@ import { useState } from 'react'
 import { strings } from '@/shared/i18n'
 
 import { useAuth } from '../useAuth'
-import { isValidPassword, isValidUsername } from '../validation'
+import { useUsernameAvailability } from '../useUsernameAvailability'
+import { getUsernameFormatIssue, isValidPassword } from '../validation'
 import { FormField } from './FormField'
 import { GoogleButton } from './GoogleButton'
+
+const USERNAME_FORMAT_ERRORS = {
+  tooShort: strings.auth.errors.usernameTooShort,
+  tooLong: strings.auth.errors.usernameTooLong,
+  invalidChars: strings.auth.errors.usernameInvalidChars,
+  reserved: strings.auth.errors.usernameReserved,
+}
 
 interface SignUpFormProps {
   onSwitchToSignIn: () => void
@@ -21,12 +29,36 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
   const [formError, setFormError] = useState<string | null>(null)
   const [confirmationSent, setConfirmationSent] = useState(false)
 
+  const usernameFormatIssue = getUsernameFormatIssue(username)
+  const availability = useUsernameAvailability(username, username.length > 0 && !usernameFormatIssue)
+
+  const usernameError =
+    username.length === 0
+      ? null
+      : usernameFormatIssue
+        ? USERNAME_FORMAT_ERRORS[usernameFormatIssue]
+        : availability === 'taken'
+          ? strings.auth.errors.usernameTaken
+          : null
+  const usernameHint =
+    !usernameError && username.length > 0
+      ? availability === 'checking'
+        ? strings.auth.errors.usernameChecking
+        : availability === 'available'
+          ? strings.auth.errors.usernameAvailable
+          : undefined
+      : undefined
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setFormError(null)
 
-    if (!isValidUsername(username)) {
-      setFormError(strings.auth.errors.invalidUsername)
+    if (usernameFormatIssue) {
+      setFormError(USERNAME_FORMAT_ERRORS[usernameFormatIssue])
+      return
+    }
+    if (availability === 'taken') {
+      setFormError(strings.auth.errors.usernameTaken)
       return
     }
     if (!isValidPassword(password)) {
@@ -64,6 +96,8 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
         value={username}
         onChange={setUsername}
         autoComplete="username"
+        error={usernameError}
+        hint={usernameHint}
       />
       <FormField
         label={strings.auth.fields.email}

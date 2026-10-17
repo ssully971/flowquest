@@ -139,3 +139,52 @@ describe('AuthProvider — profil manquant (reproduction du bug « Impossible de
     expect(rpcMock).not.toHaveBeenCalled()
   })
 })
+
+describe('AuthProvider — ne relance pas loadProfile à chaque évènement (bug de la popup en boucle après Google)', () => {
+  it('ne recharge le profil qu’une fois même si plusieurs évènements onAuthStateChange arrivent coup sur coup pour le même utilisateur', async () => {
+    fromMock.mockReturnValue(selectQuery({ data: PROFILE_ROW, error: null }))
+
+    renderProbe()
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-state')).toHaveTextContent('loaded')
+    })
+    expect(fromMock).toHaveBeenCalledTimes(1)
+
+    // Simule les évènements successifs que Supabase émet coup sur coup pour la même
+    // session après un retour OAuth (INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED…).
+    const authStateCallback = onAuthStateChangeMock.mock.calls[0][0] as (
+      event: string,
+      session: unknown,
+    ) => void
+    authStateCallback('SIGNED_IN', { user: SESSION_USER })
+    authStateCallback('TOKEN_REFRESHED', { user: SESSION_USER })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-state')).toHaveTextContent('loaded')
+    })
+    expect(fromMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('n’affiche l’erreur de chargement qu’une seule fois malgré plusieurs évènements', async () => {
+    fromMock.mockReturnValue(selectQuery({ data: null, error: { message: 'no rows' } }))
+    rpcMock.mockResolvedValue({ data: null, error: { message: 'down' } })
+
+    renderProbe()
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-state')).toHaveTextContent('error')
+    })
+    expect(rpcMock).toHaveBeenCalledTimes(1)
+
+    const authStateCallback = onAuthStateChangeMock.mock.calls[0][0] as (
+      event: string,
+      session: unknown,
+    ) => void
+    authStateCallback('SIGNED_IN', { user: SESSION_USER })
+    authStateCallback('SIGNED_IN', { user: SESSION_USER })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-state')).toHaveTextContent('error')
+    })
+    expect(rpcMock).toHaveBeenCalledTimes(1)
+  })
+})

@@ -118,10 +118,19 @@ export const fr = {
       email: 'E-mail',
       password: 'Mot de passe',
       passwordHint: '8 caractères minimum, avec une majuscule et un chiffre.',
+      showPassword: 'Afficher le mot de passe',
+      hidePassword: 'Masquer le mot de passe',
     },
     errors: {
       invalidUsername:
         'Pseudo invalide : 3 à 20 caractères, minuscules, chiffres et underscore uniquement.',
+      usernameTooShort: 'Trop court (3 caractères minimum).',
+      usernameTooLong: 'Trop long (20 caractères maximum).',
+      usernameInvalidChars: 'Caractères interdits : minuscules, chiffres et underscore uniquement.',
+      usernameReserved: 'Ce pseudo est réservé, choisis-en un autre.',
+      usernameTaken: 'Ce pseudo est déjà pris.',
+      usernameChecking: 'Vérification…',
+      usernameAvailable: 'Pseudo disponible.',
       invalidPassword:
         'Le mot de passe doit faire au moins 8 caractères, avec une majuscule et un chiffre.',
       invalidEmail: 'Adresse e-mail invalide.',

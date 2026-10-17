@@ -1,5 +1,5 @@
 import type { Session, User } from '@supabase/supabase-js'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { isSupabaseConfigured, supabase } from '@/shared/supabase/client'
@@ -17,6 +17,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [profileState, setProfileState] = useState<ProfileState>('idle')
   const [profileError, setProfileError] = useState<string | null>(null)
+  // Supabase déclenche plusieurs évènements onAuthStateChange coup sur coup pour la même
+  // session (INITIAL_SESSION, SIGNED_IN, parfois TOKEN_REFRESHED), en particulier juste
+  // après un retour OAuth. Sans cette garde, chaque évènement relançait loadProfile() et,
+  // en cas d'échec, re-déclenchait le toast d'erreur — d'où une popup qui semblait
+  // revenir en boucle après « Continuer avec Google ».
+  const loadedForUserRef = useRef<string | null>(null)
 
   const loadProfile = useCallback(
     async (userId: string) => {
@@ -41,6 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       }
 
+      if (ensureError) {
+        // Le message affiché est traduit/générique ; la vraie erreur Supabase part en
+        // console pour le diagnostic, jamais avalée silencieusement.
+        console.error('[Flowquest] Échec du chargement du profil (ensure_profile) :', ensureError)
+      }
       const message = ensureError
         ? translateAuthError(ensureError.message)
         : 'Impossible de charger ton profil. Réessaie plus tard.'
@@ -49,6 +60,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       showToast({ type: 'error', message })
     },
     [showToast],
+  )
+
+  const loadProfileOnce = useCallback(
+    (userId: string) => {
+      if (loadedForUserRef.current === userId) return
+      loadedForUserRef.current = userId
+      void loadProfile(userId)
+    },
+    [loadProfile],
   )
 
   useEffect(() => {
@@ -60,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session)
       setUser(data.session?.user ?? null)
       if (data.session?.user) {
-        void loadProfile(data.session.user.id)
+        loadProfileOnce(data.session.user.id)
         setStatus('authenticated')
       } else {
         setStatus('guest')
@@ -71,9 +91,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(nextSession)
       setUser(nextSession?.user ?? null)
       if (nextSession?.user) {
-        void loadProfile(nextSession.user.id)
+        loadProfileOnce(nextSession.user.id)
         setStatus('authenticated')
       } else {
+        loadedForUserRef.current = null
         setProfile(null)
         setProfileState('idle')
         setProfileError(null)
@@ -85,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true
       listener.subscription.unsubscribe()
     }
-  }, [loadProfile])
+  }, [loadProfileOnce])
 
   const retryLoadProfile = useCallback(() => {
     if (user) void loadProfile(user.id)

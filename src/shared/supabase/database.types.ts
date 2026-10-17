@@ -222,6 +222,10 @@ export interface Database {
         Args: Record<string, never>
         Returns: Database['public']['Tables']['profiles']['Row']
       }
+      is_username_available: {
+        Args: { p_username: string }
+        Returns: boolean
+      }
     }
   }
 }
