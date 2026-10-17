@@ -12,6 +12,14 @@ declare global {
   interface Window {
     documentPictureInPicture?: DocumentPictureInPicture
   }
+
+  interface HTMLVideoElement {
+    // API WebKit historique (Safari, y compris iOS/iPadOS avant l'adoption de
+    // requestPictureInPicture()) : utilisée en repli quand l'API standard est absente.
+    webkitSupportsPresentationMode?: (mode: 'picture-in-picture' | 'inline') => boolean
+    webkitSetPresentationMode?: (mode: 'picture-in-picture' | 'inline') => void
+    webkitPresentationMode?: 'picture-in-picture' | 'inline' | 'fullscreen'
+  }
 }
 
 export type PictureInPictureMode = 'document' | 'video' | null
@@ -29,11 +37,17 @@ function supportsVideoPip(): boolean {
   if (typeof HTMLVideoElement === 'undefined' || typeof HTMLCanvasElement === 'undefined') {
     return false
   }
-  return (
+  if (typeof HTMLCanvasElement.prototype.captureStream !== 'function') return false
+
+  const hasStandardApi =
     document.pictureInPictureEnabled === true &&
-    typeof HTMLVideoElement.prototype.requestPictureInPicture === 'function' &&
-    typeof HTMLCanvasElement.prototype.captureStream === 'function'
-  )
+    typeof HTMLVideoElement.prototype.requestPictureInPicture === 'function'
+  // Repli WebKit (§6.3) : sur Safari, `document.pictureInPictureEnabled` n'est pas
+  // toujours renseigné alors que l'API `webkitSetPresentationMode` existe — sans ce
+  // second test, le PiP serait signalé indisponible à tort sur ces navigateurs.
+  const hasWebkitApi = typeof HTMLVideoElement.prototype.webkitSupportsPresentationMode === 'function'
+
+  return hasStandardApi || hasWebkitApi
 }
 
 function detectMode(): PictureInPictureMode {
@@ -42,10 +56,20 @@ function detectMode(): PictureInPictureMode {
   return null
 }
 
-/** §6.3 du cahier des charges : Document Picture-in-Picture (Chrome/Edge ordinateur) et,
- * à défaut, une fenêtre vidéo/canvas en PiP classique (Safari et autres navigateurs qui
- * supportent requestPictureInPicture() sur <video> mais pas la fenêtre Document PiP).
- * Comportement non garanti sur Safari iPad — testé au mieux, ne bloque pas la V1. */
+/**
+ * §6.3 du cahier des charges : Document Picture-in-Picture (Chrome/Edge ordinateur) et,
+ * à défaut, une fenêtre vidéo/canvas en PiP classique — via requestPictureInPicture()
+ * standard, ou via webkitSetPresentationMode() sur les navigateurs WebKit qui n'ont que
+ * l'API historique.
+ *
+ * Limite connue et honnête sur iPadOS : Safari y expose bien webkitSetPresentationMode,
+ * mais le flux vidéo vient ici d'un <canvas> (canvas.captureStream()), pas d'un média
+ * réel — WebKit refuse ou ignore silencieusement le passage en PiP pour ce type de
+ * source sur iPad dans plusieurs versions connues (contrairement à macOS, où cela
+ * fonctionne). Aucune contournement fiable n'existe à ce jour : le bouton reste donc
+ * affiché dès que l'API est détectée (meilleur effort), mais `isActive` ne passe à vrai
+ * que si le navigateur confirme réellement l'entrée en PiP — jamais de faux positif.
+ */
 export function usePictureInPicture(content: PipFrameContent): UsePictureInPictureResult {
   const [pipWindow, setPipWindow] = useState<Window | null>(null)
   const [isVideoActive, setIsVideoActive] = useState(false)
@@ -84,9 +108,18 @@ export function usePictureInPicture(content: PipFrameContent): UsePictureInPictu
     video.addEventListener('enterpictureinpicture', onEnter)
     video.addEventListener('leavepictureinpicture', onLeave)
 
+    // Repli WebKit : requestPictureInPicture()/les événements standards peuvent être
+    // absents alors que l'API webkitSetPresentationMode() fonctionne — on dérive alors
+    // l'état actif de son propre événement plutôt que de supposer l'échec.
+    const onWebkitPresentationModeChanged = () => {
+      setIsVideoActive(video.webkitPresentationMode === 'picture-in-picture')
+    }
+    video.addEventListener('webkitpresentationmodechanged', onWebkitPresentationModeChanged)
+
     return () => {
       video.removeEventListener('enterpictureinpicture', onEnter)
       video.removeEventListener('leavepictureinpicture', onLeave)
+      video.removeEventListener('webkitpresentationmodechanged', onWebkitPresentationModeChanged)
       video.remove()
       canvasElRef.current = null
       videoElRef.current = null
@@ -125,6 +158,10 @@ export function usePictureInPicture(content: PipFrameContent): UsePictureInPictu
       void document.exitPictureInPicture()
       return
     }
+    if (video.webkitPresentationMode === 'picture-in-picture') {
+      video.webkitSetPresentationMode?.('inline')
+      return
+    }
 
     const ctx = canvas.getContext('2d')
     if (ctx) drawPipFrame(ctx, contentRef.current)
@@ -133,10 +170,20 @@ export function usePictureInPicture(content: PipFrameContent): UsePictureInPictu
     video.srcObject = stream
     void video
       .play()
-      .then(() => video.requestPictureInPicture())
+      .then(() => {
+        if (typeof video.requestPictureInPicture === 'function') {
+          return video.requestPictureInPicture()
+        }
+        // Repli WebKit (ex. Safari/iPadOS sans requestPictureInPicture standard) :
+        // appel synchrone, pas de promesse — l'état actif vient de l'événement
+        // webkitpresentationmodechanged, pas de ce retour.
+        video.webkitSetPresentationMode?.('picture-in-picture')
+        return undefined
+      })
       .catch(() => {
-        // Lecture ou PiP refusés (ex. pas d'interaction utilisateur directe) : le
-        // bouton reste disponible pour réessayer, pas d'erreur bloquante.
+        // Lecture ou PiP refusés (ex. pas d'interaction utilisateur directe, ou source
+        // canvas non prise en charge par WebKit sur cet appareil) : le bouton reste
+        // disponible pour réessayer, pas d'erreur bloquante ni d'état actif supposé.
       })
   }, [])
 

@@ -84,7 +84,9 @@ Principe : à chaque lancement, on enregistre `{état, started_at, durée, segme
 - **Installation PWA obligatoire pour le push sur iOS** (iOS 16.4+) : une **popup discrète** explique « Ajoute Flowquest à l'écran d'accueil pour recevoir l'alerte de fin », visible sur iOS et Android, une seule fois, avec « Plus tard ». Le son d'alerte ne joue que si l'app est ouverte ; en arrière-plan c'est la notification système qui prévient.
 
 ### 6.3 Picture-in-Picture
-Via Document Picture-in-Picture (Chrome/Edge ordinateur) ou, à défaut, une fenêtre vidéo/canvas en PiP classique. Comportement non garanti sur Safari iPad : à tester, sans bloquer la V1. Option « Afficher la tâche dans le PiP ».
+Via Document Picture-in-Picture (Chrome/Edge ordinateur) ou, à défaut, une fenêtre vidéo/canvas en PiP classique, elle-même déclenchée via `requestPictureInPicture()` standard ou, en repli, l'API historique `webkitSetPresentationMode()` de WebKit. Option « Afficher la tâche dans le PiP ».
+
+**Limite connue sur Safari iPad** : `webkitSetPresentationMode` y est bien présent, mais la source vidéo vient ici d'un `<canvas>` (`canvas.captureStream()`), pas d'un média réel — WebKit refuse ou ignore silencieusement le passage en PiP pour ce type de source sur iPad dans plusieurs versions connues, alors que cela fonctionne sur Safari macOS. Aucun contournement fiable n'existe à ce jour. Comportement donc non garanti sur iPad, à tester sans bloquer la V1 : le bouton reste proposé en meilleur effort, mais l'état « actif » n'est affiché que si le navigateur confirme réellement l'entrée en PiP (jamais de faux positif).
 
 ### 6.4 Réglages du minuteur
 - Style d'affichage : **défaut, flip clock, barre de progression, jauge, matrice de points, camembert**.
