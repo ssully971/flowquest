@@ -226,6 +226,10 @@ export interface Database {
         Args: { p_username: string }
         Returns: boolean
       }
+      delete_own_account: {
+        Args: Record<string, never>
+        Returns: undefined
+      }
     }
   }
 }

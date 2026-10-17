@@ -220,6 +220,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsPasswordRecovery(false)
   }, [])
 
+  const deleteAccount = useCallback(async () => {
+    if (!supabase) throw new Error('Supabase non configuré')
+    const { error } = await supabase.rpc('delete_own_account')
+    if (error) {
+      console.error('[Flowquest] Échec de la suppression du compte :', error)
+      showToast({ type: 'error', message: translateAuthError(error.message) })
+      throw error
+    }
+    // Le compte n'existe plus côté serveur : la session locale est invalide, on la
+    // nettoie nous-mêmes plutôt que d'attendre un évènement onAuthStateChange qui ne
+    // viendra pas forcément (le serveur ne peut plus authentifier un jeton dont
+    // l'utilisateur a disparu).
+    await supabase.auth.signOut()
+    loadedForUserRef.current = null
+    setProfile(null)
+    setProfileState('idle')
+    setProfileError(null)
+    setSession(null)
+    setUser(null)
+    setStatus('guest')
+    showToast({ type: 'success', message: 'Ton compte a été supprimé.' })
+  }, [showToast])
+
   const signOut = useCallback(async () => {
     if (!supabase) return
     const { error } = await supabase.auth.signOut()
@@ -269,6 +292,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       updatePassword,
       isPasswordRecovery,
       clearPasswordRecovery,
+      deleteAccount,
     }),
     [
       status,
@@ -289,6 +313,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       updatePassword,
       isPasswordRecovery,
       clearPasswordRecovery,
+      deleteAccount,
     ],
   )
 

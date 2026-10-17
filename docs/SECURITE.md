@@ -139,6 +139,22 @@ appareil ou d'une autre session — c'est ce qui garantit qu'aucune session n'es
   l'utilisateur est **volontairement identique** que l'adresse e-mail corresponde à un
   compte existant ou non, pour ne jamais révéler si une adresse est inscrite.
 
+### Suppression de compte
+
+- `public.delete_own_account()` (migration `0013_delete_account.sql`) est `security
+  definer` : un utilisateur authentifié n'a normalement pas le droit de supprimer une
+  ligne de `auth.users` (schéma géré par Supabase), cette fonction le fait à sa place,
+  avec les droits de son propriétaire.
+- La cible est **exclusivement** `auth.uid()`, jamais un paramètre fourni par le client :
+  il est structurellement impossible de supprimer le compte de quelqu'un d'autre, même en
+  cas de bug côté interface (même principe que `ensure_profile()`).
+- Toutes les tables de données utilisateur (`profiles`, `user_settings`, `tasks`,
+  `focus_sessions`, `timer_state`, `notes`) ont une clé étrangère `on delete cascade` vers
+  `auth.users` (directement, ou via `profiles` qui cascade elle-même) : une seule
+  suppression suffit à tout effacer, sans fonction séparée par table.
+- Côté interface, la confirmation exige de retaper son propre pseudo exactement (pas une
+  simple case à cocher), pour limiter les suppressions accidentelles.
+
 ## Comment vérifier soi-même l'isolation entre utilisateurs
 
 1. Crée deux comptes de test (A et B) dans Supabase Auth.

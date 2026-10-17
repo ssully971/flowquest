@@ -14,6 +14,7 @@ const resendMock = vi.fn()
 const resetPasswordForEmailMock = vi.fn()
 const updateUserMock = vi.fn()
 const signInWithIdTokenMock = vi.fn()
+const signOutMock = vi.fn()
 
 vi.mock('@/shared/supabase/client', () => ({
   isSupabaseConfigured: true,
@@ -25,6 +26,7 @@ vi.mock('@/shared/supabase/client', () => ({
       resetPasswordForEmail: (...args: unknown[]) => resetPasswordForEmailMock(...args),
       updateUser: (...args: unknown[]) => updateUserMock(...args),
       signInWithIdToken: (...args: unknown[]) => signInWithIdTokenMock(...args),
+      signOut: (...args: unknown[]) => signOutMock(...args),
     },
     from: (...args: unknown[]) => fromMock(...args),
     rpc: (...args: unknown[]) => rpcMock(...args),
@@ -60,6 +62,7 @@ function ProbeAccountState() {
     updatePassword,
     clearPasswordRecovery,
     signInWithGoogleIdToken,
+    deleteAccount,
   } = useAuth()
   return (
     <div>
@@ -88,6 +91,9 @@ function ProbeAccountState() {
       >
         Connexion Google (ID token)
       </button>
+      <button type="button" onClick={() => void deleteAccount()}>
+        Supprimer le compte
+      </button>
     </div>
   )
 }
@@ -111,6 +117,7 @@ beforeEach(() => {
   resetPasswordForEmailMock.mockReset()
   updateUserMock.mockReset()
   signInWithIdTokenMock.mockReset()
+  signOutMock.mockReset()
   getSessionMock.mockResolvedValue({ data: { session: { user: SESSION_USER } } })
   onAuthStateChangeMock.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } })
 })
@@ -315,5 +322,21 @@ describe('AuthProvider — renvoi d’e-mail et réinitialisation du mot de pass
       token: 'fake-id-token',
       nonce: 'fake-nonce',
     })
+  })
+
+  it('supprime le compte via delete_own_account puis repasse en invité', async () => {
+    fromMock.mockReturnValue(selectQuery({ data: PROFILE_ROW, error: null }))
+    rpcMock.mockResolvedValue({ data: null, error: null })
+    signOutMock.mockResolvedValue({ error: null })
+    const user = await import('@testing-library/user-event').then((m) => m.default.setup())
+
+    renderProbe()
+    await waitFor(() => expect(screen.getByTestId('profile-state')).toHaveTextContent('loaded'))
+
+    await user.click(screen.getByRole('button', { name: 'Supprimer le compte' }))
+    expect(rpcMock).toHaveBeenCalledWith('delete_own_account')
+    await waitFor(() => expect(signOutMock).toHaveBeenCalled())
+    await waitFor(() => expect(screen.getByTestId('profile-state')).toHaveTextContent('idle'))
+    expect(screen.getByTestId('profile-username')).toHaveTextContent('')
   })
 })

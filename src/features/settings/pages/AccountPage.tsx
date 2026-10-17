@@ -6,6 +6,7 @@ import { ResetPasswordForm } from '@/features/auth/components/ResetPasswordForm'
 import { SignInForm } from '@/features/auth/components/SignInForm'
 import { SignUpForm } from '@/features/auth/components/SignUpForm'
 import { useAuth } from '@/features/auth/useAuth'
+import { LocalBackupSection } from '@/features/backup/components/LocalBackupSection'
 import { strings } from '@/shared/i18n'
 
 export function AccountPage() {
@@ -93,6 +94,8 @@ export function AccountPage() {
           )}
         </div>
       )}
+
+      <LocalBackupSection />
     </div>
   )
 }

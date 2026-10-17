@@ -6,6 +6,7 @@ import { strings } from '@/shared/i18n'
 import { useAuth } from '../useAuth'
 import { useUsernameAvailability } from '../useUsernameAvailability'
 import { getUsernameFormatIssue } from '../validation'
+import { DeleteAccountSection } from './DeleteAccountSection'
 
 const USERNAME_FORMAT_ERRORS = {
   tooShort: strings.auth.errors.usernameTooShort,
@@ -138,6 +139,8 @@ export function AccountSummary() {
       >
         {isSigningOut ? strings.auth.account.signingOut : strings.auth.account.signOut}
       </button>
+
+      <DeleteAccountSection />
     </div>
   )
 }

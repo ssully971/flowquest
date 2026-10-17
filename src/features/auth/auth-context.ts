@@ -31,6 +31,7 @@ export interface AuthContextValue {
   updatePassword: (newPassword: string) => Promise<void>
   isPasswordRecovery: boolean
   clearPasswordRecovery: () => void
+  deleteAccount: () => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
