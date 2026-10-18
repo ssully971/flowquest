@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest'
 
-import type { FocusSessionRecord } from '@/shared/storage/db'
+import type { FocusSessionRecord, TaskRecord } from '@/shared/storage/db'
 
-import { computeDailyFocus, computeStats } from './compute-stats'
+import {
+  aggregateWeeklyFocus,
+  computeDailyFocus,
+  computeFocusScore,
+  computePeriodStats,
+  computeStats,
+  getNextStreakMilestone,
+  getTrendWindowDays,
+  percentChange,
+} from './compute-stats'
+import type { DayFocus } from './compute-stats'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -18,6 +28,22 @@ function session(
     completed: true,
     taskId: null,
     syncedAt: null,
+    ...overrides,
+  }
+}
+
+function task(overrides: Partial<TaskRecord> & { doneAt: number }): TaskRecord {
+  return {
+    id: crypto.randomUUID(),
+    title: 'Tâche',
+    emoji: null,
+    color: null,
+    etaMinutes: null,
+    parentId: null,
+    position: 0,
+    done: true,
+    createdAt: overrides.doneAt,
+    updatedAt: overrides.doneAt,
     ...overrides,
   }
 }
@@ -149,5 +175,187 @@ describe('computeDailyFocus — historique jour par jour (calendrier et tendance
     const now = Date.UTC(2026, 0, 15, 12, 0, 0)
     const result = computeDailyFocus([], now, 3, 120)
     expect(result.every((day) => day.focusSeconds === 0 && !day.goalMet)).toBe(true)
+  })
+
+  it('compte le nombre de sessions de focus terminées par jour (lot 5, calendrier en sessions)', () => {
+    const now = Date.UTC(2026, 0, 15, 20, 0, 0)
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 2000, actualSeconds: 600 }),
+      session({ startedAt: now - 1000, actualSeconds: 300 }),
+      session({ startedAt: now - 500, kind: 'short_break', actualSeconds: 300 }),
+    ]
+    const result = computeDailyFocus(sessions, now, 1, 120)
+    expect(result[0].sessionsCount).toBe(2)
+  })
+})
+
+describe('getNextStreakMilestone — panneau de détail de la série (lot 4)', () => {
+  it('renvoie le plus petit palier connu strictement supérieur à la série actuelle', () => {
+    expect(getNextStreakMilestone(0)).toBe(3)
+    expect(getNextStreakMilestone(3)).toBe(7)
+    expect(getNextStreakMilestone(5)).toBe(7)
+    expect(getNextStreakMilestone(99)).toBe(100)
+  })
+
+  it('au-delà du dernier palier connu, renvoie le prochain multiple de 100', () => {
+    expect(getNextStreakMilestone(365)).toBe(400)
+    expect(getNextStreakMilestone(420)).toBe(500)
+  })
+})
+
+describe('computePeriodStats — cartes de la période choisie, comparées à la période précédente (lot 5)', () => {
+  it('cumule temps de focus, nombre de sessions, temps de pause et tâches terminées « aujourd’hui »', () => {
+    const now = Date.UTC(2026, 0, 15, 20, 0, 0)
+    const todayStart = Date.UTC(2026, 0, 15)
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 1000, actualSeconds: 1200 }),
+      session({ startedAt: now - 500, kind: 'short_break', actualSeconds: 300 }),
+      session({ startedAt: now - 2 * DAY_MS, actualSeconds: 900 }), // hier : hors "aujourd'hui"
+    ]
+    const tasks: TaskRecord[] = [
+      task({ doneAt: now - 200 }),
+      task({ doneAt: todayStart - 1 }), // hier (juste avant minuit) : hors "aujourd'hui"
+    ]
+
+    const { current } = computePeriodStats(sessions, tasks, now, 'today')
+    expect(current).toEqual({
+      focusSeconds: 1200,
+      sessionsCount: 1,
+      pauseSeconds: 300,
+      tasksCompleted: 1,
+    })
+  })
+
+  it('compare à la période précédente de même longueur (semaine)', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0) // jeudi
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 1000, actualSeconds: 1500 }), // cette semaine
+      session({ startedAt: now - 10 * DAY_MS, actualSeconds: 3000 }), // semaine précédente (J-10 à J-14)
+      session({ startedAt: now - 20 * DAY_MS, actualSeconds: 9999 }), // bien avant : ni l'une ni l'autre
+    ]
+
+    const { current, previous } = computePeriodStats(sessions, [], now, 'week')
+    expect(current.focusSeconds).toBe(1500)
+    expect(previous?.focusSeconds).toBe(3000)
+  })
+
+  it('« depuis le début » n’a pas de période précédente comparable', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0)
+    const { previous } = computePeriodStats([], [], now, 'all')
+    expect(previous).toBeNull()
+  })
+
+  it('« depuis le début » cumule tout, sans borne basse', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0)
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 1000 * DAY_MS, actualSeconds: 1500 }),
+    ]
+    const { current } = computePeriodStats(sessions, [], now, 'all')
+    expect(current.focusSeconds).toBe(1500)
+  })
+})
+
+describe('percentChange — variation vs période précédente, pour la flèche du §9', () => {
+  it('calcule un pourcentage de variation classique', () => {
+    expect(percentChange(150, 100)).toBe(50)
+    expect(percentChange(50, 100)).toBe(-50)
+  })
+
+  it('renvoie 0 quand les deux valeurs sont nulles (aucun changement)', () => {
+    expect(percentChange(0, 0)).toBe(0)
+  })
+
+  it('renvoie null quand la période précédente est à 0 mais pas la courante (variation infinie)', () => {
+    expect(percentChange(10, 0)).toBeNull()
+  })
+})
+
+describe('getTrendWindowDays — fenêtre d’affichage de la courbe de tendance (§9)', () => {
+  it('suit la longueur de la période, avec un minimum de 7 jours', () => {
+    expect(getTrendWindowDays('today')).toBe(7)
+    expect(getTrendWindowDays('week')).toBe(7)
+    expect(getTrendWindowDays('month')).toBe(30)
+    expect(getTrendWindowDays('year')).toBe(365)
+  })
+
+  it('plafonne « depuis le début » à un an', () => {
+    expect(getTrendWindowDays('all')).toBe(365)
+  })
+})
+
+describe('aggregateWeeklyFocus — regroupement en semaines (lundi à dimanche) pour les longues périodes', () => {
+  function day(dayStart: number, focusSeconds: number, sessionsCount: number): DayFocus {
+    return { dayStart, focusSeconds, sessionsCount, goalMet: false }
+  }
+
+  it('cumule les jours d’une même semaine (lundi à dimanche)', () => {
+    const monday = Date.UTC(2026, 0, 12) // lundi 12 janvier 2026
+    const sunday = monday + 6 * DAY_MS
+    const days = [day(monday, 600, 1), day(monday + DAY_MS, 300, 1), day(sunday, 900, 2)]
+
+    const weeks = aggregateWeeklyFocus(days)
+    expect(weeks).toEqual([{ weekStart: monday, focusSeconds: 1800, sessionsCount: 4 }])
+  })
+
+  it('sépare deux semaines distinctes, triées chronologiquement', () => {
+    const monday = Date.UTC(2026, 0, 12)
+    const nextMonday = monday + 7 * DAY_MS
+    const days = [day(nextMonday, 300, 1), day(monday, 600, 1)] // ordre volontairement inversé
+
+    const weeks = aggregateWeeklyFocus(days)
+    expect(weeks.map((w) => w.weekStart)).toEqual([monday, nextMonday])
+  })
+
+  it('renvoie un tableau vide pour un historique vide', () => {
+    expect(aggregateWeeklyFocus([])).toEqual([])
+  })
+})
+
+describe('computeFocusScore — taux de complétion × régularité (§9, formule validée)', () => {
+  it('combine taux de complétion et régularité sur la période', () => {
+    const now = Date.UTC(2026, 0, 15, 20, 0, 0) // jeudi
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 1000, completed: true }),
+      session({ startedAt: now - 500, completed: false }),
+      session({ startedAt: now - DAY_MS, completed: true }),
+    ]
+    const { current } = computeFocusScore(sessions, now, 'week')
+    // 2 sessions terminées sur 3 lancées -> 66,67 % ; 2 jours actifs sur 7 -> 28,57 %
+    expect(current.completionRate).toBe(67)
+    expect(current.regularityRate).toBe(29)
+    expect(current.score).toBe(19) // round(0,6667 × 0,2857 × 100)
+  })
+
+  it('compare à la période précédente de même longueur', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0)
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 1000, completed: true }), // cette semaine : 1/1 complété
+      session({ startedAt: now - 10 * DAY_MS, completed: false }), // semaine précédente : 0/1 complété
+    ]
+    const { current, previous } = computeFocusScore(sessions, now, 'week')
+    expect(current.completionRate).toBe(100)
+    expect(previous?.completionRate).toBe(0)
+  })
+
+  it('aucune session lancée : score à 0', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0)
+    expect(computeFocusScore([], now, 'week').current).toEqual({
+      score: 0,
+      completionRate: 0,
+      regularityRate: 0,
+    })
+  })
+
+  it('« depuis le début » part de la toute première session de focus lancée, sans comparaison', () => {
+    const now = Date.UTC(2026, 0, 15, 12, 0, 0)
+    const sessions: FocusSessionRecord[] = [
+      session({ startedAt: now - 2 * DAY_MS, completed: true }), // 1re session jamais lancée
+      session({ startedAt: now, completed: true }),
+    ]
+    const { current, previous } = computeFocusScore(sessions, now, 'all')
+    // Fenêtre de 3 jours (J-2 à J), 2 jours actifs -> régularité 66,67 %
+    expect(current.regularityRate).toBe(67)
+    expect(current.completionRate).toBe(100)
+    expect(previous).toBeNull()
   })
 })

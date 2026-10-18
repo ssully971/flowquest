@@ -9,7 +9,9 @@ import { DunesBackground } from './DunesBackground'
 import { FenetreBackground } from './FenetreBackground'
 import { FeuillageBackground } from './FeuillageBackground'
 import { GrilleBackground } from './GrilleBackground'
+import { CustomBackground } from './CustomBackground'
 import { HorizonBackground } from './HorizonBackground'
+import { PHOTO_BACKGROUNDS } from './photo-backgrounds'
 import { RespirationBackground } from './RespirationBackground'
 import { SilhouettesBackground } from './SilhouettesBackground'
 import { StriesBackground } from './StriesBackground'
@@ -32,6 +34,21 @@ export type BackgroundId =
   | 'tapis'
   | 'respiration'
   | 'derive'
+  | 'photo-aurore'
+  | 'photo-braise'
+  | 'photo-emeraude'
+  | 'photo-azur'
+  | 'photo-barbapapa'
+  | 'photo-corail'
+  | 'photo-lueur'
+  | 'photo-opaline'
+  | 'photo-fjord'
+  | 'photo-torrent'
+  | 'photo-ruban'
+  | 'photo-confettis'
+  | 'photo-cretes'
+  | 'photo-desert'
+  | 'custom'
 
 export type BackgroundCategory =
   'gradients' | 'abstract' | 'scenic' | 'nature' | 'urban' | 'interior' | 'animated'
@@ -41,6 +58,17 @@ export interface BackgroundDefinition {
   label: string
   category: BackgroundCategory
   Component: ComponentType
+  /** Rendu léger pour les vignettes de la bibliothèque (lot 3) : par défaut, retombe sur
+   * `Component` (peu coûteux pour les fonds en CSS) ; les fonds photo fournissent une
+   * vignette dédiée, chargée en différé (`loading="lazy"`), bien plus légère que la pleine
+   * résolution. */
+  Thumbnail?: ComponentType
+  /** Thème pour lequel ce fond est pensé (lot 3) : les fonds photo n'en ont qu'un ; les
+   * fonds en CSS s'adaptent déjà automatiquement aux jetons de couleur du thème actif. */
+  suggestedTheme?: 'dark' | 'light'
+  /** `false` pour un fond jugé trop chargé en mode Ambiant (texte/minuteur par-dessus). */
+  usableInAmbient?: boolean
+  credit?: string
 }
 
 export const BACKGROUNDS: BackgroundDefinition[] = [
@@ -64,6 +92,11 @@ export const BACKGROUNDS: BackgroundDefinition[] = [
     Component: RespirationBackground,
   },
   { id: 'derive', label: 'Dérive', category: 'animated', Component: DeriveBackground },
+  ...PHOTO_BACKGROUNDS,
+  // Fond personnel (lot 3) : jamais affiché dans la grille de la bibliothèque (exclu
+  // explicitement par id dans ThemesPage, pas par catégorie), seulement sélectionnable une
+  // fois une image envoyée, depuis sa propre section « Fond personnel ».
+  { id: 'custom', label: 'Fond personnel', category: 'gradients', Component: CustomBackground },
 ]
 
 export const BACKGROUND_IDS: BackgroundId[] = BACKGROUNDS.map((bg) => bg.id)

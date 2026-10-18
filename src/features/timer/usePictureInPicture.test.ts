@@ -11,6 +11,9 @@ function cleanupGlobals() {
   Reflect.deleteProperty(document, 'pictureInPictureElement')
   Reflect.deleteProperty(document, 'exitPictureInPicture')
   Reflect.deleteProperty(HTMLVideoElement.prototype, 'requestPictureInPicture')
+  Reflect.deleteProperty(HTMLVideoElement.prototype, 'webkitSupportsPresentationMode')
+  Reflect.deleteProperty(HTMLVideoElement.prototype, 'webkitSetPresentationMode')
+  Reflect.deleteProperty(HTMLVideoElement.prototype, 'webkitPresentationMode')
   Reflect.deleteProperty(HTMLCanvasElement.prototype, 'captureStream')
   for (const video of document.querySelectorAll('video')) video.remove()
 }
@@ -83,6 +86,47 @@ describe('usePictureInPicture — Document PiP et repli vidéo/canvas (§6.3 du 
 
     act(() => result.current.toggle())
     expect(document.exitPictureInPicture).toHaveBeenCalled()
+  })
+
+  it('détecte le PiP vidéo via l’API WebKit même sans requestPictureInPicture standard (Safari)', () => {
+    // Sur Safari, document.pictureInPictureEnabled n'est pas toujours défini alors que
+    // webkitSupportsPresentationMode existe — la détection ne doit pas dépendre du seul
+    // test standard, sous peine de signaler le PiP indisponible à tort.
+    HTMLCanvasElement.prototype.captureStream = vi.fn().mockReturnValue({} as MediaStream)
+    HTMLVideoElement.prototype.webkitSupportsPresentationMode = vi.fn().mockReturnValue(true)
+
+    const { result } = renderHook(() => usePictureInPicture(CONTENT))
+    expect(result.current.mode).toBe('video')
+    expect(result.current.isSupported).toBe(true)
+  })
+
+  it('bascule via webkitSetPresentationMode quand l’API standard est absente (repli WebKit)', async () => {
+    HTMLCanvasElement.prototype.captureStream = vi.fn().mockReturnValue({} as MediaStream)
+    HTMLVideoElement.prototype.webkitSupportsPresentationMode = vi.fn().mockReturnValue(true)
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+
+    const { result } = renderHook(() => usePictureInPicture(CONTENT))
+    expect(result.current.mode).toBe('video')
+
+    const videoEl = document.querySelector('video') as HTMLVideoElement
+    const setPresentationModeMock = vi.fn((requestedMode: 'picture-in-picture' | 'inline') => {
+      Object.defineProperty(videoEl, 'webkitPresentationMode', {
+        value: requestedMode,
+        configurable: true,
+      })
+      videoEl.dispatchEvent(new Event('webkitpresentationmodechanged'))
+    })
+    videoEl.webkitSetPresentationMode = setPresentationModeMock
+
+    act(() => result.current.toggle())
+    await waitFor(() =>
+      expect(setPresentationModeMock).toHaveBeenCalledWith('picture-in-picture'),
+    )
+    await waitFor(() => expect(result.current.isActive).toBe(true))
+
+    act(() => result.current.toggle())
+    await waitFor(() => expect(setPresentationModeMock).toHaveBeenCalledWith('inline'))
+    expect(result.current.isActive).toBe(false)
   })
 
   it('n’affiche rien dans la fenêtre PiP quand le hook est démonté (nettoyage)', () => {

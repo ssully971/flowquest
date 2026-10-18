@@ -9,14 +9,22 @@ import { notifyTasksChanged, onTasksChanged } from './task-events'
 
 const repo = new IndexedDbTaskRepository()
 
+export interface TaskDetailsUpdate {
+  emoji?: string | null
+  color?: string | null
+  etaMinutes?: number | null
+}
+
 export interface UseTasksResult {
   tasks: TaskRecord[]
   isLoading: boolean
-  addTask: (title: string) => Promise<void>
-  toggleDone: (id: string) => Promise<void>
+  addTask: (title: string, parentId?: string | null) => Promise<void>
+  /** Renvoie true si cette tâche était la dernière non terminée (confettis, §8). */
+  toggleDone: (id: string) => Promise<boolean>
   renameTask: (id: string, title: string) => Promise<void>
   removeTask: (id: string) => Promise<void>
   reorderTasks: (orderedIds: string[]) => Promise<void>
+  updateTaskDetails: (id: string, update: TaskDetailsUpdate) => Promise<void>
 }
 
 function pushIfAuthenticated(task: TaskRecord): void {
@@ -48,14 +56,19 @@ export function useTasks(): UseTasksResult {
     }
   }, [refresh])
 
-  const addTask = useCallback(async (title: string) => {
+  const addTask = useCallback(async (title: string, parentId: string | null = null) => {
     const trimmed = title.trim()
     if (!trimmed) return
     const current = await repo.listAll()
+    const siblingCount = current.filter((t) => t.parentId === parentId).length
     const task: TaskRecord = {
       id: crypto.randomUUID(),
       title: trimmed,
-      position: current.length,
+      emoji: null,
+      color: null,
+      etaMinutes: null,
+      parentId,
+      position: siblingCount,
       done: false,
       doneAt: null,
       createdAt: Date.now(),
@@ -69,16 +82,19 @@ export function useTasks(): UseTasksResult {
   const toggleDone = useCallback(async (id: string) => {
     const current = await repo.listAll()
     const task = current.find((t) => t.id === id)
-    if (!task) return
+    if (!task) return false
+    const willBeDone = !task.done
     const updated: TaskRecord = {
       ...task,
-      done: !task.done,
-      doneAt: !task.done ? Date.now() : null,
+      done: willBeDone,
+      doneAt: willBeDone ? Date.now() : null,
       updatedAt: Date.now(),
     }
     await repo.put(updated)
     pushIfAuthenticated(updated)
     notifyTasksChanged()
+    const isLastRemaining = willBeDone && current.filter((t) => t.id !== id).every((t) => t.done)
+    return isLastRemaining
   }, [])
 
   const renameTask = useCallback(async (id: string, title: string) => {
@@ -93,10 +109,25 @@ export function useTasks(): UseTasksResult {
     notifyTasksChanged()
   }, [])
 
+  const updateTaskDetails = useCallback(async (id: string, update: TaskDetailsUpdate) => {
+    const current = await repo.listAll()
+    const task = current.find((t) => t.id === id)
+    if (!task) return
+    const updated: TaskRecord = { ...task, ...update, updatedAt: Date.now() }
+    await repo.put(updated)
+    pushIfAuthenticated(updated)
+    notifyTasksChanged()
+  }, [])
+
   const removeTask = useCallback(async (id: string) => {
-    await repo.remove(id)
+    const current = await repo.listAll()
+    // Les sous-tâches n'ont qu'un seul niveau (pas de petits-enfants) : supprimer un
+    // parent supprime ses enfants directs, en local comme côté Supabase (parent_id ON
+    // DELETE CASCADE côté serveur, mais IndexedDB ne connaît pas les contraintes SQL).
+    const idsToRemove = [id, ...current.filter((t) => t.parentId === id).map((t) => t.id)]
+    await Promise.all(idsToRemove.map((taskId) => repo.remove(taskId)))
     const userId = getCurrentUserId()
-    if (userId) void deleteTaskRemote(id)
+    if (userId) idsToRemove.forEach((taskId) => void deleteTaskRemote(taskId))
     notifyTasksChanged()
   }, [])
 
@@ -114,5 +145,14 @@ export function useTasks(): UseTasksResult {
     notifyTasksChanged()
   }, [])
 
-  return { tasks, isLoading, addTask, toggleDone, renameTask, removeTask, reorderTasks }
+  return {
+    tasks,
+    isLoading,
+    addTask,
+    toggleDone,
+    renameTask,
+    removeTask,
+    reorderTasks,
+    updateTaskDetails,
+  }
 }

@@ -4,23 +4,53 @@ import { useState } from 'react'
 import { strings } from '@/shared/i18n'
 
 import { useAuth } from '../useAuth'
-import { isValidUsername } from '../validation'
+import { useUsernameAvailability } from '../useUsernameAvailability'
+import { getUsernameFormatIssue } from '../validation'
+import { DeleteAccountSection } from './DeleteAccountSection'
+
+const USERNAME_FORMAT_ERRORS = {
+  tooShort: strings.auth.errors.usernameTooShort,
+  tooLong: strings.auth.errors.usernameTooLong,
+  invalidChars: strings.auth.errors.usernameInvalidChars,
+  reserved: strings.auth.errors.usernameReserved,
+}
 
 export function AccountSummary() {
   const { user, profile, signOut, updateUsername } = useAuth()
   const [username, setUsername] = useState(profile?.username ?? '')
   const [isSavingUsername, setIsSavingUsername] = useState(false)
-  const [usernameError, setUsernameError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSigningOut, setIsSigningOut] = useState(false)
+
+  const isUnchanged = username === profile?.username
+  const usernameFormatIssue = getUsernameFormatIssue(username)
+  const availability = useUsernameAvailability(
+    username,
+    !isUnchanged && username.length > 0 && !usernameFormatIssue,
+  )
 
   if (!profile || !user) return null
 
+  const usernameError =
+    submitError ??
+    (isUnchanged || username.length === 0
+      ? null
+      : usernameFormatIssue
+        ? USERNAME_FORMAT_ERRORS[usernameFormatIssue]
+        : availability === 'taken'
+          ? strings.auth.errors.usernameTaken
+          : null)
+
   const handleUsernameSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    setUsernameError(null)
-    if (username === profile.username) return
-    if (!isValidUsername(username)) {
-      setUsernameError(strings.auth.errors.invalidUsername)
+    setSubmitError(null)
+    if (isUnchanged) return
+    if (usernameFormatIssue) {
+      setSubmitError(USERNAME_FORMAT_ERRORS[usernameFormatIssue])
+      return
+    }
+    if (availability === 'taken') {
+      setSubmitError(strings.auth.errors.usernameTaken)
       return
     }
     setIsSavingUsername(true)
@@ -80,7 +110,13 @@ export function AccountSummary() {
           />
           <button
             type="submit"
-            disabled={isSavingUsername || username === profile.username}
+            disabled={
+              isSavingUsername ||
+              isUnchanged ||
+              usernameFormatIssue !== null ||
+              availability === 'checking' ||
+              availability === 'taken'
+            }
             className="shrink-0 rounded-xl border border-[var(--panel-line)] px-4 text-sm font-medium text-[var(--panel-text)] transition-opacity duration-200 disabled:opacity-40"
           >
             {isSavingUsername
@@ -103,6 +139,8 @@ export function AccountSummary() {
       >
         {isSigningOut ? strings.auth.account.signingOut : strings.auth.account.signOut}
       </button>
+
+      <DeleteAccountSection />
     </div>
   )
 }

@@ -1,24 +1,38 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
+import { DEFAULT_BACKGROUND_DISPLAY_SETTINGS } from '@/features/settings/background-display-settings'
+import { CustomBackgroundProvider } from '@/features/settings/CustomBackgroundProvider'
 import { ThemeProvider } from '@/shared/design-system'
+import { ToastProvider } from '@/shared/toast'
 
 import { ThemesPage } from './ThemesPage'
 
-function renderThemesPage(onSelect = vi.fn(), disableAnimatedThemes = false) {
+function renderThemesPage(
+  onSelect = vi.fn(),
+  disableAnimatedThemes = false,
+  onBackgroundDisplaySettingsChange = vi.fn(),
+) {
   return {
     onSelect,
+    onBackgroundDisplaySettingsChange,
     ...render(
-      <ThemeProvider>
-        <ThemesPage
-          mode="home"
-          onModeChange={vi.fn()}
-          selection={{ home: 'horizon', focus: 'horizon', ambient: 'horizon' }}
-          onSelect={onSelect}
-          disableAnimatedThemes={disableAnimatedThemes}
-        />
-      </ThemeProvider>,
+      <ToastProvider>
+        <ThemeProvider>
+          <CustomBackgroundProvider>
+            <ThemesPage
+              mode="home"
+              onModeChange={vi.fn()}
+              selection={{ home: 'horizon', focus: 'horizon', ambient: 'horizon' }}
+              onSelect={onSelect}
+              disableAnimatedThemes={disableAnimatedThemes}
+              backgroundDisplaySettings={DEFAULT_BACKGROUND_DISPLAY_SETTINGS}
+              onBackgroundDisplaySettingsChange={onBackgroundDisplaySettingsChange}
+            />
+          </CustomBackgroundProvider>
+        </ThemeProvider>
+      </ToastProvider>,
     ),
   }
 }
@@ -72,5 +86,17 @@ describe('ThemesPage — désactiver les thèmes animés (§7.6 Extras)', () => 
   it('affiche la catégorie Animé par défaut', () => {
     renderThemesPage(vi.fn(), false)
     expect(screen.getByRole('button', { name: 'Animé' })).toBeInTheDocument()
+  })
+})
+
+describe('ThemesPage — flou du fond (lot 3)', () => {
+  it('affiche le pourcentage actuel et prévient au changement', () => {
+    const { onBackgroundDisplaySettingsChange } = renderThemesPage()
+
+    const slider = screen.getByRole('slider', { name: 'Flou du fond' })
+    expect(slider).toHaveValue('0')
+
+    fireEvent.change(slider, { target: { value: '60' } })
+    expect(onBackgroundDisplaySettingsChange).toHaveBeenCalledWith({ blurPercent: 60 })
   })
 })

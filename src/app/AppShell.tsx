@@ -7,9 +7,12 @@ import { useCurrentUserSync } from '@/features/auth/useCurrentUserSync'
 import { InstallPrompt } from '@/features/pwa/InstallPrompt'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
+import { blurPercentToPx } from '@/features/settings/background-display-settings'
+import { useBackgroundDisplaySettings } from '@/features/settings/background-display-settings-context'
 import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { SettingsPanel } from '@/features/settings/SettingsPanel'
 import { useSettingsSync } from '@/features/settings/useSettingsSync'
+import { StreakPanel } from '@/features/stats/components/StreakPanel'
 import { useDailyGoal } from '@/features/stats/useDailyGoal'
 import { useDashboardStats } from '@/features/stats/useDashboardStats'
 import { useSessionSync } from '@/features/stats/useSessionSync'
@@ -46,6 +49,8 @@ const MODE_OPTIONS: { value: AppMode; label: string }[] = [
 export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const fullscreen = useFullscreen()
   const { selection, setBackground } = useBackgroundSettings()
+  const { settings: backgroundDisplaySettings, setSettings: setBackgroundDisplaySettings } =
+    useBackgroundDisplaySettings()
   const { appearance, setAppearance } = useTheme()
   const { activeTaskId, setActiveTaskId } = useActiveTask()
   const { dailyGoalMinutes, setDailyGoalMinutes } = useDailyGoal()
@@ -56,6 +61,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isTasksOpen, setIsTasksOpen] = useState(false)
   const [isNotesOpen, setIsNotesOpen] = useState(false)
+  const [isStreakOpen, setIsStreakOpen] = useState(false)
   const [previousMode, setPreviousMode] = useState(mode)
 
   // §5.3 : en mode Ambiant, le reste de l'écran doit rester libre (tâches/notes masquées).
@@ -66,6 +72,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
     if (mode === 'ambient') {
       if (isTasksOpen) setIsTasksOpen(false)
       if (isNotesOpen) setIsNotesOpen(false)
+      if (isStreakOpen) setIsStreakOpen(false)
     }
   }
 
@@ -75,6 +82,8 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
     setAppearance,
     backgrounds: selection,
     setBackground,
+    backgroundDisplaySettings,
+    setBackgroundDisplaySettings,
     activeTaskId,
     setActiveTaskId,
     dailyGoalMinutes,
@@ -113,11 +122,21 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   }, [])
 
   const CurrentBackground = getBackgroundDefinition(selection[mode]).Component
+  const blurPx = blurPercentToPx(backgroundDisplaySettings.blurPercent)
 
   return (
-    <div className="relative h-svh overflow-hidden">
-      <CurrentBackground />
-      <div className="absolute inset-0">{children}</div>
+    <div className="relative h-dvh overflow-hidden">
+      <div
+        className="absolute inset-0 -z-10 overflow-hidden"
+        style={
+          blurPx > 0 ? { filter: `blur(${blurPx}px)`, transform: 'scale(1.1)' } : undefined
+        }
+      >
+        <CurrentBackground />
+      </div>
+      <div key={mode} className="absolute inset-0" style={{ animation: 'screen-fade-in 200ms ease-out' }}>
+        {children}
+      </div>
 
       <div
         className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 px-4 sm:flex-nowrap sm:justify-between sm:px-10"
@@ -142,13 +161,21 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
           data-testid="right-button-group"
           className="flex flex-wrap items-center justify-center gap-3"
         >
-          <div
-            className="flex h-12 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 text-sm text-[var(--muted)]"
-            aria-label={`${strings.common.streak} : ${stats?.currentStreakDays ?? 0}`}
-          >
-            <Flame size={18} strokeWidth={1.75} aria-hidden="true" />
-            <span>{stats?.currentStreakDays ?? 0}</span>
-          </div>
+          {extrasSettings.showStreak ? (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsStreakOpen((prev) => !prev)}
+                aria-expanded={isStreakOpen}
+                aria-label={`${strings.common.streak} : ${stats?.currentStreakDays ?? 0}`}
+                className="flex h-12 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
+              >
+                <Flame size={18} strokeWidth={1.75} aria-hidden="true" />
+                <span>{stats?.currentStreakDays ?? 0}</span>
+              </button>
+              <StreakPanel open={isStreakOpen} onClose={() => setIsStreakOpen(false)} stats={stats} />
+            </div>
+          ) : null}
           <SegmentedControl
             ariaLabel={strings.common.mode}
             value={mode}
@@ -187,6 +214,8 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
         onModeChange={onModeChange}
         backgroundSelection={selection}
         onBackgroundSelect={setBackground}
+        backgroundDisplaySettings={backgroundDisplaySettings}
+        onBackgroundDisplaySettingsChange={setBackgroundDisplaySettings}
         dailyGoalMinutes={dailyGoalMinutes}
         onDailyGoalChange={setDailyGoalMinutes}
         timerSettings={timerSettings}

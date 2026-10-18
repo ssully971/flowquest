@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -6,6 +7,7 @@ import type { AppMode } from '@/app/useAppMode'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
 import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
+import { BackgroundDisplaySettingsProvider } from '@/features/settings/BackgroundDisplaySettingsProvider'
 import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
 import { TimerSettingsProvider } from '@/features/timer/TimerSettingsProvider'
@@ -24,9 +26,11 @@ function renderAppShell(children: ReactNode, mode: AppMode = 'home') {
               <ClockSettingsProvider>
                 <QuotesSettingsProvider>
                   <ExtrasSettingsProvider>
-                    <AppShell mode={mode} onModeChange={vi.fn()}>
-                      {children}
-                    </AppShell>
+                    <BackgroundDisplaySettingsProvider>
+                      <AppShell mode={mode} onModeChange={vi.fn()}>
+                        {children}
+                      </AppShell>
+                    </BackgroundDisplaySettingsProvider>
                   </ExtrasSettingsProvider>
                 </QuotesSettingsProvider>
               </ClockSettingsProvider>
@@ -56,9 +60,9 @@ describe('AppShell — mise en page en calques (pas de décalage par la barre du
     expect(bottomBar).not.toBeNull()
   })
 
-  it('le conteneur racine utilise 100svh (hauteur garantie visible, même avec la barre Safari affichée)', () => {
+  it('le conteneur racine utilise 100dvh (suit la barre d’outils Safari en temps réel, lot 3 : plus de bande vide quand elle se masque)', () => {
     const { container } = renderAppShell(<div>Contenu</div>)
-    expect(container.firstElementChild?.className).toContain('h-svh')
+    expect(container.firstElementChild?.className).toContain('h-dvh')
   })
 })
 
@@ -79,6 +83,19 @@ describe('AppShell — Réglages et Plein écran à gauche, Tâches/Notes à dro
       el.getAttribute('aria-label'),
     )
     expect(labels.slice(-2)).toEqual(['Tâches', 'Bloc-notes'])
+  })
+})
+
+describe('AppShell — pastille de série (lot 4 : panneau de détail)', () => {
+  it('ouvre le panneau de détail de la série au clic sur la pastille', async () => {
+    const user = userEvent.setup()
+    renderAppShell(<div>Contenu</div>)
+
+    const streakButton = screen.getByRole('button', { name: /Série/ })
+    expect(screen.queryByRole('dialog', { name: 'Série' })).not.toBeInTheDocument()
+
+    await user.click(streakButton)
+    expect(screen.getByRole('dialog', { name: 'Série' })).toBeInTheDocument()
   })
 })
 

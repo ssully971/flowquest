@@ -1,5 +1,5 @@
 import { useExtrasSettings } from '@/features/settings/extras-settings-context'
-import { BigDigits } from '@/shared/design-system'
+import { BigDigits, Logo } from '@/shared/design-system'
 import { useCurrentTime } from '@/shared/hooks/useCurrentTime'
 import { strings } from '@/shared/i18n'
 
@@ -52,12 +52,7 @@ export function HomeScreen() {
   return (
     <div className="relative h-full">
       <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-8 px-6 pt-8 sm:px-14 sm:pt-16">
-        <p
-          className="text-[32px] font-semibold leading-none text-[var(--text)] sm:text-[36px]"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
-          {strings.app.name}
-        </p>
+        <Logo className="h-9 w-auto sm:h-11" />
         {showQuote ? (
           <figure className="max-w-sm pt-1.5 text-right sm:max-w-md sm:pt-2">
             <blockquote className="text-[18px] leading-snug text-[var(--text)] sm:text-[20px]">

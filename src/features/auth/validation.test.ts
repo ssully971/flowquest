@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { isValidEmail, isValidPassword, isValidUsername } from './validation'
+import { getUsernameFormatIssue, isValidEmail, isValidPassword, isValidUsername } from './validation'
 
 describe('isValidPassword — 8 caractères min., 1 majuscule, 1 chiffre (cahier des charges §4)', () => {
   it('refuse un mot de passe trop court', () => {
@@ -26,6 +26,32 @@ describe('isValidUsername — pseudo unique, 3 à 20 caractères, minuscules/chi
   })
   it('accepte un pseudo valide', () => {
     expect(isValidUsername('sullivan_97')).toBe(true)
+  })
+})
+
+describe('getUsernameFormatIssue — raison précise, en direct (LOT 1)', () => {
+  it('signale un pseudo trop court', () => {
+    expect(getUsernameFormatIssue('ab')).toBe('tooShort')
+  })
+  it('signale un pseudo trop long', () => {
+    expect(getUsernameFormatIssue('a'.repeat(21))).toBe('tooLong')
+  })
+  it('signale des caractères interdits (majuscule, espace, accent)', () => {
+    expect(getUsernameFormatIssue('Sullivan H')).toBe('invalidChars')
+  })
+  it('signale un mot réservé même si le format est valide', () => {
+    expect(getUsernameFormatIssue('admin')).toBe('reserved')
+    expect(getUsernameFormatIssue('administrateur')).toBe('reserved')
+    expect(getUsernameFormatIssue('modo')).toBe('reserved')
+    expect(getUsernameFormatIssue('moderateur')).toBe('reserved')
+    expect(getUsernameFormatIssue('staff')).toBe('reserved')
+    expect(getUsernameFormatIssue('root')).toBe('reserved')
+    expect(getUsernameFormatIssue('system')).toBe('reserved')
+    expect(getUsernameFormatIssue('null')).toBe('reserved')
+    expect(getUsernameFormatIssue('undefined')).toBe('reserved')
+  })
+  it('ne signale rien pour un pseudo valide', () => {
+    expect(getUsernameFormatIssue('sullivan_97')).toBeNull()
   })
 })
 

@@ -5,22 +5,32 @@ import { useQuote } from '@/features/home/useQuote'
 import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { useActiveTask } from '@/features/tasks/active-task-context'
 import { useTasks } from '@/features/tasks/useTasks'
+import { SegmentedControl } from '@/shared/design-system'
 import { useCurrentTime } from '@/shared/hooks/useCurrentTime'
 import { useWakeLock } from '@/shared/hooks/useWakeLock'
 import { strings } from '@/shared/i18n'
 
-import type { SegmentKind } from './engine/timer-engine'
-import { CycleDots } from './components/CycleDots'
+import type { SegmentKind, TimerMode } from './engine/timer-engine'
+import { GoalProgress } from './components/GoalProgress'
+import { GoalReachedPanel } from './components/GoalReachedPanel'
 import { SegmentTabs } from './components/SegmentTabs'
+import { SessionTally } from './components/SessionTally'
 import { TimerControls } from './components/TimerControls'
-import { TimerDisplay } from './components/TimerDisplay'
-import { TimerPath } from './components/TimerPath'
-import { getDurationForSegment } from './durations'
-import { formatCountdown } from './format'
+import { TimerFace } from './components/TimerFace'
+import { getDurationMsForMode } from './durations'
+import { formatCountdown, formatElapsed } from './format'
+import { getGoalFocusSessions } from './session-goal'
 import { toDurationsMs } from './timer-settings'
 import { useTimerSettings } from './timer-settings-context'
 import { useFocusTimer } from './useFocusTimer'
+import { useLiveTabTitle } from './useLiveTabTitle'
 import { usePictureInPicture } from './usePictureInPicture'
+
+const MODE_OPTIONS: { value: TimerMode; label: string }[] = [
+  { value: 'pomodoro', label: strings.focus.modes.pomodoro },
+  { value: 'countdown', label: strings.focus.modes.countdown },
+  { value: 'stopwatch', label: strings.focus.modes.stopwatch },
+]
 
 function getSegmentLabel(segment: SegmentKind): string {
   switch (segment) {
@@ -28,6 +38,10 @@ function getSegmentLabel(segment: SegmentKind): string {
       return strings.focus.tabs.shortBreak
     case 'long_break':
       return strings.focus.tabs.longBreak
+    case 'countdown':
+      return strings.focus.modes.countdown
+    case 'stopwatch':
+      return strings.focus.modes.stopwatch
     default:
       return strings.focus.tabs.focus
   }
@@ -45,7 +59,11 @@ export function FocusScreen() {
   useWakeLock(extrasSettings.preventSleep && timer.snapshot?.status === 'running')
   const activeTask = tasks.find((task) => task.id === activeTaskId) ?? null
 
-  const displayLabel = formatCountdown(timer.snapshot?.remainingMs ?? 0)
+  const isStopwatch = timer.mode === 'stopwatch'
+  const displayLabel = isStopwatch
+    ? formatElapsed(timer.snapshot?.elapsedMs ?? 0)
+    : formatCountdown(timer.snapshot?.remainingMs ?? 0)
+  useLiveTabTitle(displayLabel, timer.snapshot?.status === 'running')
   const pip = usePictureInPicture({
     segmentLabel: getSegmentLabel(timer.segment),
     timeLabel: displayLabel,
@@ -57,8 +75,24 @@ export function FocusScreen() {
   }
 
   const { snapshot } = timer
-  const durationMs = getDurationForSegment(timer.segment, toDurationsMs(timerSettings))
-  const progress = durationMs > 0 ? Math.min(1, snapshot.elapsedMs / durationMs) : 0
+  const durationMs = getDurationMsForMode(
+    timer.mode,
+    timer.segment,
+    toDurationsMs(timerSettings),
+    timerSettings.countdownMinutes * 60_000,
+  )
+  const progress =
+    durationMs !== null && durationMs > 0 ? Math.min(1, snapshot.elapsedMs / durationMs) : 0
+  const goalTarget =
+    timer.mode === 'pomodoro'
+      ? getGoalFocusSessions({
+          goalType: timerSettings.sessionGoalType,
+          goalCount: timerSettings.sessionGoalCount,
+          goalMinutes: timerSettings.sessionGoalMinutes,
+          durations: toDurationsMs(timerSettings),
+          sessionsBeforeLongBreak: timerSettings.sessionsBeforeLongBreak,
+        })
+      : 0
 
   const handlePrimary = () => {
     if (snapshot.status === 'running') timer.pause()
@@ -88,27 +122,52 @@ export function FocusScreen() {
           </figure>
         ) : null}
 
-        <SegmentTabs value={timer.segment} onChange={timer.selectSegment} />
-
-        <CycleDots
-          total={timerSettings.sessionsBeforeLongBreak}
-          completed={timer.cycle.completedFocusCount}
-          currentIsFocus={timer.segment === 'focus'}
+        <SegmentedControl
+          ariaLabel={strings.focus.mode}
+          value={timer.mode}
+          onChange={timer.selectMode}
+          options={MODE_OPTIONS}
         />
 
-        <div className="flex w-full flex-col items-center gap-5">
-          <TimerDisplay label={displayLabel} />
-          <TimerPath progress={progress} />
-        </div>
+        {timer.mode === 'pomodoro' ? (
+          <>
+            <SegmentTabs value={timer.segment} onChange={timer.selectSegment} />
 
-        <TimerControls
-          status={snapshot.status}
-          onReset={timer.reset}
-          onPrimary={handlePrimary}
-          onSkip={timer.skip}
-          onPictureInPicture={pip.toggle}
-          pipAvailable={pip.isSupported}
-        />
+            <SessionTally
+              total={timerSettings.sessionsBeforeLongBreak}
+              completed={timer.cycle.completedFocusCount}
+              currentIsFocus={timer.segment === 'focus'}
+              iconSet={timerSettings.tallyIconSet}
+            />
+
+            {goalTarget > 0 ? (
+              <GoalProgress completed={timer.goalProgress} target={goalTarget} />
+            ) : null}
+          </>
+        ) : null}
+
+        {timer.mode === 'pomodoro' && timer.goalReached ? (
+          <GoalReachedPanel completed={timer.goalProgress} onContinue={timer.continueAfterGoal} />
+        ) : (
+          <>
+            <div
+              role="timer"
+              aria-label={`${isStopwatch ? strings.focus.timeElapsed : strings.focus.timeRemaining} : ${displayLabel}`}
+            >
+              <TimerFace style={timerSettings.displayStyle} label={displayLabel} progress={progress} />
+            </div>
+
+            <TimerControls
+              status={snapshot.status}
+              onReset={timer.reset}
+              onPrimary={handlePrimary}
+              onSkip={timer.skip}
+              showSkip={timer.mode === 'pomodoro'}
+              onPictureInPicture={pip.toggle}
+              pipAvailable={pip.isSupported}
+            />
+          </>
+        )}
       </div>
 
       {pip.pipWindow
@@ -116,7 +175,7 @@ export function FocusScreen() {
             <div
               style={{
                 fontFamily: 'sans-serif',
-                background: '#120c1e',
+                background: '#0c0719',
                 color: '#f2ecfc',
                 height: '100%',
                 display: 'flex',

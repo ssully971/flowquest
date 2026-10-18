@@ -2,6 +2,8 @@ import { Monitor, Moon, Sun } from 'lucide-react'
 import { useState } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
+import { blurPercentToPx } from '@/features/settings/background-display-settings'
+import type { BackgroundDisplaySettings } from '@/features/settings/background-display-settings'
 import {
   BACKGROUNDS,
   BigDigits,
@@ -13,6 +15,7 @@ import type { BackgroundCategory, BackgroundId } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import { CategoryChip } from './CategoryChip'
+import { CustomBackgroundSection } from './CustomBackgroundSection'
 
 const CATEGORY_ORDER: BackgroundCategory[] = [
   'gradients',
@@ -30,6 +33,8 @@ interface ThemesPageProps {
   selection: Record<AppMode, BackgroundId>
   onSelect: (mode: AppMode, id: BackgroundId) => void
   disableAnimatedThemes?: boolean
+  backgroundDisplaySettings: BackgroundDisplaySettings
+  onBackgroundDisplaySettingsChange: (settings: BackgroundDisplaySettings) => void
 }
 
 export function ThemesPage({
@@ -38,6 +43,8 @@ export function ThemesPage({
   selection,
   onSelect,
   disableAnimatedThemes = false,
+  backgroundDisplaySettings,
+  onBackgroundDisplaySettingsChange,
 }: ThemesPageProps) {
   const { appearance, setAppearance } = useTheme()
   const [category, setCategory] = useState<BackgroundCategory | 'all'>('all')
@@ -45,12 +52,17 @@ export function ThemesPage({
   const categories = disableAnimatedThemes
     ? CATEGORY_ORDER.filter((cat) => cat !== 'animated')
     : CATEGORY_ORDER
+  // Fond personnel exclu de la grille : il n'est pas un fond du catalogue, il se choisit
+  // depuis sa propre section au-dessus (voir le composant <CustomBackgroundSection>).
+  const catalogBackgrounds = BACKGROUNDS.filter((bg) => bg.id !== 'custom')
   const availableBackgrounds = disableAnimatedThemes
-    ? BACKGROUNDS.filter((bg) => bg.category !== 'animated')
-    : BACKGROUNDS
+    ? catalogBackgrounds.filter((bg) => bg.category !== 'animated')
+    : catalogBackgrounds
 
   const currentId = selection[mode]
   const current = getBackgroundDefinition(currentId)
+  const CurrentPreview = current.Thumbnail ?? current.Component
+  const previewBlurPx = blurPercentToPx(backgroundDisplaySettings.blurPercent)
   const filtered =
     category === 'all'
       ? availableBackgrounds
@@ -102,12 +114,52 @@ export function ThemesPage({
           className="relative h-40 w-full max-w-sm overflow-hidden rounded-2xl border"
           style={{ borderColor: 'var(--panel-line)' }}
         >
-          <current.Component />
+          <div
+            className="absolute inset-0"
+            style={
+              previewBlurPx > 0
+                ? { filter: `blur(${previewBlurPx}px)`, transform: 'scale(1.1)' }
+                : undefined
+            }
+          >
+            <CurrentPreview />
+          </div>
           <div className="relative flex h-full items-center justify-center">
             <BigDigits label="09:41" sizePx={56} />
           </div>
         </div>
       </div>
+
+      <div>
+        <div className="mb-2 flex items-baseline justify-between gap-3">
+          <p className="text-sm font-medium text-[var(--panel-muted)]">
+            {strings.settings.themes.blur}
+          </p>
+          <span className="text-xs text-[var(--panel-muted)]">
+            {backgroundDisplaySettings.blurPercent}%
+          </span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={backgroundDisplaySettings.blurPercent}
+          onChange={(event) =>
+            onBackgroundDisplaySettingsChange({
+              ...backgroundDisplaySettings,
+              blurPercent: Number(event.target.value),
+            })
+          }
+          aria-label={strings.settings.themes.blur}
+          className="w-full max-w-sm"
+        />
+        <p className="mt-1 text-xs text-[var(--panel-muted)]">
+          {strings.settings.themes.blurHint}
+        </p>
+      </div>
+
+      <CustomBackgroundSection mode={mode} currentId={currentId} onSelect={onSelect} />
 
       <div>
         <p className="mb-2 text-sm font-medium text-[var(--panel-muted)]">
@@ -135,26 +187,30 @@ export function ThemesPage({
           </p>
         ) : (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-            {filtered.map((bg) => (
-              <button
-                key={bg.id}
-                type="button"
-                onClick={() => onSelect(mode, bg.id)}
-                aria-pressed={bg.id === currentId}
-                className={`relative aspect-square overflow-hidden rounded-xl border transition-shadow duration-200 ${
-                  bg.id === currentId ? 'ring-2 ring-[var(--accent)]' : ''
-                }`}
-                style={{ borderColor: 'var(--panel-line)' }}
-              >
-                <bg.Component />
-                <span
-                  className="absolute inset-x-0 bottom-0 px-2 py-1 text-left text-xs text-[var(--text)]"
-                  style={{ background: 'var(--scrim)' }}
+            {filtered.map((bg) => {
+              const Tile = bg.Thumbnail ?? bg.Component
+              return (
+                <button
+                  key={bg.id}
+                  type="button"
+                  onClick={() => onSelect(mode, bg.id)}
+                  aria-pressed={bg.id === currentId}
+                  title={bg.credit}
+                  className={`relative aspect-square overflow-hidden rounded-xl border transition-shadow duration-200 ${
+                    bg.id === currentId ? 'ring-2 ring-[var(--accent)]' : ''
+                  }`}
+                  style={{ borderColor: 'var(--panel-line)' }}
                 >
-                  {bg.label}
-                </span>
-              </button>
-            ))}
+                  <Tile />
+                  <span
+                    className="absolute inset-x-0 bottom-0 px-2 py-1 text-left text-xs text-[var(--text)]"
+                    style={{ background: 'var(--scrim)' }}
+                  >
+                    {bg.label}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         )}
       </div>

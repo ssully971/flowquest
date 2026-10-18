@@ -7,6 +7,7 @@ export interface ExtrasSettings {
   preventSleep: boolean
   defaultSettingsTab: SettingsPageId
   themeRandomizer: boolean
+  showStreak: boolean
 }
 
 export const DEFAULT_EXTRAS_SETTINGS: ExtrasSettings = {
@@ -16,4 +17,5 @@ export const DEFAULT_EXTRAS_SETTINGS: ExtrasSettings = {
   preventSleep: false,
   defaultSettingsTab: 'themes',
   themeRandomizer: false,
+  showStreak: true,
 }

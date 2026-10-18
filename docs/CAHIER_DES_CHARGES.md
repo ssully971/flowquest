@@ -84,7 +84,9 @@ Principe : à chaque lancement, on enregistre `{état, started_at, durée, segme
 - **Installation PWA obligatoire pour le push sur iOS** (iOS 16.4+) : une **popup discrète** explique « Ajoute Flowquest à l'écran d'accueil pour recevoir l'alerte de fin », visible sur iOS et Android, une seule fois, avec « Plus tard ». Le son d'alerte ne joue que si l'app est ouverte ; en arrière-plan c'est la notification système qui prévient.
 
 ### 6.3 Picture-in-Picture
-Via Document Picture-in-Picture (Chrome/Edge ordinateur) ou, à défaut, une fenêtre vidéo/canvas en PiP classique. Comportement non garanti sur Safari iPad : à tester, sans bloquer la V1. Option « Afficher la tâche dans le PiP ».
+Via Document Picture-in-Picture (Chrome/Edge ordinateur) ou, à défaut, une fenêtre vidéo/canvas en PiP classique, elle-même déclenchée via `requestPictureInPicture()` standard ou, en repli, l'API historique `webkitSetPresentationMode()` de WebKit. Option « Afficher la tâche dans le PiP ».
+
+**Limite connue sur Safari iPad** : `webkitSetPresentationMode` y est bien présent, mais la source vidéo vient ici d'un `<canvas>` (`canvas.captureStream()`), pas d'un média réel — WebKit refuse ou ignore silencieusement le passage en PiP pour ce type de source sur iPad dans plusieurs versions connues, alors que cela fonctionne sur Safari macOS. Aucun contournement fiable n'existe à ce jour. Comportement donc non garanti sur iPad, à tester sans bloquer la V1 : le bouton reste proposé en meilleur effort, mais l'état « actif » n'est affiché que si le navigateur confirme réellement l'entrée en PiP (jamais de faux positif).
 
 ### 6.4 Réglages du minuteur
 - Style d'affichage : **défaut, flip clock, barre de progression, jauge, matrice de points, camembert**.
@@ -307,18 +309,25 @@ Les maquettes (Accueil, Focus, Réglages, en sombre et en clair) ont été valid
 
 | Jeton | Sombre | Clair |
 |---|---|---|
-| `--bg` | `#120C1E` | `#EDE6FB` |
+| `--bg` | `#0C0719` | `#F1EAFF` |
 | `--surface` | `#1C1330` | `#F8F4FF` |
 | `--surface-2` | `#291D47` | `#DFD2F5` |
 | `--line` | `rgba(206,184,255,0.16)` | `rgba(74,32,140,0.16)` |
 | `--text` | `#F2ECFC` | `#20103B` |
 | `--muted` | `#A99BC8` | `#64548A` |
-| `--accent` | `#B28BFF` | `#6A2FD6` |
+| `--accent` | `#A35CFF` | `#5A1FD1` |
 | `--on-accent` | `#1A0B33` | `#FFFFFF` |
-| `--glow` | `rgba(178,139,255,0.14)` | `rgba(106,47,214,0.13)` |
-| `--contour` | `rgba(178,139,255,0.20)` | `rgba(106,47,214,0.22)` |
-| `--scrim` | `rgba(18,12,30,0.62)` | `rgba(237,230,251,0.70)` |
+| `--glow` | `rgba(163,92,255,0.16)` | `rgba(90,31,209,0.14)` |
+| `--contour` | `rgba(163,92,255,0.24)` | `rgba(90,31,209,0.24)` |
+| `--scrim` | `rgba(12,7,25,0.62)` | `rgba(241,234,255,0.70)` |
 | `--horizon` | `radial-gradient(120% 75% at 50% 112%, #6A3CC4 0%, #33196A 34%, #120C1E 72%)` | `radial-gradient(120% 75% at 50% 112%, #C7A4FF 0%, #DCCBF8 42%, #EFE9FC 80%)` |
+
+Mis à jour au lot 2 (finitions) : améthyste plus vibrante sans virer au néon, tout en
+gardant un contraste AA (texte courant ≥ 4,5:1) sur les deux thèmes — vérifié par calcul
+(luminance relative WCAG) sur chaque paire texte/fond et accent/fond utilisée dans
+l'interface. `--horizon` et les teintes d'échantillons (`--tone-a/b/c`, fonds de thèmes)
+restent inchangés : seuls `--bg`, `--accent` et les tokens qui en dérivent directement
+(`--glow`, `--contour`, `--scrim`) ont été retouchés.
 
 Teintes d'échantillons de thèmes (aperçus de la bibliothèque) : `--tone-a / --tone-b / --tone-c` = `#2A1650 / #4B2A8A / #7A55C8` (sombre), `#C9B3F0 / #B497E8 / #E6DAFA` (clair).
 
@@ -338,7 +347,7 @@ Contrastes : texte courant ≥ 4,5:1, grand texte ≥ 3:1 sur les deux thèmes (
 - **Titres, horloge, minuteur : Bricolage Grotesque** (graisses 500 à 800, axe optique).
 - **Interface et texte : Instrument Sans** (400, 500, 600).
 - Pas d'Inter ni de Roboto. Polices auto-hébergées en production (même famille que le style d'horloge « Default »).
-- Échelle fixe : **14 / 16 / 20 / 28 / 40 px** pour l'interface ; affichage de l'horloge à **208 px** (accueil) et du minuteur à **176 px** (focus), graisse 800, interlettrage −0,04 em, chiffres tabulaires.
+- Échelle fixe : **14 / 16 / 20 / 28 / 40 px** pour l'interface ; horloge calculée depuis une base de **208 px** (accueil) multipliée par la taille choisie (Petite ≈ **129 px**, Normale = 208 px, Énorme ≈ 281 px — Réglages > Horloge) — **Petite est la taille par défaut au lot 2** (anciennement Normale) — et minuteur à **176 px** (focus), graisse 800, interlettrage −0,04 em, chiffres tabulaires.
 - Titres : interligne 1,1 à 1,2 ; texte : 1,4 à 1,5. Les deux-points de l'horloge sont en `--accent`, avec une marge de 0,1 em de chaque côté (ils ne doivent pas coller aux chiffres).
 - Les 12 styles d'horloge et de minuteur (§7.2) restent des **préférences utilisateur** : l'identité ci-dessus est le style par défaut.
 
@@ -361,6 +370,11 @@ Contrastes : texte courant ≥ 4,5:1, grand texte ≥ 3:1 sur les deux thèmes (
 - **Réglages > Thèmes** : titre 40 px ; apparence (segment Sombre / Clair / Système) ; onglets Accueil / Focus / Ambiant ; aperçu en direct (horloge sur le fond choisi) ; bibliothèque filtrable avec une grande vignette (fond actuel) et des vignettes plus petites, asymétriques.
 - **Mode ambiant** : non maquetté ; mêmes principes, minuteur compact en carte en haut à droite.
 - **Responsive** : vérifier 360 px, tablette (iPad en priorité) et ordinateur ; sur petit écran, la navigation des réglages passe au-dessus du contenu.
+- Hauteur plein écran en `100dvh` (pas `100svh`) : Safari iPad/iPhone redimensionne sa barre
+  d'outils en scrollant, et `svh` reste figée sur le pire cas (barre affichée), laissant une
+  bande vide en bas quand elle se masque. `dvh` suit la hauteur réellement visible. Corrigé
+  au lot 3 (bug remonté sur le fond « Respiration », mais le conteneur racine concerné est
+  partagé par tous les fonds).
 
 ### 20.7 Contenu initial
 - Citation de départ : « La vie est brève, l'art est long. » (Hippocrate), les suivantes viennent de l'admin.

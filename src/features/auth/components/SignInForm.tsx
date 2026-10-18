@@ -5,14 +5,15 @@ import { strings } from '@/shared/i18n'
 
 import { useAuth } from '../useAuth'
 import { FormField } from './FormField'
-import { GoogleButton } from './GoogleButton'
+import { GoogleSignInButton } from './GoogleSignInButton'
 
 interface SignInFormProps {
   onSwitchToSignUp: () => void
+  onForgotPassword: () => void
 }
 
-export function SignInForm({ onSwitchToSignUp }: SignInFormProps) {
-  const { signInWithEmail, signInWithGoogle } = useAuth()
+export function SignInForm({ onSwitchToSignUp, onForgotPassword }: SignInFormProps) {
+  const { signInWithEmail } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -50,6 +51,13 @@ export function SignInForm({ onSwitchToSignUp }: SignInFormProps) {
         autoComplete="current-password"
       />
       <button
+        type="button"
+        onClick={onForgotPassword}
+        className="-mt-2 text-left text-sm text-[var(--panel-muted)] underline-offset-2 hover:underline"
+      >
+        {strings.auth.signIn.forgotPassword}
+      </button>
+      <button
         type="submit"
         disabled={isSubmitting}
         className="h-11 rounded-xl bg-[var(--accent)] text-sm font-semibold text-[var(--on-accent)] transition-opacity duration-200 disabled:opacity-60"
@@ -61,7 +69,7 @@ export function SignInForm({ onSwitchToSignUp }: SignInFormProps) {
         {strings.auth.signIn.orContinueWith}
         <span className="h-px flex-1 bg-[var(--panel-line)]" />
       </div>
-      <GoogleButton onClick={() => void signInWithGoogle()} label={strings.auth.signIn.google} />
+      <GoogleSignInButton label={strings.auth.signIn.google} />
       <button
         type="button"
         onClick={onSwitchToSignUp}

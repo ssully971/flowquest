@@ -1,11 +1,15 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getDb } from '@/shared/storage/db'
 
 import { ActiveTaskProvider } from '../ActiveTaskProvider'
 import { TasksPanel } from './TasksPanel'
+
+// jsdom n'implémente pas le contexte canvas 2D : la boucle d'animation interne de
+// canvas-confetti y jette une exception non liée au code de l'app (§8, confettis).
+vi.mock('canvas-confetti', () => ({ default: vi.fn() }))
 
 function renderPanel(open = true) {
   const onClose = () => {}
@@ -63,6 +67,28 @@ describe('TasksPanel', () => {
     await waitFor(() => {
       expect(screen.queryByText('À retirer')).not.toBeInTheDocument()
     })
+  })
+
+  it('déclenche les confettis en cochant la dernière tâche restante (§8)', async () => {
+    const confetti = (await import('canvas-confetti')).default
+    const user = userEvent.setup()
+    renderPanel()
+
+    await user.type(screen.getByPlaceholderText('Nouvelle tâche…'), 'Première')
+    await user.click(screen.getByRole('button', { name: 'Ajouter' }))
+    await screen.findByText('Première')
+    await user.type(screen.getByPlaceholderText('Nouvelle tâche…'), 'Deuxième')
+    await user.click(screen.getByRole('button', { name: 'Ajouter' }))
+    await screen.findByText('Deuxième')
+
+    const checkboxes = await screen.findAllByRole('checkbox', { name: 'Marquer comme terminée' })
+    expect(checkboxes).toHaveLength(2)
+
+    await user.click(checkboxes[0])
+    await waitFor(() => expect(confetti).not.toHaveBeenCalled())
+
+    await user.click(checkboxes[1])
+    await waitFor(() => expect(confetti).toHaveBeenCalledTimes(1))
   })
 
   it('choisit une tâche comme active, puis peut la retirer', async () => {

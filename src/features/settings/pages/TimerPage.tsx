@@ -1,55 +1,19 @@
-import { Minus, Plus } from 'lucide-react'
-
 import {
+  COUNTDOWN_MINUTES_RANGE,
   FOCUS_MINUTES_RANGE,
   LONG_BREAK_MINUTES_RANGE,
   SESSIONS_BEFORE_LONG_BREAK_RANGE,
   SHORT_BREAK_MINUTES_RANGE,
 } from '@/features/timer/timer-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
+import { SettingsToggleRow } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
-interface NumericStepperProps {
-  label: string
-  value: number
-  min: number
-  max: number
-  step: number
-  unit?: string
-  onChange: (value: number) => void
-}
-
-function NumericStepper({ label, value, min, max, step, unit, onChange }: NumericStepperProps) {
-  const s = strings.settings.timer
-  return (
-    <div className="flex flex-col gap-1 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] px-5 py-4">
-      <span className="text-xs text-[var(--panel-muted)]">{label}</span>
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          aria-label={`${s.decrease} : ${label}`}
-          disabled={value <= min}
-          onClick={() => onChange(Math.max(min, value - step))}
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--panel-line)] text-[var(--panel-text)] transition-colors duration-200 hover:bg-[var(--panel-line)] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Minus size={16} strokeWidth={1.75} aria-hidden="true" />
-        </button>
-        <span className="min-w-[4rem] text-center text-sm text-[var(--panel-text)]">
-          {value} {unit}
-        </span>
-        <button
-          type="button"
-          aria-label={`${s.increase} : ${label}`}
-          disabled={value >= max}
-          onClick={() => onChange(Math.min(max, value + step))}
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--panel-line)] text-[var(--panel-text)] transition-colors duration-200 hover:bg-[var(--panel-line)] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Plus size={16} strokeWidth={1.75} aria-hidden="true" />
-        </button>
-      </div>
-    </div>
-  )
-}
+import { AlertSoundSettings } from './AlertSoundSettings'
+import { NumericStepper } from './NumericStepper'
+import { SessionGoalSettings } from './SessionGoalSettings'
+import { TallyIconSetPicker } from './TallyIconSetPicker'
+import { TimerDisplayStylePicker } from './TimerDisplayStylePicker'
 
 interface TimerPageProps {
   settings: TimerSettings
@@ -104,53 +68,50 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
           step={SESSIONS_BEFORE_LONG_BREAK_RANGE.step}
           onChange={(sessionsBeforeLongBreak) => onChange({ ...settings, sessionsBeforeLongBreak })}
         />
+        <NumericStepper
+          label={s.countdownDuration}
+          value={settings.countdownMinutes}
+          min={COUNTDOWN_MINUTES_RANGE.min}
+          max={COUNTDOWN_MINUTES_RANGE.max}
+          step={COUNTDOWN_MINUTES_RANGE.step}
+          unit="min"
+          onChange={(countdownMinutes) => onChange({ ...settings, countdownMinutes })}
+        />
       </div>
 
-      <div className="flex max-w-md flex-col gap-1 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] px-5 py-4">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm text-[var(--panel-text)]">{s.autoStartNext}</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={settings.autoStartNext}
-            aria-label={s.autoStartNext}
-            onClick={() => onChange({ ...settings, autoStartNext: !settings.autoStartNext })}
-            className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${
-              settings.autoStartNext ? 'bg-[var(--accent)]' : 'bg-[var(--panel-line)]'
-            }`}
-          >
-            <span
-              className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${
-                settings.autoStartNext ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
-        <p className="text-xs text-[var(--panel-muted)]">{s.autoStartNextHint}</p>
+      <div>
+        <p className="mb-2 text-sm font-medium text-[var(--panel-muted)]">{s.displayStyle}</p>
+        <TimerDisplayStylePicker
+          value={settings.displayStyle}
+          onChange={(displayStyle) => onChange({ ...settings, displayStyle })}
+        />
       </div>
 
-      <div className="flex max-w-md flex-col gap-1 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] px-5 py-4">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm text-[var(--panel-text)]">{s.showTaskInPip}</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={settings.showTaskInPip}
-            aria-label={s.showTaskInPip}
-            onClick={() => onChange({ ...settings, showTaskInPip: !settings.showTaskInPip })}
-            className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${
-              settings.showTaskInPip ? 'bg-[var(--accent)]' : 'bg-[var(--panel-line)]'
-            }`}
-          >
-            <span
-              className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${
-                settings.showTaskInPip ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
-        <p className="text-xs text-[var(--panel-muted)]">{s.showTaskInPipHint}</p>
+      <div>
+        <p className="mb-2 text-sm font-medium text-[var(--panel-muted)]">{s.tallyIconSet}</p>
+        <TallyIconSetPicker
+          value={settings.tallyIconSet}
+          onChange={(tallyIconSet) => onChange({ ...settings, tallyIconSet })}
+        />
       </div>
+
+      <SettingsToggleRow
+        label={s.autoStartNext}
+        hint={s.autoStartNextHint}
+        checked={settings.autoStartNext}
+        onToggle={() => onChange({ ...settings, autoStartNext: !settings.autoStartNext })}
+      />
+
+      <SettingsToggleRow
+        label={s.showTaskInPip}
+        hint={s.showTaskInPipHint}
+        checked={settings.showTaskInPip}
+        onToggle={() => onChange({ ...settings, showTaskInPip: !settings.showTaskInPip })}
+      />
+
+      <SessionGoalSettings settings={settings} onChange={onChange} />
+
+      <AlertSoundSettings settings={settings} onChange={onChange} />
     </div>
   )
 }

@@ -62,9 +62,12 @@ export const QUOTES: Quote[] = [
   },
 ]
 
-function quotesForCategory(category: QuoteCategory | 'all'): Quote[] {
-  const pool = category === 'all' ? QUOTES : QUOTES.filter((quote) => quote.category === category)
-  return pool.length > 0 ? pool : QUOTES
+// `pool` par défaut à QUOTES (le tableau statique) pour tout appelant qui n'en fournit pas :
+// `useQuotePool()` passe à terme le pool géré par le panneau Admin (§12) quand il est chargé,
+// avec repli automatique sur QUOTES si la base est vide, non configurée ou en erreur.
+function quotesForCategory(category: QuoteCategory | 'all', pool: Quote[] = QUOTES): Quote[] {
+  const filtered = category === 'all' ? pool : pool.filter((quote) => quote.category === category)
+  return filtered.length > 0 ? filtered : pool
 }
 
 function dayOfYear(date: Date): number {
@@ -74,13 +77,17 @@ function dayOfYear(date: Date): number {
 }
 
 /** Déterministe : la même citation toute la journée, change au jour suivant. */
-export function pickDailyQuote(category: QuoteCategory | 'all', now: Date = new Date()): Quote {
-  const pool = quotesForCategory(category)
-  return pool[dayOfYear(now) % pool.length]
+export function pickDailyQuote(
+  category: QuoteCategory | 'all',
+  now: Date = new Date(),
+  pool: Quote[] = QUOTES,
+): Quote {
+  const filtered = quotesForCategory(category, pool)
+  return filtered[dayOfYear(now) % filtered.length]
 }
 
 /** Aléatoire : une nouvelle citation à chaque appel (typiquement à chaque chargement). */
-export function pickRandomQuote(category: QuoteCategory | 'all'): Quote {
-  const pool = quotesForCategory(category)
-  return pool[Math.floor(Math.random() * pool.length)]
+export function pickRandomQuote(category: QuoteCategory | 'all', pool: Quote[] = QUOTES): Quote {
+  const filtered = quotesForCategory(category, pool)
+  return filtered[Math.floor(Math.random() * filtered.length)]
 }

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { DEFAULT_CLOCK_SETTINGS } from '@/features/home/clock-settings'
 import { DEFAULT_QUOTES_SETTINGS } from '@/features/home/quotes-settings'
+import { DEFAULT_BACKGROUND_DISPLAY_SETTINGS } from '@/features/settings/background-display-settings'
 import { DEFAULT_EXTRAS_SETTINGS } from '@/features/settings/extras-settings'
 import { DEFAULT_TIMER_SETTINGS } from '@/features/timer/timer-settings'
 import { getDb } from '@/shared/storage/db'
@@ -28,6 +29,7 @@ describe('IndexedDbSettingsRepository — persistance locale des réglages', () 
         focus: 'brume' as const,
         ambient: 'horizon' as const,
       },
+      backgroundDisplaySettings: DEFAULT_BACKGROUND_DISPLAY_SETTINGS,
       activeTaskId: null,
       dailyGoalMinutes: 90,
       timerSettings: DEFAULT_TIMER_SETTINGS,

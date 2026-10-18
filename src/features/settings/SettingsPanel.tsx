@@ -17,12 +17,14 @@ import type { AppMode } from '@/app/useAppMode'
 import type { ClockSettings } from '@/features/home/clock-settings'
 import type { QuotesSettings } from '@/features/home/quotes-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
+import { Logo } from '@/shared/design-system'
 import type { BackgroundId } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
-import { CHANGELOG } from './changelog'
+import type { BackgroundDisplaySettings } from './background-display-settings'
 import { getLastSeenChangelogVersion, markChangelogSeen } from './changelog-seen'
 import type { ExtrasSettings } from './extras-settings'
+import { getLastSettingsPage, setLastSettingsPage } from './last-page'
 import type { SettingsPageId } from './page-id'
 import { AccountPage } from './pages/AccountPage'
 import { ChangelogPage } from './pages/ChangelogPage'
@@ -34,6 +36,7 @@ import { StatsPage } from './pages/StatsPage'
 import { SupportPage } from './pages/SupportPage'
 import { ThemesPage } from './pages/ThemesPage'
 import { TimerPage } from './pages/TimerPage'
+import { useChangelogEntries } from './useChangelogEntries'
 
 type PageId = SettingsPageId
 
@@ -56,6 +59,8 @@ interface SettingsPanelProps {
   onModeChange: (mode: AppMode) => void
   backgroundSelection: Record<AppMode, BackgroundId>
   onBackgroundSelect: (mode: AppMode, id: BackgroundId) => void
+  backgroundDisplaySettings: BackgroundDisplaySettings
+  onBackgroundDisplaySettingsChange: (settings: BackgroundDisplaySettings) => void
   dailyGoalMinutes: number
   onDailyGoalChange: (minutes: number) => void
   timerSettings: TimerSettings
@@ -75,6 +80,8 @@ export function SettingsPanel({
   onModeChange,
   backgroundSelection,
   onBackgroundSelect,
+  backgroundDisplaySettings,
+  onBackgroundDisplaySettingsChange,
   dailyGoalMinutes,
   onDailyGoalChange,
   timerSettings,
@@ -94,20 +101,23 @@ export function SettingsPanel({
   // referme alors le panneau qu'on venait de rouvrir.
   const [mounted, setMounted] = useState(open)
   const [entered, setEntered] = useState(false)
-  const [activePage, setActivePage] = useState<PageId>(() => extrasSettings.defaultSettingsTab)
+  const [activePage, setActivePage] = useState<PageId>(
+    () => getLastSettingsPage() ?? extrasSettings.defaultSettingsTab,
+  )
   const [lastSeenChangelogVersion, setLastSeenChangelogVersion] = useState(() =>
     getLastSeenChangelogVersion(),
   )
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
-  const latestChangelogVersion = CHANGELOG[0]?.version
+  const changelogEntries = useChangelogEntries()
+  const latestChangelogVersion = changelogEntries[0]?.version
   const hasUnreadChangelog =
     latestChangelogVersion !== undefined && lastSeenChangelogVersion !== latestChangelogVersion
 
   if (open && !mounted) {
     setMounted(true)
-    setActivePage(extrasSettings.defaultSettingsTab)
+    setActivePage(getLastSettingsPage() ?? extrasSettings.defaultSettingsTab)
   }
   if (!open && entered) {
     setEntered(false)
@@ -115,6 +125,11 @@ export function SettingsPanel({
   if (activePage === 'changelog' && hasUnreadChangelog && latestChangelogVersion !== undefined) {
     markChangelogSeen(latestChangelogVersion)
     setLastSeenChangelogVersion(latestChangelogVersion)
+  }
+
+  const handleSelectPage = (page: PageId) => {
+    setActivePage(page)
+    setLastSettingsPage(page)
   }
 
   useEffect(() => {
@@ -198,6 +213,9 @@ export function SettingsPanel({
               {strings.settings.title}
             </span>
           </div>
+          <div className="hidden px-5 pb-2 pt-6 sm:block">
+            <Logo tone="panel" className="h-5 w-auto" />
+          </div>
           {NAV_ITEMS.map((item) => {
             const isActive = item.id === activePage
             const Icon = item.icon
@@ -205,7 +223,7 @@ export function SettingsPanel({
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setActivePage(item.id)}
+                onClick={() => handleSelectPage(item.id)}
                 className={`flex shrink-0 items-center gap-3 border-l-[3px] px-5 py-3 text-left text-sm transition-colors duration-200 ${
                   isActive
                     ? 'text-[var(--panel-text)]'
@@ -242,35 +260,42 @@ export function SettingsPanel({
             <X size={20} strokeWidth={1.75} aria-hidden="true" />
           </button>
 
-          {activePage === 'themes' ? (
-            <ThemesPage
-              mode={mode}
-              onModeChange={onModeChange}
-              selection={backgroundSelection}
-              onSelect={onBackgroundSelect}
-              disableAnimatedThemes={extrasSettings.disableAnimatedThemes}
-            />
-          ) : activePage === 'account' ? (
-            <AccountPage />
-          ) : activePage === 'stats' ? (
-            <StatsPage dailyGoalMinutes={dailyGoalMinutes} onDailyGoalChange={onDailyGoalChange} />
-          ) : activePage === 'timer' ? (
-            <TimerPage settings={timerSettings} onChange={onTimerSettingsChange} />
-          ) : activePage === 'clock' ? (
-            <ClockPage settings={clockSettings} onChange={onClockSettingsChange} />
-          ) : activePage === 'quotes' ? (
-            <QuotesPage settings={quotesSettings} onChange={onQuotesSettingsChange} />
-          ) : activePage === 'extras' ? (
-            <ExtrasPage settings={extrasSettings} onChange={onExtrasSettingsChange} />
-          ) : activePage === 'support' ? (
-            <SupportPage />
-          ) : activePage === 'changelog' ? (
-            <ChangelogPage />
-          ) : (
-            <PlaceholderPage
-              title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}
-            />
-          )}
+          <div key={activePage} style={{ animation: 'screen-fade-in 200ms ease-out' }}>
+            {activePage === 'themes' ? (
+              <ThemesPage
+                mode={mode}
+                onModeChange={onModeChange}
+                selection={backgroundSelection}
+                onSelect={onBackgroundSelect}
+                disableAnimatedThemes={extrasSettings.disableAnimatedThemes}
+                backgroundDisplaySettings={backgroundDisplaySettings}
+                onBackgroundDisplaySettingsChange={onBackgroundDisplaySettingsChange}
+              />
+            ) : activePage === 'account' ? (
+              <AccountPage />
+            ) : activePage === 'stats' ? (
+              <StatsPage
+                dailyGoalMinutes={dailyGoalMinutes}
+                onDailyGoalChange={onDailyGoalChange}
+              />
+            ) : activePage === 'timer' ? (
+              <TimerPage settings={timerSettings} onChange={onTimerSettingsChange} />
+            ) : activePage === 'clock' ? (
+              <ClockPage settings={clockSettings} onChange={onClockSettingsChange} />
+            ) : activePage === 'quotes' ? (
+              <QuotesPage settings={quotesSettings} onChange={onQuotesSettingsChange} />
+            ) : activePage === 'extras' ? (
+              <ExtrasPage settings={extrasSettings} onChange={onExtrasSettingsChange} />
+            ) : activePage === 'support' ? (
+              <SupportPage />
+            ) : activePage === 'changelog' ? (
+              <ChangelogPage />
+            ) : (
+              <PlaceholderPage
+                title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -1,43 +1,9 @@
 import { CLOCK_SIZE_SCALE, CLOCK_STYLES, CLOCK_STYLE_CSS } from '@/features/home/clock-settings'
 import type { ClockFormat, ClockSettings, ClockSize } from '@/features/home/clock-settings'
-import { BigDigits, SegmentedControl } from '@/shared/design-system'
+import { BigDigits, SegmentedControl, SettingsToggleRow } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import { CategoryChip } from './CategoryChip'
-
-interface ToggleRowProps {
-  label: string
-  hint?: string
-  checked: boolean
-  onToggle: () => void
-}
-
-function ToggleRow({ label, hint, checked, onToggle }: ToggleRowProps) {
-  return (
-    <div className="flex max-w-md flex-col gap-1 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] px-5 py-4">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm text-[var(--panel-text)]">{label}</span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={checked}
-          aria-label={label}
-          onClick={onToggle}
-          className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${
-            checked ? 'bg-[var(--accent)]' : 'bg-[var(--panel-line)]'
-          }`}
-        >
-          <span
-            className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${
-              checked ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
-        </button>
-      </div>
-      {hint ? <p className="text-xs text-[var(--panel-muted)]">{hint}</p> : null}
-    </div>
-  )
-}
 
 interface ClockPageProps {
   settings: ClockSettings
@@ -114,17 +80,17 @@ export function ClockPage({ settings, onChange }: ClockPageProps) {
         </div>
       </div>
 
-      <ToggleRow
+      <SettingsToggleRow
         label={s.showSeconds}
         checked={settings.showSeconds}
         onToggle={() => onChange({ ...settings, showSeconds: !settings.showSeconds })}
       />
-      <ToggleRow
+      <SettingsToggleRow
         label={s.showGreeting}
         checked={settings.showGreeting}
         onToggle={() => onChange({ ...settings, showGreeting: !settings.showGreeting })}
       />
-      <ToggleRow
+      <SettingsToggleRow
         label={s.flipClock}
         hint={s.flipClockHint}
         checked={settings.flipClock}

@@ -25,6 +25,9 @@ function seedTimerSettings(overrides: {
   longBreakMinutes?: number
   sessionsBeforeLongBreak?: number
   autoStartNext?: boolean
+  sessionGoalType?: 'none' | 'count' | 'duration'
+  sessionGoalCount?: number
+  sessionGoalMinutes?: number
 }) {
   window.localStorage.setItem(
     STORAGE_KEY,
@@ -34,6 +37,9 @@ function seedTimerSettings(overrides: {
       longBreakMinutes: 0.001,
       sessionsBeforeLongBreak: 2,
       autoStartNext: false,
+      sessionGoalType: 'none',
+      sessionGoalCount: 4,
+      sessionGoalMinutes: 120,
       ...overrides,
     }),
   )
@@ -105,5 +111,115 @@ describe('useFocusTimer — durées configurables et démarrage automatique', ()
     await waitFor(() => expect(result.current.segment).toBe('focus'), { timeout: 3000 })
     // 2e focus -> pause longue (sessionsBeforeLongBreak atteint)
     await waitFor(() => expect(result.current.segment).toBe('long_break'), { timeout: 3000 })
+  })
+})
+
+describe('useFocusTimer — trois modes de minuteur (lot 4)', () => {
+  it('démarre en mode pomodoro, segment focus, par défaut', async () => {
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+    expect(result.current.mode).toBe('pomodoro')
+    expect(result.current.segment).toBe('focus')
+  })
+
+  it('selectMode bascule vers le compte à rebours (segment et durée dédiés)', async () => {
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => {
+      result.current.selectMode('countdown')
+    })
+
+    await waitFor(() => expect(result.current.mode).toBe('countdown'))
+    expect(result.current.segment).toBe('countdown')
+    expect(result.current.snapshot?.remainingMs).toBe(20 * 60_000) // 20 min par défaut
+  })
+
+  it('selectMode bascule vers le chronomètre (durée illimitée)', async () => {
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => {
+      result.current.selectMode('stopwatch')
+    })
+
+    await waitFor(() => expect(result.current.mode).toBe('stopwatch'))
+    expect(result.current.segment).toBe('stopwatch')
+    expect(result.current.snapshot?.remainingMs).toBeNull()
+  })
+
+  it('revenir en mode pomodoro repart du segment focus', async () => {
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => {
+      result.current.selectMode('stopwatch')
+    })
+    await waitFor(() => expect(result.current.mode).toBe('stopwatch'))
+
+    act(() => {
+      result.current.selectMode('pomodoro')
+    })
+
+    await waitFor(() => expect(result.current.mode).toBe('pomodoro'))
+    expect(result.current.segment).toBe('focus')
+  })
+})
+
+describe('useFocusTimer — objectif de session (lot 4)', () => {
+  it('signale l’objectif atteint après le nombre de sessions visé, sans enchaîner la suite', async () => {
+    seedTimerSettings({
+      autoStartNext: true,
+      sessionGoalType: 'count',
+      sessionGoalCount: 2,
+    })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+
+    await waitFor(() => expect(result.current.goalReached).toBe(true), { timeout: 5000 })
+    expect(result.current.goalProgress).toBe(2)
+    // L'objectif atteint interrompt l'enchaînement automatique : le segment reste sur la
+    // 2e session de focus (terminée), au lieu d'avoir basculé sur la pause suivante.
+    expect(result.current.segment).toBe('focus')
+  })
+
+  it('continueAfterGoal reprend l’enchaînement normal du cycle', async () => {
+    seedTimerSettings({
+      shortBreakMinutes: 1,
+      autoStartNext: false,
+      sessionGoalType: 'count',
+      sessionGoalCount: 1,
+    })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.goalReached).toBe(true), { timeout: 3000 })
+
+    act(() => result.current.continueAfterGoal())
+
+    await waitFor(() => expect(result.current.segment).toBe('short_break'))
+    expect(result.current.goalReached).toBe(false)
+  })
+
+  it('changer de mode réinitialise la progression de l’objectif', async () => {
+    seedTimerSettings({
+      autoStartNext: false,
+      sessionGoalType: 'count',
+      sessionGoalCount: 1,
+    })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.goalReached).toBe(true), { timeout: 3000 })
+
+    act(() => result.current.selectMode('pomodoro'))
+
+    await waitFor(() => expect(result.current.goalReached).toBe(false))
+    expect(result.current.goalProgress).toBe(0)
   })
 })

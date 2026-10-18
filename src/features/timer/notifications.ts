@@ -1,6 +1,14 @@
 import { strings } from '@/shared/i18n'
 
+import { playAlertSound } from './alert-sounds'
 import type { SegmentKind } from './engine/timer-engine'
+
+export interface AlertPreferences {
+  soundEnabled: boolean
+  notificationsEnabled: boolean
+  alertSoundId: string
+  alertVolume: number
+}
 
 export function requestNotificationPermission(): void {
   if (typeof Notification === 'undefined') return
@@ -16,40 +24,10 @@ function segmentFinishedMessage(segment: SegmentKind): string {
       return strings.focus.notifications.shortBreakDone
     case 'long_break':
       return strings.focus.notifications.longBreakDone
+    case 'countdown':
+      return strings.focus.notifications.countdownDone
     default:
       return strings.focus.notifications.focusDone
-  }
-}
-
-function playChime(): void {
-  try {
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (!AudioContextClass) return
-    const ctx = new AudioContextClass()
-    const now = ctx.currentTime
-
-    for (const [frequency, start] of [
-      [880, 0],
-      [1320, 0.12],
-    ] as const) {
-      const oscillator = ctx.createOscillator()
-      const gain = ctx.createGain()
-      oscillator.type = 'sine'
-      oscillator.frequency.value = frequency
-      gain.gain.setValueAtTime(0.0001, now + start)
-      gain.gain.exponentialRampToValueAtTime(0.2, now + start + 0.02)
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + start + 0.3)
-      oscillator.connect(gain)
-      gain.connect(ctx.destination)
-      oscillator.start(now + start)
-      oscillator.stop(now + start + 0.32)
-    }
-
-    window.setTimeout(() => void ctx.close(), 800)
-  } catch {
-    // Web Audio indisponible : pas d'alerte sonore, le titre d'onglet reste la seule alerte.
   }
 }
 
@@ -67,14 +45,18 @@ function flashTitle(message: string): void {
   }, 6000)
 }
 
-export function notifySegmentFinished(segment: SegmentKind): void {
+export function notifySegmentFinished(segment: SegmentKind, alerts: AlertPreferences): void {
   const message = segmentFinishedMessage(segment)
 
-  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-    new Notification(strings.app.name, { body: message })
-  } else if (document.visibilityState !== 'visible') {
-    flashTitle(`⏰ ${message}`)
+  if (alerts.notificationsEnabled) {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      new Notification(strings.app.name, { body: message })
+    } else if (document.visibilityState !== 'visible') {
+      flashTitle(`⏰ ${message}`)
+    }
   }
 
-  playChime()
+  if (alerts.soundEnabled) {
+    playAlertSound(alerts.alertSoundId, alerts.alertVolume)
+  }
 }

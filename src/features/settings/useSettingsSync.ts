@@ -7,6 +7,7 @@ import type { QuotesSettings } from '@/features/home/quotes-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
 import type { Appearance, BackgroundId } from '@/shared/design-system'
 
+import type { BackgroundDisplaySettings } from './background-display-settings'
 import type { ExtrasSettings } from './extras-settings'
 import { IndexedDbSettingsRepository } from './storage/indexed-db-settings-repository'
 import { SupabaseSettingsRepository } from './storage/supabase-settings-repository'
@@ -20,6 +21,8 @@ interface UseSettingsSyncParams {
   setAppearance: (value: Appearance) => void
   backgrounds: Record<AppMode, BackgroundId>
   setBackground: (mode: AppMode, id: BackgroundId) => void
+  backgroundDisplaySettings: BackgroundDisplaySettings
+  setBackgroundDisplaySettings: (settings: BackgroundDisplaySettings) => void
   activeTaskId: string | null
   setActiveTaskId: (id: string | null) => void
   dailyGoalMinutes: number
@@ -45,6 +48,8 @@ export function useSettingsSync({
   setAppearance,
   backgrounds,
   setBackground,
+  backgroundDisplaySettings,
+  setBackgroundDisplaySettings,
   activeTaskId,
   setActiveTaskId,
   dailyGoalMinutes,
@@ -65,6 +70,7 @@ export function useSettingsSync({
     const settings: AppSettings = {
       appearance,
       backgrounds,
+      backgroundDisplaySettings,
       activeTaskId,
       dailyGoalMinutes,
       timerSettings,
@@ -80,6 +86,7 @@ export function useSettingsSync({
   }, [
     appearance,
     backgrounds,
+    backgroundDisplaySettings,
     activeTaskId,
     dailyGoalMinutes,
     timerSettings,
@@ -104,6 +111,7 @@ export function useSettingsSync({
       for (const mode of Object.keys(remote.settings.backgrounds) as AppMode[]) {
         setBackground(mode, remote.settings.backgrounds[mode])
       }
+      setBackgroundDisplaySettings(remote.settings.backgroundDisplaySettings)
       setActiveTaskId(remote.settings.activeTaskId)
       setDailyGoalMinutes(remote.settings.dailyGoalMinutes)
       setTimerSettings(remote.settings.timerSettings)
@@ -116,6 +124,7 @@ export function useSettingsSync({
     user,
     setAppearance,
     setBackground,
+    setBackgroundDisplaySettings,
     setActiveTaskId,
     setDailyGoalMinutes,
     setTimerSettings,

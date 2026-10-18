@@ -1,5 +1,8 @@
 import { Minus, Plus } from 'lucide-react'
+import { useState } from 'react'
 
+import { getTrendWindowDays } from '@/features/stats/compute-stats'
+import type { StatsPeriod } from '@/features/stats/compute-stats'
 import {
   DAILY_GOAL_STEP_MINUTES,
   MAX_DAILY_GOAL_MINUTES,
@@ -7,13 +10,14 @@ import {
 } from '@/features/stats/useDailyGoal'
 import { useDailyFocusHistory } from '@/features/stats/useDailyFocusHistory'
 import { useDashboardStats } from '@/features/stats/useDashboardStats'
+import { useFocusScore } from '@/features/stats/useFocusScore'
+import { usePeriodStats } from '@/features/stats/usePeriodStats'
 import { formatFocusDuration } from '@/features/stats/format'
 import { strings } from '@/shared/i18n'
 
-import { FocusCalendar } from './stats/FocusCalendar'
+import { CalendarSection } from './stats/CalendarSection'
 import { FocusTrend } from './stats/FocusTrend'
-
-const CALENDAR_DAYS = 84
+import { PeriodStatCards } from './stats/PeriodStatCards'
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
@@ -31,7 +35,10 @@ interface StatsPageProps {
 
 export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProps) {
   const stats = useDashboardStats(dailyGoalMinutes)
-  const calendarDays = useDailyFocusHistory(CALENDAR_DAYS, dailyGoalMinutes)
+  const [period, setPeriod] = useState<StatsPeriod>('week')
+  const periodStats = usePeriodStats(period)
+  const focusScore = useFocusScore(period)
+  const trendDays = useDailyFocusHistory(getTrendWindowDays(period), dailyGoalMinutes)
   const s = strings.settings.stats
 
   const hasAnyData =
@@ -86,25 +93,31 @@ export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProp
       {!hasAnyData ? (
         <p className="max-w-sm text-sm text-[var(--panel-muted)]">{s.empty}</p>
       ) : (
-        <div className="grid max-w-md grid-cols-2 gap-3">
-          <StatCard label={s.today} value={formatFocusDuration(stats.todayFocusSeconds)} />
-          <StatCard label={s.thisWeek} value={formatFocusDuration(stats.weekFocusSeconds)} />
-          <StatCard
-            label={s.currentStreak}
-            value={`${stats.currentStreakDays} ${stats.currentStreakDays === 1 ? s.day : s.days}`}
+        <>
+          <div className="grid max-w-md grid-cols-2 gap-3">
+            <StatCard
+              label={s.currentStreak}
+              value={`${stats.currentStreakDays} ${stats.currentStreakDays === 1 ? s.day : s.days}`}
+            />
+            <StatCard
+              label={s.longestStreak}
+              value={`${stats.longestStreakDays} ${stats.longestStreakDays === 1 ? s.day : s.days}`}
+            />
+          </div>
+
+          <PeriodStatCards
+            period={period}
+            onPeriodChange={setPeriod}
+            stats={periodStats}
+            focusScore={focusScore}
           />
-          <StatCard
-            label={s.longestStreak}
-            value={`${stats.longestStreakDays} ${stats.longestStreakDays === 1 ? s.day : s.days}`}
-          />
-        </div>
+        </>
       )}
 
-      {calendarDays ? (
-        <>
-          <FocusCalendar days={calendarDays} dailyGoalMinutes={dailyGoalMinutes} />
-          <FocusTrend days7={calendarDays.slice(-7)} days30={calendarDays.slice(-30)} />
-        </>
+      <CalendarSection dailyGoalMinutes={dailyGoalMinutes} />
+
+      {trendDays ? (
+        <FocusTrend days={trendDays} dailyGoalMinutes={dailyGoalMinutes} />
       ) : null}
     </div>
   )

@@ -23,8 +23,15 @@ export interface AuthContextValue {
   signUpWithEmail: (email: string, password: string, username: string) => Promise<SignUpResult>
   signInWithEmail: (email: string, password: string) => Promise<void>
   signInWithGoogle: () => Promise<void>
+  signInWithGoogleIdToken: (idToken: string, nonce: string) => Promise<void>
   signOut: () => Promise<void>
   updateUsername: (username: string) => Promise<void>
+  resendConfirmationEmail: (email: string) => Promise<void>
+  requestPasswordReset: (email: string) => Promise<void>
+  updatePassword: (newPassword: string) => Promise<void>
+  isPasswordRecovery: boolean
+  clearPasswordRecovery: () => void
+  deleteAccount: () => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

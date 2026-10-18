@@ -24,6 +24,10 @@ export interface FocusSessionRecord {
 export interface TaskRecord {
   id: string
   title: string
+  emoji: string | null
+  color: string | null
+  etaMinutes: number | null
+  parentId: string | null
   position: number
   done: boolean
   doneAt: number | null
@@ -39,6 +43,14 @@ export interface QueuedWrite {
   operation: 'upsert' | 'delete'
   payload: Record<string, unknown>
   createdAt: number
+}
+
+export type CustomBackgroundPosition = 'top' | 'center' | 'bottom'
+
+export interface CustomBackgroundRecord {
+  blob: Blob
+  position: CustomBackgroundPosition
+  updatedAt: number
 }
 
 interface FlowquestDB extends DBSchema {
@@ -68,10 +80,14 @@ interface FlowquestDB extends DBSchema {
     key: string
     value: QueuedWrite
   }
+  customBackground: {
+    key: string
+    value: CustomBackgroundRecord
+  }
 }
 
 const DB_NAME = 'flowquest'
-const DB_VERSION = 4
+const DB_VERSION = 5
 
 let dbPromise: Promise<IDBPDatabase<FlowquestDB>> | null = null
 
@@ -98,6 +114,9 @@ export function getDb(): Promise<IDBPDatabase<FlowquestDB>> {
         }
         if (!db.objectStoreNames.contains('syncQueue')) {
           db.createObjectStore('syncQueue', { keyPath: 'id' })
+        }
+        if (!db.objectStoreNames.contains('customBackground')) {
+          db.createObjectStore('customBackground')
         }
       },
     })

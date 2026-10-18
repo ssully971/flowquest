@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
+import { ThemeProvider } from '@/shared/design-system'
 
 import { DEFAULT_CLOCK_SETTINGS } from './clock-settings'
 import { ClockSettingsProvider } from './ClockSettingsProvider'
@@ -10,13 +11,15 @@ import { QuotesSettingsProvider } from './QuotesSettingsProvider'
 
 function renderHomeScreen() {
   return render(
-    <ClockSettingsProvider>
-      <QuotesSettingsProvider>
-        <ExtrasSettingsProvider>
-          <HomeScreen />
-        </ExtrasSettingsProvider>
-      </QuotesSettingsProvider>
-    </ClockSettingsProvider>,
+    <ThemeProvider>
+      <ClockSettingsProvider>
+        <QuotesSettingsProvider>
+          <ExtrasSettingsProvider>
+            <HomeScreen />
+          </ExtrasSettingsProvider>
+        </QuotesSettingsProvider>
+      </ClockSettingsProvider>
+    </ThemeProvider>,
   )
 }
 
@@ -28,11 +31,12 @@ function seedClockSettings(overrides: Partial<typeof DEFAULT_CLOCK_SETTINGS>) {
 }
 
 describe('HomeScreen — nom et citation agrandis, marges généreuses', () => {
-  it('le nom « Flowquest » est affiché autour de 32-36px avec de grandes marges', () => {
+  it('le logo « flowquest » est affiché autour de 36-44px de haut avec de grandes marges', () => {
     renderHomeScreen()
-    const logo = screen.getByText('Flowquest')
-    expect(logo.className).toContain('text-[32px]')
-    expect(logo.className).toContain('sm:text-[36px]')
+    const logo = screen.getByAltText('Flowquest')
+    expect(logo.tagName).toBe('IMG')
+    expect(logo.className).toContain('h-9')
+    expect(logo.className).toContain('sm:h-11')
     expect(logo.parentElement?.className).toContain('sm:pt-16')
     expect(logo.parentElement?.className).toContain('sm:px-14')
   })
