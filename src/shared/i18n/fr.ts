@@ -602,6 +602,10 @@ export const fr = {
       showStreak: 'Afficher la série sur l’accueil',
       showStreakHint: 'La pastille avec la flamme, en bas à droite de l’écran d’accueil.',
       defaultSettingsTab: 'Onglet des réglages ouvert par défaut',
+      settingsPanelSide: 'Côté du panneau de réglages',
+      settingsPanelSideHint: 'Le panneau s’ouvre depuis ce côté de l’écran.',
+      settingsPanelSideLeft: 'Gauche',
+      settingsPanelSideRight: 'Droite',
     },
     support: {
       title: 'Support',

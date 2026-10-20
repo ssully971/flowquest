@@ -58,6 +58,19 @@ describe('ExtrasPage — nom affiché, thèmes animés, mode épuré, veille, ra
     expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_EXTRAS_SETTINGS, showStreak: false })
   })
 
+  it('change le côté du panneau de réglages (LOT B9)', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<ExtrasPage settings={DEFAULT_EXTRAS_SETTINGS} onChange={onChange} />)
+
+    expect(DEFAULT_EXTRAS_SETTINGS.settingsPanelSide).toBe('left')
+    await user.click(screen.getByRole('radio', { name: 'Droite' }))
+    expect(onChange).toHaveBeenCalledWith({
+      ...DEFAULT_EXTRAS_SETTINGS,
+      settingsPanelSide: 'right',
+    })
+  })
+
   it('change l’onglet des réglages ouvert par défaut', async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()

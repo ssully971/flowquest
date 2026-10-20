@@ -1,6 +1,6 @@
-import type { ExtrasSettings } from '@/features/settings/extras-settings'
+import type { ExtrasSettings, SettingsPanelSide } from '@/features/settings/extras-settings'
 import { SETTINGS_PAGE_IDS } from '@/features/settings/page-id'
-import { SettingsToggleRow } from '@/shared/design-system'
+import { SegmentedControl, SettingsToggleRow } from '@/shared/design-system'
 import { useWakeLock } from '@/shared/hooks/useWakeLock'
 import { strings } from '@/shared/i18n'
 
@@ -72,6 +72,20 @@ export function ExtrasPage({ settings, onChange }: ExtrasPageProps) {
         checked={settings.showStreak}
         onToggle={() => onChange({ ...settings, showStreak: !settings.showStreak })}
       />
+
+      <div>
+        <p className="mb-2 text-sm font-medium text-[var(--panel-muted)]">{s.settingsPanelSide}</p>
+        <SegmentedControl<SettingsPanelSide>
+          ariaLabel={s.settingsPanelSide}
+          value={settings.settingsPanelSide}
+          onChange={(settingsPanelSide) => onChange({ ...settings, settingsPanelSide })}
+          options={[
+            { value: 'left', label: s.settingsPanelSideLeft },
+            { value: 'right', label: s.settingsPanelSideRight },
+          ]}
+        />
+        <p className="mt-2 text-xs text-[var(--panel-muted)]">{s.settingsPanelSideHint}</p>
+      </div>
 
       <div>
         <p className="mb-2 text-sm font-medium text-[var(--panel-muted)]">{s.defaultSettingsTab}</p>

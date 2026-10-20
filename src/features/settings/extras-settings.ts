@@ -1,5 +1,8 @@
 import type { SettingsPageId } from './page-id'
 
+export const SETTINGS_PANEL_SIDES = ['left', 'right'] as const
+export type SettingsPanelSide = (typeof SETTINGS_PANEL_SIDES)[number]
+
 export interface ExtrasSettings {
   displayName: string
   disableAnimatedThemes: boolean
@@ -8,6 +11,7 @@ export interface ExtrasSettings {
   defaultSettingsTab: SettingsPageId
   themeRandomizer: boolean
   showStreak: boolean
+  settingsPanelSide: SettingsPanelSide
 }
 
 export const DEFAULT_EXTRAS_SETTINGS: ExtrasSettings = {
@@ -18,4 +22,5 @@ export const DEFAULT_EXTRAS_SETTINGS: ExtrasSettings = {
   defaultSettingsTab: 'themes',
   themeRandomizer: false,
   showStreak: true,
+  settingsPanelSide: 'left',
 }

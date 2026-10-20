@@ -197,10 +197,16 @@ export function SettingsPanel({
         role="dialog"
         aria-modal="true"
         aria-label={strings.settings.title}
-        className="absolute inset-y-0 left-0 flex w-full max-w-[880px] flex-col transition-transform duration-[250ms] ease-out sm:flex-row"
+        className={`absolute inset-y-0 flex w-full max-w-[880px] flex-col transition-transform duration-[250ms] ease-out sm:flex-row ${
+          extrasSettings.settingsPanelSide === 'right' ? 'right-0' : 'left-0'
+        }`}
         style={{
           background: 'var(--panel-surface)',
-          transform: entered ? 'translateX(0)' : 'translateX(-100%)',
+          transform: entered
+            ? 'translateX(0)'
+            : extrasSettings.settingsPanelSide === 'right'
+              ? 'translateX(100%)'
+              : 'translateX(-100%)',
         }}
         onTransitionEnd={handleDialogTransitionEnd}
       >
