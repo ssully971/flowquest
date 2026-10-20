@@ -521,7 +521,7 @@ export const fr = {
         flames: 'Flammes',
         leaves: 'Feuilles',
         coffee: 'Cafés',
-        stethoscope: 'Stéthoscopes',
+        stethoscope: 'Médical',
         hearts: 'Cœurs',
         pills: 'Pilules',
       },
