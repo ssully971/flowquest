@@ -2,6 +2,10 @@ import type { DayFocus } from '@/features/stats/compute-stats'
 import { formatFocusDuration } from '@/features/stats/format'
 import { strings } from '@/shared/i18n'
 
+// Couleur de la carte « Temps de focus » (stat-card-palette.ts), en teinte pleine : un
+// dégradé ne se lirait pas sur une case de 16px, mais la cohérence de palette tient.
+const ACTIVE_COLOR = '#7C3AED'
+
 export type CalendarMetric = 'hours' | 'sessions'
 
 interface FocusCalendarProps {
@@ -99,7 +103,7 @@ function dayLabel(day: DayFocus, metric: CalendarMetric): string {
 }
 
 function levelStyle(level: IntensityLevel): { background: string; opacity: number } {
-  return { background: level === 0 ? 'var(--panel-line)' : 'var(--accent)', opacity: LEVEL_OPACITY[level] }
+  return { background: level === 0 ? 'var(--panel-line)' : ACTIVE_COLOR, opacity: LEVEL_OPACITY[level] }
 }
 
 function CalendarCell({

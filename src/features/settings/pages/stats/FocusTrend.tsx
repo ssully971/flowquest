@@ -3,6 +3,8 @@ import type { DayFocus } from '@/features/stats/compute-stats'
 import { formatFocusDuration } from '@/features/stats/format'
 import { strings } from '@/shared/i18n'
 
+import { STAT_CARD_TONES } from './stat-card-palette'
+
 interface FocusTrendProps {
   days: DayFocus[]
   dailyGoalMinutes: number
@@ -70,7 +72,9 @@ export function FocusTrend({ days, dailyGoalMinutes }: FocusTrendProps) {
                   className="w-full rounded-t-sm"
                   style={{
                     height: `${heightPct}%`,
-                    background: 'var(--accent)',
+                    // Même dégradé que la carte « Temps de focus » (stat-card-palette.ts) :
+                    // cohérent avec les cartes de stats, pas juste une couleur à part.
+                    background: STAT_CARD_TONES.focusTime.gradient,
                     opacity: point.goalMet ? 1 : 0.55,
                   }}
                 />

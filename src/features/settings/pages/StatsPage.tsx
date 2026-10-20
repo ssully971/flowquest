@@ -18,16 +18,8 @@ import { strings } from '@/shared/i18n'
 import { CalendarSection } from './stats/CalendarSection'
 import { FocusTrend } from './stats/FocusTrend'
 import { PeriodStatCards } from './stats/PeriodStatCards'
+import { StatCard } from './stats/StatCard'
 import { useEditableNumber } from './useEditableNumber'
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-1 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] px-5 py-4">
-      <span className="text-xs text-[var(--panel-muted)]">{label}</span>
-      <span className="text-2xl font-semibold text-[var(--panel-text)]">{value}</span>
-    </div>
-  )
-}
 
 interface StatsPageProps {
   dailyGoalMinutes: number
@@ -130,10 +122,12 @@ export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProp
             <StatCard
               label={s.currentStreak}
               value={`${stats.currentStreakDays} ${stats.currentStreakDays === 1 ? s.day : s.days}`}
+              tone="currentStreak"
             />
             <StatCard
               label={s.longestStreak}
               value={`${stats.longestStreakDays} ${stats.longestStreakDays === 1 ? s.day : s.days}`}
+              tone="longestStreak"
             />
           </div>
 
