@@ -37,7 +37,7 @@ describe('HomeScreen — nom et citation agrandis, marges généreuses', () => {
     expect(logo.tagName).toBe('IMG')
     expect(logo.className).toContain('h-9')
     expect(logo.className).toContain('sm:h-11')
-    expect(logo.parentElement?.className).toContain('sm:pt-16')
+    expect(logo.parentElement?.className).toContain('sm:pt-[max(4rem,env(safe-area-inset-top))]')
     expect(logo.parentElement?.className).toContain('sm:px-14')
   })
 
