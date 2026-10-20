@@ -20,11 +20,18 @@ const LEVEL_OPACITY: Record<IntensityLevel, number> = {
   4: 1,
 }
 
+// Cases de 16px (au lieu de 12px) : assez grandes pour être distinguées au doigt sur
+// tablette/mobile, tout en gardant une année entière (53 semaines) lisible avec un
+// défilement horizontal raisonnable.
+const CELL_PX = 16
+const CELL_GAP_PX = 3
+
 const DAY_LABEL_FORMATTER = new Intl.DateTimeFormat('fr-FR', {
   weekday: 'long',
   day: 'numeric',
   month: 'long',
 })
+const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat('fr-FR', { month: 'short' })
 
 function toMondayFirstWeekIndex(date: Date): number {
   return (date.getDay() + 6) % 7
@@ -39,6 +46,23 @@ function groupIntoWeeks(days: DayFocus[]): (DayFocus | null)[][] {
     weeks.push(padded.slice(i, i + 7))
   }
   return weeks
+}
+
+/** Un nom de mois au-dessus de la première colonne (semaine) où ce mois apparaît —
+ * jamais répété d'une semaine à l'autre, comme sur un calendrier GitHub. */
+function monthLabelsForWeeks(weeks: (DayFocus | null)[][]): (string | null)[] {
+  let lastMonth = -1
+  return weeks.map((week) => {
+    const firstDay = week.find((day): day is DayFocus => day !== null)
+    if (!firstDay) return null
+    const date = new Date(firstDay.dayStart)
+    const month = date.getMonth()
+    if (month === lastMonth) return null
+    lastMonth = month
+    // Majuscule initiale : Intl.DateTimeFormat rend "janv." en minuscule.
+    const label = MONTH_LABEL_FORMATTER.format(date)
+    return label.charAt(0).toUpperCase() + label.slice(1)
+  })
 }
 
 function hoursIntensityLevel(day: DayFocus, goalSeconds: number): IntensityLevel {
@@ -74,6 +98,10 @@ function dayLabel(day: DayFocus, metric: CalendarMetric): string {
   return `${DAY_LABEL_FORMATTER.format(new Date(day.dayStart))} — ${duration}`
 }
 
+function levelStyle(level: IntensityLevel): { background: string; opacity: number } {
+  return { background: level === 0 ? 'var(--panel-line)' : 'var(--accent)', opacity: LEVEL_OPACITY[level] }
+}
+
 function CalendarCell({
   day,
   metric,
@@ -95,11 +123,8 @@ function CalendarCell({
       role="img"
       aria-label={label}
       title={label}
-      className="h-3 w-3 shrink-0 rounded-sm"
-      style={{
-        background: level === 0 ? 'var(--panel-line)' : 'var(--accent)',
-        opacity: LEVEL_OPACITY[level],
-      }}
+      className="shrink-0 rounded-sm"
+      style={{ width: CELL_PX, height: CELL_PX, ...levelStyle(level) }}
     />
   )
 }
@@ -109,28 +134,87 @@ export function FocusCalendar({ days, dailyGoalMinutes, metric = 'hours' }: Focu
   const goalSeconds = dailyGoalMinutes * 60
   const maxSessionsCount = Math.max(0, ...days.map((day) => day.sessionsCount))
   const weeks = groupIntoWeeks(days)
+  const monthLabels = monthLabelsForWeeks(weeks)
+  const weekdayLabels = [
+    s.calendarWeekdayMon,
+    s.calendarWeekdayTue,
+    s.calendarWeekdayWed,
+    s.calendarWeekdayThu,
+    s.calendarWeekdayFri,
+    s.calendarWeekdaySat,
+    s.calendarWeekdaySun,
+  ]
+
+  if (weeks.length === 0) return null
 
   return (
     <div>
       <p className="mb-2 text-xs font-medium text-[var(--panel-muted)]">{s.calendarTitle}</p>
-      <div className="flex max-w-md gap-1 overflow-x-auto pb-1">
-        {weeks.map((week, weekIndex) => (
-          <div key={weekIndex} className="flex flex-col gap-1">
-            {week.map((day, dayIndex) =>
-              day ? (
-                <CalendarCell
-                  key={day.dayStart}
-                  day={day}
-                  metric={metric}
-                  goalSeconds={goalSeconds}
-                  maxSessionsCount={maxSessionsCount}
-                />
-              ) : (
-                <div key={`empty-${weekIndex}-${dayIndex}`} className="h-3 w-3 shrink-0" />
-              ),
-            )}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {/* Étiquettes des jours de la semaine (L M M J V S D), alignées sur les lignes. */}
+        <div className="flex shrink-0 flex-col pt-[22px]" style={{ gap: CELL_GAP_PX }}>
+          {weekdayLabels.map((label, index) => (
+            <span
+              key={index}
+              className="flex items-center justify-center text-[10px] leading-none text-[var(--panel-muted)]"
+              style={{ width: CELL_PX, height: CELL_PX }}
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+
+        <div className="flex flex-col" style={{ gap: CELL_GAP_PX }}>
+          {/* Noms des mois, un par colonne où un nouveau mois commence. */}
+          <div className="flex" style={{ gap: CELL_GAP_PX, height: 18 }}>
+            {weeks.map((_, weekIndex) => (
+              <span
+                key={weekIndex}
+                className="shrink-0 whitespace-nowrap text-[10px] leading-none text-[var(--panel-muted)]"
+                style={{ width: CELL_PX }}
+              >
+                {monthLabels[weekIndex]}
+              </span>
+            ))}
           </div>
+
+          <div className="flex" style={{ gap: CELL_GAP_PX }}>
+            {weeks.map((week, weekIndex) => (
+              <div key={weekIndex} className="flex flex-col" style={{ gap: CELL_GAP_PX }}>
+                {week.map((day, dayIndex) =>
+                  day ? (
+                    <CalendarCell
+                      key={day.dayStart}
+                      day={day}
+                      metric={metric}
+                      goalSeconds={goalSeconds}
+                      maxSessionsCount={maxSessionsCount}
+                    />
+                  ) : (
+                    <div
+                      key={`empty-${weekIndex}-${dayIndex}`}
+                      className="shrink-0"
+                      style={{ width: CELL_PX, height: CELL_PX }}
+                    />
+                  ),
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Légende : du niveau 0 (aucune activité) au niveau 4 (objectif atteint ou dépassé). */}
+      <div className="mt-2 flex items-center gap-1.5 text-[11px] text-[var(--panel-muted)]">
+        <span>{s.calendarLess}</span>
+        {([0, 1, 2, 3, 4] as IntensityLevel[]).map((level) => (
+          <div
+            key={level}
+            className="shrink-0 rounded-sm"
+            style={{ width: CELL_PX, height: CELL_PX, ...levelStyle(level) }}
+          />
         ))}
+        <span>{s.calendarMore}</span>
       </div>
     </div>
   )

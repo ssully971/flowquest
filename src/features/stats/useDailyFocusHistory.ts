@@ -7,8 +7,13 @@ import type { DayFocus } from './compute-stats'
 import { onSessionRecorded } from './session-events'
 
 /** Historique jour par jour (§9 du cahier des charges : calendrier de régularité et
- * tendance de focus), sur une fenêtre fixe de `days` jours se terminant aujourd'hui. */
-export function useDailyFocusHistory(days: number, dailyGoalMinutes?: number): DayFocus[] | null {
+ * tendance de focus), sur une fenêtre fixe de `days` jours se terminant à `now` (par
+ * défaut aujourd'hui — un autre ancrage permet d'afficher une année civile passée). */
+export function useDailyFocusHistory(
+  days: number,
+  dailyGoalMinutes?: number,
+  now?: number,
+): DayFocus[] | null {
   const [history, setHistory] = useState<DayFocus[] | null>(null)
   const unmountedRef = useRef(false)
 
@@ -17,10 +22,12 @@ export function useDailyFocusHistory(days: number, dailyGoalMinutes?: number): D
       .then((db) => db.getAll('focusSessions'))
       .then((sessions) => {
         if (!unmountedRef.current) {
-          setHistory(computeDailyFocus(sessions, Date.now(), days, dailyGoalMinutes))
+          // Date.now() seulement ici (hors rendu) : un défaut de paramètre serait évalué
+          // pendant le rendu, ce que les règles de pureté de React interdisent.
+          setHistory(computeDailyFocus(sessions, now ?? Date.now(), days, dailyGoalMinutes))
         }
       })
-  }, [days, dailyGoalMinutes])
+  }, [days, dailyGoalMinutes, now])
 
   useEffect(() => {
     unmountedRef.current = false
