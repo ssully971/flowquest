@@ -16,7 +16,8 @@ describe('StatsPage — objectif quotidien ajustable', () => {
   it('affiche l’objectif courant et le message vide tant qu’aucune session n’est enregistrée', async () => {
     render(<StatsPage dailyGoalMinutes={120} onDailyGoalChange={vi.fn()} />)
 
-    expect(await screen.findByText('0 min / 120 min')).toBeInTheDocument()
+    expect(await screen.findByText(/0 min/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Objectif quotidien')).toHaveValue(120)
     expect(
       screen.getByText('Termine ta première session de focus pour voir tes statistiques ici.'),
     ).toBeInTheDocument()

@@ -477,6 +477,10 @@ export const fr = {
       showTaskInPipHint: 'Le nom de la tâche active apparaît dans la fenêtre flottante.',
       decrease: 'Diminuer',
       increase: 'Augmenter',
+      invalidValue: 'Valeur invalide : nombre entier attendu.',
+      outOfRangePrefix: 'Ajustée entre ',
+      outOfRangeJoin: ' et ',
+      outOfRangeSuffix: '.',
       sessionGoal: {
         title: 'Objectif de session',
         none: 'Aucun',
