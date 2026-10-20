@@ -134,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { username } },
+        options: { data: { username }, emailRedirectTo: window.location.origin },
       })
       if (error) {
         showToast({ type: 'error', message: translateAuthError(error.message) })
@@ -189,7 +189,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resendConfirmationEmail = useCallback(
     async (email: string) => {
       if (!supabase) throw new Error('Supabase non configuré')
-      const { error } = await supabase.auth.resend({ type: 'signup', email })
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: { emailRedirectTo: window.location.origin },
+      })
       if (error) {
         showToast({ type: 'error', message: translateAuthError(error.message) })
         throw error

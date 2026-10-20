@@ -81,6 +81,11 @@ d'environnement côté Flowquest.
 
 ## 5. Ce que l'interface fait déjà, de son côté
 
+- Toutes les redirections après e-mail (confirmation d'inscription, renvoi, connexion
+  Google, réinitialisation de mot de passe) sont construites explicitement côté client
+  avec `window.location.origin` — jamais laissées au seul réglage « Site URL » du
+  dashboard Supabase — pour toujours ramener sur le site réellement utilisé au moment de
+  la demande, même en cas de déploiement sur un domaine différent.
 - Après inscription, l'écran explique qu'il faut vérifier ses spams et que ça peut
   prendre quelques minutes, avec un bouton « Renvoyer l'e-mail » (délai de 45 s entre
   deux renvois, pour éviter le spam de boîte mail).

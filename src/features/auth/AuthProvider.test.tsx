@@ -251,6 +251,7 @@ describe('AuthProvider — renvoi d’e-mail et réinitialisation du mot de pass
     expect(resendMock).toHaveBeenCalledWith({
       type: 'signup',
       email: 'sullivan@exemple.com',
+      options: { emailRedirectTo: expect.any(String) },
     })
   })
 
