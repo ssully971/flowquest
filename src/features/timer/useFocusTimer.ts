@@ -2,11 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { getCurrentUserId } from '@/features/auth/current-user'
 import { useAuth } from '@/features/auth/useAuth'
+import { getDb } from '@/shared/storage/db'
 
 import type { SegmentKind, TimerMode, TimerSnapshot } from './engine/timer-engine'
 import { getDefaultSegmentForMode, getDurationForSegment, getDurationMsForMode } from './durations'
 import { notifySegmentFinished, requestNotificationPermission } from './notifications'
-import { advancePomodoroCycle, createPomodoroCycle } from './pomodoro-cycle'
+import {
+  advancePomodoroCycle,
+  countFocusSessionsSinceLastLongBreak,
+  createPomodoroCycle,
+} from './pomodoro-cycle'
 import type { PomodoroCycleState } from './pomodoro-cycle'
 import { recordSession } from './session-recorder'
 import { getGoalFocusSessions, isGoalReached } from './session-goal'
@@ -69,6 +74,22 @@ async function restoreController(settings: TimerSettings): Promise<TimerControll
   return TimerController.restore(repository, fallback.getState())
 }
 
+/**
+ * Numéro de session reconstruit depuis l'historique réel plutôt que de repartir d'un
+ * compteur à 0 (LOT E3) : l'historique local (IndexedDB) reflète déjà les sessions du
+ * compte une fois synchronisées (voir useSessionSync), donc correct aussi bien après un
+ * rechargement que sur un nouvel appareil, une fois le tirage distant arrivé.
+ */
+async function createSyncedPomodoroCycle(segment: SegmentKind): Promise<PomodoroCycleState> {
+  try {
+    const db = await getDb()
+    const sessions = await db.getAll('focusSessions')
+    return { segment, completedFocusCount: countFocusSessionsSinceLastLongBreak(sessions) }
+  } catch {
+    return createPomodoroCycle(segment)
+  }
+}
+
 export function useFocusTimer(): UseFocusTimerResult {
   const { status, user } = useAuth()
   const { settings: timerSettings } = useTimerSettings()
@@ -88,10 +109,10 @@ export function useFocusTimer(): UseFocusTimerResult {
 
   useEffect(() => {
     let cancelled = false
-    restoreController(timerSettingsRef.current).then((restored) => {
+    restoreController(timerSettingsRef.current).then(async (restored) => {
       if (cancelled) return
       setController(restored)
-      setCycle(createPomodoroCycle(restored.getState().segment))
+      setCycle(await createSyncedPomodoroCycle(restored.getState().segment))
       setIsReady(true)
     })
     return () => {
@@ -118,7 +139,7 @@ export function useFocusTimer(): UseFocusTimerResult {
       await localRepository.save(remote.state, remote.updatedAt)
       const restored = await restoreController(timerSettingsRef.current)
       setController(restored)
-      setCycle(createPomodoroCycle(restored.getState().segment))
+      setCycle(await createSyncedPomodoroCycle(restored.getState().segment))
     })()
   }, [status, user])
 

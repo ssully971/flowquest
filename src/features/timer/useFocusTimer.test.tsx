@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { getDb } from '@/shared/storage/db'
+import type { FocusSessionRecord } from '@/shared/storage/db'
 import { ToastProvider } from '@/shared/toast'
 
 import { TimerSettingsProvider } from './TimerSettingsProvider'
@@ -60,9 +61,26 @@ async function clearTimerState() {
   await db.delete('timerState', 'current')
 }
 
+function focusSession(overrides: Partial<FocusSessionRecord> & { startedAt: number }): FocusSessionRecord {
+  return {
+    id: crypto.randomUUID(),
+    kind: 'focus',
+    plannedSeconds: 1500,
+    actualSeconds: 1500,
+    endedAt: overrides.startedAt + 1500_000,
+    completed: true,
+    taskId: null,
+    syncedAt: null,
+    ...overrides,
+  }
+}
+
 beforeEach(async () => {
   window.localStorage.clear()
   await clearTimerState()
+  const db = await getDb()
+  const keys = await db.getAllKeys('focusSessions')
+  await Promise.all(keys.map((key) => db.delete('focusSessions', key)))
 })
 
 describe('useFocusTimer — durées configurables et démarrage automatique', () => {
@@ -221,5 +239,45 @@ describe('useFocusTimer — objectif de session (lot 4)', () => {
 
     await waitFor(() => expect(result.current.goalReached).toBe(false))
     expect(result.current.goalProgress).toBe(0)
+  })
+})
+
+describe('useFocusTimer — numéro de session cohérent entre appareils (LOT E3)', () => {
+  it('un nouvel appareil (2e contexte simulé) reprend le bon numéro depuis l’historique, pas « session 1 »', async () => {
+    const now = Date.now()
+    const db = await getDb()
+    // Simule 2 sessions de focus déjà faites aujourd'hui sur l'ordinateur, synchronisées
+    // côté compte avant que la tablette (ce rendu-ci) ne se connecte.
+    await db.put('focusSessions', focusSession({ startedAt: now - 2000 }))
+    await db.put('focusSessions', focusSession({ startedAt: now - 1000 }))
+
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    // La tablette affiche bien la 3e session (completedFocusCount reconstruit à 2), jamais
+    // « session 1 » comme avant le correctif (compteur local reparti de 0).
+    expect(result.current.cycle.completedFocusCount).toBe(2)
+  })
+
+  it('deux contextes simulant deux appareils affichent le même numéro de session à partir du même historique', async () => {
+    const now = Date.now()
+    const db = await getDb()
+    // 3 sessions de focus déjà enregistrées aujourd'hui pour ce compte (ex. faites sur
+    // l'ordinateur), synchronisées côté serveur comme le fait useSessionSync.
+    await db.put('focusSessions', focusSession({ startedAt: now - 3000 }))
+    await db.put('focusSessions', focusSession({ startedAt: now - 2000 }))
+    await db.put('focusSessions', focusSession({ startedAt: now - 1000 }))
+
+    // Contexte A (ordinateur, après rafraîchissement) et contexte B (tablette, à la
+    // connexion) : deux instances indépendantes du minuteur lisant le même historique.
+    const contextA = renderHook(() => useFocusTimer(), { wrapper })
+    const contextB = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(contextA.result.current.isReady).toBe(true))
+    await waitFor(() => expect(contextB.result.current.isReady).toBe(true))
+
+    // Les deux doivent afficher la 4e session (completedFocusCount === 3), jamais
+    // « session 1 » sur l'un des deux appareils comme dans le bug signalé.
+    expect(contextA.result.current.cycle.completedFocusCount).toBe(3)
+    expect(contextB.result.current.cycle.completedFocusCount).toBe(3)
   })
 })
