@@ -10,6 +10,10 @@ un utilisateur de lire ou modifier les données d'un autre.
 - RLS **activée sur toutes les tables** dès leur création (`alter table ... enable row level security`).
 - Aucune politique « permissive par défaut » : sans politique explicite, Postgres refuse
   tout accès. Chaque table liste donc ses politiques une par une ci-dessous.
+- RLS n'est que la moitié de la protection : chaque table a aussi besoin d'un `GRANT`
+  PostgreSQL explicite pour `authenticated`/`anon`, sans quoi Postgres refuse la requête
+  **avant même d'évaluer RLS** (erreur `42501`, déjà rencontrée en production — voir
+  « Droits PostgreSQL (GRANT) » plus bas et `docs/DIAGNOSTIC-SUPABASE.md`).
 - Aucune clé `service_role` dans le front (voir `.env.example` et `src/shared/supabase/client.ts`) :
   seule la clé `anon`, toujours soumise aux politiques RLS, est utilisée côté site.
 - Le rôle (`profiles.role`) ne peut **jamais** être modifié par une requête authentifiée
@@ -131,6 +135,40 @@ Chaque mutation admin (citation créée/modifiée/désactivée/supprimée, nouve
 message support marqué traité...) écrit une ligne ici (§12 : « Les modifications admin
 sont journalisées — qui, quoi, quand »).
 
+## Droits PostgreSQL (GRANT)
+
+RLS filtre les **lignes** qu'une requête peut voir ou modifier ; les `GRANT` PostgreSQL
+autorisent l'accès à la **table** elle-même, en amont de RLS. Les deux sont nécessaires :
+un `GRANT` sans politique RLS donnerait accès à toutes les lignes, et une politique RLS
+sans `GRANT` ne sert jamais (la requête est refusée avant que RLS ne s'applique). Ces
+`GRANT` n'élargissent jamais ce que RLS autorise déjà par politique : ils lèvent seulement
+le blocage au niveau table.
+
+Supabase accorde habituellement ces `GRANT` lui-même quand une table est créée depuis son
+tableau de bord. Ce projet gère son schéma à la main via `supabase/migrations/`, donc ils
+doivent être écrits explicitement — ce qui n'avait pas été fait jusqu'à la migration
+`0018_grants.sql` (cause du `permission denied for table...` / 42501 rencontré en
+production, corrigé manuellement dans le SQL Editor puis répercuté dans cette migration).
+
+| Table | `anon` | `authenticated` |
+|---|---|---|
+| `profiles` | — | SELECT, INSERT, UPDATE |
+| `user_settings` | — | SELECT, INSERT, UPDATE, DELETE |
+| `tasks` | — | SELECT, INSERT, UPDATE, DELETE |
+| `focus_sessions` | — | SELECT, INSERT, UPDATE, DELETE |
+| `timer_state` | — | SELECT, INSERT, UPDATE, DELETE |
+| `notes` | — | SELECT, INSERT, UPDATE, DELETE |
+| `support_messages` | INSERT | SELECT, INSERT, UPDATE |
+| `quotes` | SELECT | SELECT, INSERT, UPDATE, DELETE |
+| `changelog` | SELECT | SELECT, INSERT, UPDATE, DELETE |
+| `admin_log` | — | SELECT, INSERT |
+
+Un `ALTER DEFAULT PRIVILEGES` (toujours dans `0018_grants.sql`) fait que toute future table
+ou fonction créée par le rôle `postgres` (donc depuis l'éditeur SQL Supabase) hérite
+automatiquement de ces droits, même si une migration oublie son propre `GRANT`. Ça ne
+dispense pas d'en écrire un explicitement : voir la règle de convention dans « Journal des
+migrations » plus bas.
+
 ## Résolution de conflits (dernier horodatage gagne)
 
 `user_settings` et `timer_state` n'ont **pas** de trigger `set_updated_at` : c'est le
@@ -214,3 +252,10 @@ dans le navigateur. Conception complète, RLS incluse, dans `docs/NOTIFICATIONS_
 Chaque fichier de `supabase/migrations/` est numéroté, idempotent (peut être recollé sans
 erreur) et porte sur un seul sujet. À coller dans l'éditeur SQL Supabase, dans l'ordre
 numérique, une seule fois par projet.
+
+**Convention** : toute migration qui crée une table ou une fonction inclut ses propres
+`GRANT` (table par table / fonction par fonction), comme `0003`, `0009`, `0012` et `0013`
+le font déjà pour leurs fonctions, et comme `0018` le fait rétroactivement pour les tables
+créées avant que cette règle ne soit explicite. Une table ou fonction sans son `GRANT`
+propre, même couverte par `ALTER DEFAULT PRIVILEGES`, doit être considérée comme un oubli
+à corriger.
