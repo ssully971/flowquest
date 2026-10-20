@@ -1,5 +1,14 @@
+import { TASK_COLORS } from '@/features/tasks/task-color'
+
 export type ClockFormat = '12h' | '24h'
 export type ClockSize = 'small' | 'normal' | 'huge'
+
+export const CLOCK_COLOR_AUTO = 'auto'
+// Réutilise la palette des couleurs de tâches (§8, exception documentée à la règle « une
+// seule couleur de marque » §20.1 — déjà étendue aux confettis et aux cartes de stats) :
+// une seule palette « contenu » cohérente dans toute l'app plutôt qu'une nouvelle liste.
+export const CLOCK_COLORS = TASK_COLORS
+export type ClockColor = typeof CLOCK_COLOR_AUTO | (typeof CLOCK_COLORS)[number]
 
 export const CLOCK_STYLES = [
   'default-bold',
@@ -25,6 +34,7 @@ export interface ClockSettings {
   showGreeting: boolean
   flipClock: boolean
   style: ClockStyle
+  color: ClockColor
 }
 
 export const DEFAULT_CLOCK_SETTINGS: ClockSettings = {
@@ -34,6 +44,12 @@ export const DEFAULT_CLOCK_SETTINGS: ClockSettings = {
   showGreeting: true,
   flipClock: false,
   style: 'default-bold',
+  color: CLOCK_COLOR_AUTO,
+}
+
+/** `undefined` laisse BigDigits suivre var(--text) (comportement « Auto »). */
+export function resolveClockColor(color: ClockColor): string | undefined {
+  return color === CLOCK_COLOR_AUTO ? undefined : color
 }
 
 export const CLOCK_SIZE_SCALE: Record<ClockSize, number> = {

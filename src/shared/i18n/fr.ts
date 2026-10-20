@@ -556,6 +556,11 @@ export const fr = {
       showGreeting: 'Afficher la salutation',
       flipClock: 'Horloge « flip »',
       flipClockHint: 'Anime les chiffres comme une horloge à palettes quand ils changent.',
+      color: 'Couleur de l’horloge',
+      colorHint: 'S’applique à l’horloge de l’accueil et à celle du Focus.',
+      colorAuto: 'Auto',
+      colorContrastWarning:
+        'Contraste faible avec le thème actuel : cette couleur peut être difficile à lire.',
       style: 'Style de police',
       styles: {
         'default-bold': 'Default Bold',

@@ -5,6 +5,7 @@ interface PieChartDisplayProps {
   progress: number
   compact?: boolean
   sizeScale?: number
+  color?: string
 }
 
 export function PieChartDisplay({
@@ -12,6 +13,7 @@ export function PieChartDisplay({
   progress,
   compact = false,
   sizeScale = 1,
+  color,
 }: PieChartDisplayProps) {
   const scale = compact ? 1 : sizeScale
   const size = (compact ? 56 : 140) * scale
@@ -30,7 +32,7 @@ export function PieChartDisplay({
           background: `conic-gradient(var(--accent) ${percent}%, var(--line) ${percent}%)`,
         }}
       />
-      <BigDigits label={label} sizePx={compact ? 20 : 72} sizeScale={scale} />
+      <BigDigits label={label} sizePx={compact ? 20 : 72} sizeScale={scale} color={color} />
     </div>
   )
 }

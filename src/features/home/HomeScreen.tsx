@@ -3,7 +3,7 @@ import { BigDigits, Logo } from '@/shared/design-system'
 import { useCurrentTime } from '@/shared/hooks/useCurrentTime'
 import { strings } from '@/shared/i18n'
 
-import { CLOCK_SIZE_SCALE, CLOCK_STYLE_CSS } from './clock-settings'
+import { CLOCK_SIZE_SCALE, CLOCK_STYLE_CSS, resolveClockColor } from './clock-settings'
 import { useClockSettings } from './clock-settings-context'
 import { getGreeting } from './greeting'
 import { useQuotesSettings } from './quotes-settings-context'
@@ -87,6 +87,7 @@ export function HomeScreen() {
           letterSpacing={styleCss.letterSpacing}
           fontStyle={styleCss.fontStyle}
           flip={clockSettings.flipClock}
+          color={resolveClockColor(clockSettings.color)}
         />
         <p className="w-full text-sm text-[var(--muted)]">{formatLongDate(now)}</p>
       </div>

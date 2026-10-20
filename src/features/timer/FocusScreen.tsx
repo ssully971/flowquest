@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 
-import { CLOCK_SIZE_SCALE } from '@/features/home/clock-settings'
+import { CLOCK_SIZE_SCALE, resolveClockColor } from '@/features/home/clock-settings'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
 import { useQuote } from '@/features/home/useQuote'
@@ -163,6 +163,7 @@ export function FocusScreen() {
                 label={displayLabel}
                 progress={progress}
                 sizeScale={CLOCK_SIZE_SCALE[clockSettings.size]}
+                color={resolveClockColor(clockSettings.color)}
               />
             </div>
 

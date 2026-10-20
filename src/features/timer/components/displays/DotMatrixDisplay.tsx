@@ -5,6 +5,7 @@ interface DotMatrixDisplayProps {
   progress: number
   compact?: boolean
   sizeScale?: number
+  color?: string
 }
 
 export function DotMatrixDisplay({
@@ -12,6 +13,7 @@ export function DotMatrixDisplay({
   progress,
   compact = false,
   sizeScale = 1,
+  color,
 }: DotMatrixDisplayProps) {
   const scale = compact ? 1 : sizeScale
   const columns = compact ? 6 : 10
@@ -24,7 +26,7 @@ export function DotMatrixDisplay({
 
   return (
     <div className={`flex flex-col items-center ${compact ? 'gap-2' : 'gap-4'}`}>
-      <BigDigits label={label} sizePx={compact ? 28 : 120} sizeScale={scale} />
+      <BigDigits label={label} sizePx={compact ? 28 : 120} sizeScale={scale} color={color} />
       <div
         className="grid"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: gapPx }}

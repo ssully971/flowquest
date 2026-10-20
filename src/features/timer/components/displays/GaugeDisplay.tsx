@@ -5,9 +5,16 @@ interface GaugeDisplayProps {
   progress: number
   compact?: boolean
   sizeScale?: number
+  color?: string
 }
 
-export function GaugeDisplay({ label, progress, compact = false, sizeScale = 1 }: GaugeDisplayProps) {
+export function GaugeDisplay({
+  label,
+  progress,
+  compact = false,
+  sizeScale = 1,
+  color,
+}: GaugeDisplayProps) {
   const scale = compact ? 1 : sizeScale
   const size = (compact ? 72 : 200) * scale
   const stroke = (compact ? 6 : 10) * scale
@@ -44,7 +51,7 @@ export function GaugeDisplay({ label, progress, compact = false, sizeScale = 1 }
         />
       </svg>
       <div className="absolute">
-        <BigDigits label={label} sizePx={compact ? 16 : 64} sizeScale={scale} />
+        <BigDigits label={label} sizePx={compact ? 16 : 64} sizeScale={scale} color={color} />
       </div>
     </div>
   )

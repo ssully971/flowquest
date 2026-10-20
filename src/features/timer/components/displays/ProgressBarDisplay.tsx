@@ -5,6 +5,7 @@ interface ProgressBarDisplayProps {
   progress: number
   compact?: boolean
   sizeScale?: number
+  color?: string
 }
 
 export function ProgressBarDisplay({
@@ -12,6 +13,7 @@ export function ProgressBarDisplay({
   progress,
   compact = false,
   sizeScale = 1,
+  color,
 }: ProgressBarDisplayProps) {
   const percent = Math.round(Math.min(1, Math.max(0, progress)) * 100)
   const scale = compact ? 1 : sizeScale
@@ -22,7 +24,7 @@ export function ProgressBarDisplay({
       className={`flex flex-col items-center ${compact ? 'gap-2' : 'gap-4'}`}
       style={{ width: '100%', maxWidth: maxWidthPx }}
     >
-      <BigDigits label={label} sizePx={compact ? 28 : 120} sizeScale={scale} />
+      <BigDigits label={label} sizePx={compact ? 28 : 120} sizeScale={scale} color={color} />
       <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--line)]">
         <div
           className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-500 ease-linear"
