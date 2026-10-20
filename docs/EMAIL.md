@@ -48,12 +48,28 @@ varier légèrement selon la version de l'interface) :
 Enregistre, puis envoie-toi un e-mail de test depuis cette même page si Supabase propose
 l'option (sinon, teste directement via une inscription).
 
-## 3. Modèles d'e-mail (optionnel mais recommandé)
+## 3. Modèles d'e-mail (recommandé)
 
-**Authentication > Emails > Templates** : Supabase a des modèles par défaut en anglais
-pour « Confirm signup » et « Reset password ». Tu peux les traduire en français
-directement là (sujet + corps HTML), sans toucher au code — ce sont des variables
-`{{ .ConfirmationURL }}` à garder telles quelles dans le texte.
+`supabase/email-templates/` contient 4 modèles HTML prêts à coller, en français, aux
+couleurs de Flowquest (carte blanche arrondie sur fond `#F2EAFF`, mot « flowquest » en
+`#5A1FD1`, bouton pilule) : compatibles clients mail (tableaux, styles en ligne, pas de
+CSS externe).
+
+**Authentication > Emails > Templates**, un modèle à la fois : ouvre le fichier
+correspondant, copie tout son contenu HTML, colle-le dans le champ « Message body » du
+bon modèle Supabase, choisis un sujet en français (ex. « Confirme ton inscription sur
+flowquest »), enregistre.
+
+| Fichier | Modèle Supabase |
+|---|---|
+| `confirm-signup.html` | Confirm signup |
+| `reset-password.html` | Reset Password |
+| `change-email.html` | Change Email Address |
+| `magic-link.html` | Magic Link |
+
+Chaque modèle garde la variable `{{ .ConfirmationURL }}` (le lien d'action) telle quelle
+— ne la traduis pas, ne la renomme pas. `change-email.html` utilise aussi
+`{{ .NewEmail }}` (la nouvelle adresse demandée), propre à ce modèle.
 
 ## 4. Pourquoi ça ne se règle pas dans le code
 
