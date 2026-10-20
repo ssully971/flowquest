@@ -14,26 +14,33 @@ interface TimerFaceProps {
   progress: number | null
   /** `true` pour les vignettes d'aperçu de Réglages > Minuteur : version réduite. */
   compact?: boolean
+  /** Multiplicateur de taille (Réglages > Horloge, CLOCK_SIZE_SCALE) : ignoré en mode
+   * compact, qui a ses propres dimensions fixes de vignette. */
+  sizeScale?: number
 }
 
 /** Dispatcheur purement visuel : le moteur du minuteur ne change jamais, seul l'affichage
  * change selon le style choisi (lot 4). Le texte du temps reste toujours un vrai nœud
  * texte, dans les six styles, jamais remplacé par une image ou un canvas. */
-export function TimerFace({ style, label, progress, compact = false }: TimerFaceProps) {
+export function TimerFace({ style, label, progress, compact = false, sizeScale = 1 }: TimerFaceProps) {
   const boundedProgress = progress ?? 0
 
   switch (style) {
     case 'flip':
-      return <FlipDisplay label={label} compact={compact} />
+      return <FlipDisplay label={label} compact={compact} sizeScale={sizeScale} />
     case 'progress-bar':
-      return <ProgressBarDisplay label={label} progress={boundedProgress} compact={compact} />
+      return (
+        <ProgressBarDisplay label={label} progress={boundedProgress} compact={compact} sizeScale={sizeScale} />
+      )
     case 'gauge':
-      return <GaugeDisplay label={label} progress={boundedProgress} compact={compact} />
+      return <GaugeDisplay label={label} progress={boundedProgress} compact={compact} sizeScale={sizeScale} />
     case 'dot-matrix':
-      return <DotMatrixDisplay label={label} progress={boundedProgress} compact={compact} />
+      return (
+        <DotMatrixDisplay label={label} progress={boundedProgress} compact={compact} sizeScale={sizeScale} />
+      )
     case 'pie-chart':
-      return <PieChartDisplay label={label} progress={boundedProgress} compact={compact} />
+      return <PieChartDisplay label={label} progress={boundedProgress} compact={compact} sizeScale={sizeScale} />
     default:
-      return <DefaultDisplay label={label} compact={compact} />
+      return <DefaultDisplay label={label} compact={compact} sizeScale={sizeScale} />
   }
 }

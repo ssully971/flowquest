@@ -29,3 +29,69 @@ describe('TimerFace — le temps reste toujours un texte lisible, quel que soit 
     expect(container.querySelector('[style*="animation"]')).not.toBeNull()
   })
 })
+
+// Les styles « default » et « flip » (BigDigits seul) utilisent clamp() pour la taille de
+// police : jsdom ne sait pas analyser clamp() dans un style en ligne (la déclaration est
+// silencieusement ignorée, invisible même via getAttribute('style')), donc l'effet de
+// sizeScale sur eux n'est vérifiable qu'en navigateur réel (captures LOT B). Les quatre
+// autres styles ont leur propre géométrie en pixels simples (SVG, largeurs), observable
+// par jsdom — utilisée ci-dessous.
+describe('TimerFace — suit la taille d’horloge réglée (LOT B), proportionnellement comme l’accueil', () => {
+  it('jauge : sizeScale plus grand agrandit le cercle SVG', () => {
+    const { container, unmount } = render(
+      <TimerFace style="gauge" label="24:59" progress={0.5} sizeScale={1} />,
+    )
+    const normalWidth = container.querySelector('svg')?.getAttribute('width')
+    unmount()
+
+    const { container: hugeContainer } = render(
+      <TimerFace style="gauge" label="24:59" progress={0.5} sizeScale={1.35} />,
+    )
+    const hugeWidth = hugeContainer.querySelector('svg')?.getAttribute('width')
+
+    expect(Number(hugeWidth)).toBeGreaterThan(Number(normalWidth))
+  })
+
+  it('camembert : sizeScale plus grand agrandit le disque', () => {
+    const { container, unmount } = render(
+      <TimerFace style="pie-chart" label="24:59" progress={0.5} sizeScale={1} />,
+    )
+    const normalWidth = (container.querySelector('.rounded-full') as HTMLElement | null)?.style.width
+    unmount()
+
+    const { container: hugeContainer } = render(
+      <TimerFace style="pie-chart" label="24:59" progress={0.5} sizeScale={1.35} />,
+    )
+    const hugeWidth = (hugeContainer.querySelector('.rounded-full') as HTMLElement | null)?.style.width
+
+    expect(parseFloat(hugeWidth ?? '0')).toBeGreaterThan(parseFloat(normalWidth ?? '0'))
+  })
+
+  it('barre de progression : sizeScale plus grand élargit le conteneur', () => {
+    const { container, unmount } = render(
+      <TimerFace style="progress-bar" label="24:59" progress={0.5} sizeScale={1} />,
+    )
+    const normalMaxWidth = (container.firstChild as HTMLElement).style.maxWidth
+    unmount()
+
+    const { container: hugeContainer } = render(
+      <TimerFace style="progress-bar" label="24:59" progress={0.5} sizeScale={1.35} />,
+    )
+    const hugeMaxWidth = (hugeContainer.firstChild as HTMLElement).style.maxWidth
+
+    expect(parseFloat(hugeMaxWidth)).toBeGreaterThan(parseFloat(normalMaxWidth))
+  })
+
+  it('compact ignore sizeScale (vignette de taille fixe)', () => {
+    const { container, unmount } = render(
+      <TimerFace style="gauge" label="24:59" progress={0.5} compact sizeScale={1} />,
+    )
+    const base = container.querySelector('svg')?.getAttribute('width')
+    unmount()
+
+    const { container: hugeContainer } = render(
+      <TimerFace style="gauge" label="24:59" progress={0.5} compact sizeScale={1.35} />,
+    )
+    expect(hugeContainer.querySelector('svg')?.getAttribute('width')).toBe(base)
+  })
+})
