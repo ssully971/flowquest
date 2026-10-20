@@ -265,6 +265,14 @@ export const fr = {
     notConfigured:
       'Les comptes ne sont pas encore configurés sur ce déploiement. Flowquest reste utilisable en mode invité : tes données restent sur cet appareil.',
     loading: 'Vérification de ta session…',
+    gate: {
+      title: 'flowquest',
+      subtitle: 'Connecte-toi pour retrouver tes réglages et tes données sur tous tes appareils.',
+      signIn: 'Se connecter',
+      signUp: 'Créer un compte',
+      continueAsGuest: 'Continuer sans compte',
+      back: 'Retour',
+    },
     fields: {
       username: 'Pseudo',
       email: 'E-mail',

@@ -29,6 +29,37 @@ h3 {
   outline-offset: 2px;
 }
 
+/*
+ * Style « Liquid Glass » minimal (LOT A : fenêtre de connexion plein écran). Composant
+ * partagé prévu au LOT C1 (mode ambiant, grandes fenêtres tâches/notes) — cette classe
+ * locale sera remplacée par lui sans changer le balisage qui l'utilise déjà.
+ * Repli sans backdrop-filter (navigateur trop ancien) et respect de
+ * prefers-reduced-transparency : fond quasi opaque, aucun flou, dans les deux cas.
+ */
+.glass-panel {
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  border: 1px solid color-mix(in srgb, var(--line) 160%, transparent);
+  box-shadow:
+    0 20px 60px var(--glow),
+    inset 0 1px 0 color-mix(in srgb, white 20%, transparent);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-panel {
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-panel {
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
 @keyframes clock-flip {
   from {
     transform: rotateX(90deg);
