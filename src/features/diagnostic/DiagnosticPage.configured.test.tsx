@@ -105,4 +105,44 @@ describe('DiagnosticPage — Supabase configuré (LOT A)', () => {
 
     await waitFor(() => expect(screen.getByText('Aucune session (mode invité)')).toBeInTheDocument())
   })
+
+  it('affiche l’e-mail, l’id, le pseudo et le rôle du compte connecté (LOT E8)', async () => {
+    getSessionMock.mockResolvedValue({
+      data: {
+        session: {
+          user: { id: 'user-123', email: 'admin@flowquest.app' },
+        },
+      },
+    })
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'profiles') {
+        return {
+          select: () => {
+            // Double usage du même mock : checkTableReads() attend directement le
+            // résultat de select(...), AuthProvider enchaîne .eq(...).single() dessus —
+            // un objet "thenable" avec .eq greffé dessus sert les deux appelants.
+            const result = Promise.resolve({ error: null }) as Promise<{ error: null }> & {
+              eq: () => { single: () => Promise<{ data: unknown; error: null }> }
+            }
+            result.eq = () => ({
+              single: () =>
+                Promise.resolve({
+                  data: { id: 'user-123', username: 'sullivan', role: 'admin' },
+                  error: null,
+                }),
+            })
+            return result
+          },
+        }
+      }
+      return { select: vi.fn().mockResolvedValue({ error: null }) }
+    })
+
+    renderDiagnosticPage()
+
+    await waitFor(() => expect(screen.getAllByText('admin@flowquest.app').length).toBeGreaterThan(0))
+    expect(screen.getByText('user-123')).toBeInTheDocument()
+    expect(screen.getByText('sullivan')).toBeInTheDocument()
+    expect(screen.getAllByText('admin').length).toBeGreaterThan(0)
+  })
 })
