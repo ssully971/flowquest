@@ -548,7 +548,7 @@ export const fr = {
       format12h: '12 h',
       format24h: '24 h',
       size: 'Taille',
-      sizeHint: 'S’applique à l’horloge et au minuteur.',
+      sizeHint: 'S’applique à l’horloge, au minuteur et au mode Ambiant.',
       sizeSmall: 'Petite',
       sizeNormal: 'Normale',
       sizeHuge: 'Énorme',
@@ -557,7 +557,7 @@ export const fr = {
       flipClock: 'Horloge « flip »',
       flipClockHint: 'Anime les chiffres comme une horloge à palettes quand ils changent.',
       color: 'Couleur de l’horloge',
-      colorHint: 'S’applique à l’horloge de l’accueil et à celle du Focus.',
+      colorHint: 'S’applique à l’horloge de l’accueil, à celle du Focus et du mode Ambiant.',
       colorAuto: 'Auto',
       colorContrastWarning:
         'Contraste faible avec le thème actuel : cette couleur peut être difficile à lire.',

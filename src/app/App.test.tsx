@@ -73,7 +73,7 @@ describe('App', () => {
     render(<App />)
 
     await user.click(screen.getByRole('radio', { name: 'Ambiant' }))
-    expect(await screen.findByText('25:00')).toBeInTheDocument()
+    expect(await screen.findByTestId('big-digits')).toHaveTextContent('25:00')
     expect(screen.queryByRole('button', { name: 'Tâches' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Bloc-notes' })).not.toBeInTheDocument()
   })
