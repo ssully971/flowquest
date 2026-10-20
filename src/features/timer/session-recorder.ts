@@ -3,6 +3,7 @@ import { notifySessionRecorded } from '@/features/stats/session-events'
 import type { FocusSessionRecord } from '@/shared/storage/db'
 import { enqueueWrite } from '@/shared/sync/offline-queue'
 
+import { getSnapshot } from './engine/timer-engine'
 import type { SegmentKind, TimerState } from './engine/timer-engine'
 import { IndexedDbFocusSessionRepository } from './storage/focus-session-repository'
 
@@ -28,10 +29,12 @@ export async function recordSession(
   if (state.startedAt === null) return
   if (!isRecordableSegment(state.segment)) return
 
-  const actualSeconds = Math.max(
-    0,
-    Math.round((endedAt - state.startedAt - state.pausedTotalMs) / 1000),
-  )
+  // Réutilise le calcul du moteur (getSnapshot/getElapsedMs) plutôt que de reproduire sa
+  // propre formule (LOT E7) : seule cette fonction sait déjà gérer correctement le cas
+  // d'un arrêt pendant que la session est en pause — elle s'arrête alors à `pausedAt`,
+  // pas à `endedAt` (sans quoi tout le temps passé en pause, même très long, aurait été
+  // compté à tort comme du temps de travail réel).
+  const actualSeconds = Math.round(getSnapshot(state, endedAt).elapsedMs / 1000)
   const plannedSeconds = state.durationMs ? Math.round(state.durationMs / 1000) : actualSeconds
 
   const record: FocusSessionRecord = {

@@ -23,26 +23,32 @@ function startOfDay(timestamp: number): number {
  * aujourd'hui/cette semaine, série de jours (actuelle et la plus longue). Un jour ne
  * compte dans la série que si le temps de focus cumulé ce jour-là atteint l'objectif
  * quotidien (dailyGoalMinutes) — pas simplement une session, aussi courte soit-elle.
+ *
+ * Le temps compté est toujours actualSeconds (temps réellement passé, dérivé des
+ * horodatages par le moteur — LOT E7), pour TOUTE session de focus enregistrée, que la
+ * session soit allée à son terme ou ait été arrêtée en cours de route : un Pomodoro de
+ * 25 min arrêté à 18 min crédite bien 18 min, jamais 0. `completed` reste réservé aux
+ * métriques qui mesurent spécifiquement le taux d'achèvement (score de focus).
  */
 export function computeStats(
   sessions: FocusSessionRecord[],
   now: number = Date.now(),
   dailyGoalMinutes: number = DEFAULT_DAILY_GOAL_MINUTES,
 ): DashboardStats {
-  const completedFocus = sessions.filter((session) => session.kind === 'focus' && session.completed)
+  const focusSessions = sessions.filter((session) => session.kind === 'focus')
 
   const todayStart = startOfDay(now)
-  const todayFocusSeconds = completedFocus
+  const todayFocusSeconds = focusSessions
     .filter((session) => session.startedAt >= todayStart)
     .reduce((sum, session) => sum + session.actualSeconds, 0)
 
   const weekStart = todayStart - 6 * DAY_MS
-  const weekFocusSeconds = completedFocus
+  const weekFocusSeconds = focusSessions
     .filter((session) => session.startedAt >= weekStart)
     .reduce((sum, session) => sum + session.actualSeconds, 0)
 
   const secondsByDay = new Map<number, number>()
-  for (const session of completedFocus) {
+  for (const session of focusSessions) {
     const day = startOfDay(session.startedAt)
     secondsByDay.set(day, (secondsByDay.get(day) ?? 0) + session.actualSeconds)
   }
@@ -107,10 +113,10 @@ export function computeDailyFocus(
   days: number,
   dailyGoalMinutes: number = DEFAULT_DAILY_GOAL_MINUTES,
 ): DayFocus[] {
-  const completedFocus = sessions.filter((session) => session.kind === 'focus' && session.completed)
+  const focusSessions = sessions.filter((session) => session.kind === 'focus')
   const secondsByDay = new Map<number, number>()
   const countByDay = new Map<number, number>()
-  for (const session of completedFocus) {
+  for (const session of focusSessions) {
     const day = startOfDay(session.startedAt)
     secondsByDay.set(day, (secondsByDay.get(day) ?? 0) + session.actualSeconds)
     countByDay.set(day, (countByDay.get(day) ?? 0) + 1)
@@ -201,21 +207,20 @@ function sumPeriodStats(
   const inWindow = (timestamp: number) =>
     (windowStart === null || timestamp >= windowStart) && timestamp <= windowEnd
 
-  const completedFocus = sessions.filter(
-    (session) => session.kind === 'focus' && session.completed && inWindow(session.startedAt),
+  const focusSessions = sessions.filter(
+    (session) => session.kind === 'focus' && inWindow(session.startedAt),
   )
-  const completedBreaks = sessions.filter(
+  const breakSessions = sessions.filter(
     (session) =>
       (session.kind === 'short_break' || session.kind === 'long_break') &&
-      session.completed &&
       inWindow(session.startedAt),
   )
   const completedTasks = tasks.filter((task) => task.done && task.doneAt !== null && inWindow(task.doneAt))
 
   return {
-    focusSeconds: completedFocus.reduce((sum, session) => sum + session.actualSeconds, 0),
-    sessionsCount: completedFocus.length,
-    pauseSeconds: completedBreaks.reduce((sum, session) => sum + session.actualSeconds, 0),
+    focusSeconds: focusSessions.reduce((sum, session) => sum + session.actualSeconds, 0),
+    sessionsCount: focusSessions.length,
+    pauseSeconds: breakSessions.reduce((sum, session) => sum + session.actualSeconds, 0),
     tasksCompleted: completedTasks.length,
   }
 }
