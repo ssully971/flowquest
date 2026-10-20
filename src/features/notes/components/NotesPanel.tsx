@@ -1,7 +1,8 @@
-import { X } from 'lucide-react'
 import type { ClipboardEvent, MouseEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 
+import { useExtrasSettings } from '@/features/settings/extras-settings-context'
+import { FloatingPanel } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import { htmlToPlainText, sanitizeNoteHtml } from '../note-html'
@@ -25,6 +26,7 @@ interface NotesPanelProps {
  */
 export function NotesPanel({ open, onClose }: NotesPanelProps) {
   const { content, setContent, isSaving } = useNote()
+  const { settings: extrasSettings } = useExtrasSettings()
   const panelRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<HTMLDivElement>(null)
   const lastSyncedHtmlRef = useRef<string | null>(null)
@@ -132,24 +134,15 @@ export function NotesPanel({ open, onClose }: NotesPanelProps) {
   const charCount = plainText.length
 
   return (
-    <div
-      ref={panelRef}
-      role="dialog"
-      aria-label={strings.notes.title}
-      className="absolute bottom-full right-0 z-40 mb-3 flex h-[min(24rem,60vh)] w-[min(22rem,calc(100vw-2rem))] flex-col gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[0_10px_24px_var(--glow)]"
+    <FloatingPanel
+      panelRef={panelRef}
+      mode={extrasSettings.notesDisplayMode}
+      title={strings.notes.title}
+      closeLabel={strings.notes.close}
+      onClose={onClose}
+      panelSizeClassName="h-[min(24rem,60vh)] w-[min(22rem,calc(100vw-2rem))]"
+      windowSizeClassName="h-[min(80vh,46rem)] w-[min(36rem,calc(100vw-2rem))]"
     >
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-[var(--text)]">{strings.notes.title}</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={strings.notes.close}
-          className="rounded-full p-1 text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
-        >
-          <X size={16} strokeWidth={1.75} aria-hidden="true" />
-        </button>
-      </div>
-
       <NoteToolbar
         onBold={() => exec('bold')}
         onItalic={() => exec('italic')}
@@ -179,6 +172,6 @@ export function NotesPanel({ open, onClose }: NotesPanelProps) {
         </span>
         <span>{isSaving ? strings.notes.saving : strings.notes.saved}</span>
       </div>
-    </div>
+    </FloatingPanel>
   )
 }

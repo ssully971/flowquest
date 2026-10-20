@@ -71,6 +71,30 @@ describe('ExtrasPage — nom affiché, thèmes animés, mode épuré, veille, ra
     })
   })
 
+  it('change le mode d’affichage des tâches et des notes (LOT B11)', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<ExtrasPage settings={DEFAULT_EXTRAS_SETTINGS} onChange={onChange} />)
+
+    expect(DEFAULT_EXTRAS_SETTINGS.tasksDisplayMode).toBe('panel')
+    expect(DEFAULT_EXTRAS_SETTINGS.notesDisplayMode).toBe('panel')
+
+    const windowButtons = screen.getAllByRole('radio', { name: 'Grande fenêtre' })
+    expect(windowButtons).toHaveLength(2)
+
+    await user.click(windowButtons[0])
+    expect(onChange).toHaveBeenCalledWith({
+      ...DEFAULT_EXTRAS_SETTINGS,
+      tasksDisplayMode: 'window',
+    })
+
+    await user.click(windowButtons[1])
+    expect(onChange).toHaveBeenCalledWith({
+      ...DEFAULT_EXTRAS_SETTINGS,
+      notesDisplayMode: 'window',
+    })
+  })
+
   it('change l’onglet des réglages ouvert par défaut', async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()

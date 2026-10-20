@@ -1,7 +1,9 @@
-import { Plus, X } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import type { FormEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 
+import { useExtrasSettings } from '@/features/settings/extras-settings-context'
+import { FloatingPanel } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import { useActiveTask } from '../active-task-context'
@@ -26,6 +28,7 @@ export function TasksPanel({ open, onClose }: TasksPanelProps) {
     updateTaskDetails,
   } = useTasks()
   const { activeTaskId, setActiveTaskId } = useActiveTask()
+  const { settings: extrasSettings } = useExtrasSettings()
   const [newTitle, setNewTitle] = useState('')
   const panelRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -62,24 +65,15 @@ export function TasksPanel({ open, onClose }: TasksPanelProps) {
   }
 
   return (
-    <div
-      ref={panelRef}
-      role="dialog"
-      aria-label={strings.tasks.title}
-      className="absolute bottom-full right-0 z-40 mb-3 flex max-h-[60vh] w-[min(22rem,calc(100vw-2rem))] flex-col gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[0_10px_24px_var(--glow)]"
+    <FloatingPanel
+      panelRef={panelRef}
+      mode={extrasSettings.tasksDisplayMode}
+      title={strings.tasks.title}
+      closeLabel={strings.tasks.close}
+      onClose={onClose}
+      panelSizeClassName="max-h-[60vh] w-[min(22rem,calc(100vw-2rem))]"
+      windowSizeClassName="h-[min(80vh,46rem)] w-[min(36rem,calc(100vw-2rem))]"
     >
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-[var(--text)]">{strings.tasks.title}</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={strings.tasks.close}
-          className="rounded-full p-1 text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
-        >
-          <X size={16} strokeWidth={1.75} aria-hidden="true" />
-        </button>
-      </div>
-
       <form onSubmit={handleAdd} className="flex gap-2">
         <input
           ref={inputRef}
@@ -117,6 +111,6 @@ export function TasksPanel({ open, onClose }: TasksPanelProps) {
           onReorder={(ids) => void reorderTasks(ids)}
         />
       )}
-    </div>
+    </FloatingPanel>
   )
 }

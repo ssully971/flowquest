@@ -611,6 +611,10 @@ export const fr = {
       settingsPanelSideHint: 'Le panneau s’ouvre depuis ce côté de l’écran.',
       settingsPanelSideLeft: 'Gauche',
       settingsPanelSideRight: 'Droite',
+      tasksDisplayMode: 'Fenêtre des tâches',
+      notesDisplayMode: 'Fenêtre des notes',
+      displayModePanel: 'Petit panneau',
+      displayModeWindow: 'Grande fenêtre',
     },
     support: {
       title: 'Support',
