@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import type { ReactNode, RefObject } from 'react'
 
+import { GlassCard } from './GlassCard'
 import type { PanelDisplayMode } from './panel-display-mode'
 
 interface FloatingPanelProps {
@@ -20,8 +21,7 @@ interface FloatingPanelProps {
  * Chrome partagé des panneaux flottants (Tâches, Notes — LOT B11) : « Petit panneau »
  * garde le popover ancré existant, « Grande fenêtre » les affiche en fenêtre centrée sur
  * fond flouté, à la façon de docs/reference/fenetre-taches.jpeg (inspiration ergonomique
- * uniquement). Réutilise .glass-panel (A7), en attendant le composant « Liquid Glass »
- * partagé prévu au LOT C1.
+ * uniquement). Utilise GlassCard (LOT C1) pour le style « Liquid Glass ».
  */
 export function FloatingPanel({
   panelRef,
@@ -59,15 +59,15 @@ export function FloatingPanel({
           }}
           onClick={onClose}
         />
-        <div
+        <GlassCard
           ref={panelRef}
           role="dialog"
           aria-label={title}
-          className={`glass-panel relative z-10 flex flex-col gap-4 rounded-[28px] p-6 ${windowSizeClassName}`}
+          className={`relative z-10 flex flex-col gap-4 rounded-[28px] p-6 ${windowSizeClassName}`}
         >
           {header}
           {children}
-        </div>
+        </GlassCard>
       </div>
     )
   }

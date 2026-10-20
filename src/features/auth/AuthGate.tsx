@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
+import { GlassCard } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import { ForgotPasswordForm } from './components/ForgotPasswordForm'
@@ -30,9 +31,7 @@ interface AuthGateProps {
  * /diagnostic, jamais montée sur ces routes — voir App.tsx). `children` reste toujours
  * monté derrière : fermer la fenêtre (choix invité) ne perd donc aucun état.
  *
- * Style translucide « Liquid Glass » minimal (classe .glass-panel, voir
- * src/styles/global.css) : en attendant le composant partagé prévu au LOT C1, qui
- * remplacera cette classe locale sans changer ce fichier.
+ * Style translucide « Liquid Glass » (composant partagé GlassCard, LOT C1).
  */
 export function AuthGate({ children }: AuthGateProps) {
   const { status, isSupabaseConfigured } = useAuth()
@@ -58,11 +57,11 @@ export function AuthGate({ children }: AuthGateProps) {
       {shouldShow ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div className="absolute inset-0" style={{ background: 'var(--scrim)' }} />
-          <div
+          <GlassCard
             role="dialog"
             aria-modal="true"
             aria-labelledby="auth-gate-title"
-            className="glass-panel relative flex w-full max-w-sm flex-col gap-5 rounded-3xl p-7"
+            className="relative flex w-full max-w-sm flex-col gap-5 rounded-3xl p-7"
           >
             {view !== 'choice' ? (
               <button
@@ -122,7 +121,7 @@ export function AuthGate({ children }: AuthGateProps) {
             ) : (
               <ForgotPasswordForm onBack={() => setView('signIn')} />
             )}
-          </div>
+          </GlassCard>
         </div>
       ) : null}
     </>
