@@ -4,6 +4,7 @@ import { CLOCK_SIZE_SCALE } from '@/features/home/clock-settings'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
 import { useQuote } from '@/features/home/useQuote'
+import { isIOSDevice } from '@/features/pwa/platform'
 import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { useActiveTask } from '@/features/tasks/active-task-context'
 import { useTasks } from '@/features/tasks/useTasks'
@@ -173,6 +174,7 @@ export function FocusScreen() {
               showSkip={timer.mode === 'pomodoro'}
               onPictureInPicture={pip.toggle}
               pipAvailable={pip.isSupported}
+              showPip={!isIOSDevice()}
             />
           </>
         )}
