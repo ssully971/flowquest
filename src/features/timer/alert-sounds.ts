@@ -4,9 +4,7 @@ export interface AlertSound {
   src: string
 }
 
-/** Catalogue des sons d'alerte de fin de session. Les fichiers de public/sounds/alerts
- * sont pour le moment des sons silencieux de remplacement, en attendant que des sons
- * définitifs libres de droits soient fournis (lot 4). */
+/** Catalogue des sons d'alerte de fin de session (lot 4). */
 export const ALERT_SOUNDS: AlertSound[] = [
   { id: 'carillon', label: 'Carillon', src: '/sounds/alerts/carillon.mp3' },
   { id: 'cloche', label: 'Cloche', src: '/sounds/alerts/cloche.mp3' },

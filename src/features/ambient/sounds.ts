@@ -5,9 +5,8 @@ export interface AmbientSound {
 }
 
 /** §12/§17/§18 du cahier des charges : catalogue des sons d'ambiance, servis en boucles
- * compressées avec le site (pas de table Supabase pour l'instant). Les fichiers de
- * public/sounds sont pour le moment des boucles silencieuses de remplacement, en
- * attendant des sons définitifs libres de droits. */
+ * compressées avec le site (pas de table Supabase pour l'instant). Bouclés sans coupure
+ * via Web Audio API (voir useAmbientSounds, LOT C3). */
 export const AMBIENT_SOUNDS: AmbientSound[] = [
   { id: 'rain', label: 'Pluie', src: '/sounds/rain.mp3' },
   { id: 'waves', label: 'Vagues', src: '/sounds/waves.mp3' },

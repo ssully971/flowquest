@@ -1,15 +1,64 @@
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useAmbientSounds } from './useAmbientSounds'
 
-describe('useAmbientSounds — moteur des sons d’ambiance (§12/§17/§18 du cahier des charges)', () => {
+class FakeAudioBufferSourceNode {
+  buffer: AudioBuffer | null = null
+  loop = false
+  connect = vi.fn().mockReturnThis()
+  disconnect = vi.fn()
+  start = vi.fn()
+  stop = vi.fn()
+}
+
+class FakeGainNode {
+  gain = { value: 1 }
+  connect = vi.fn().mockReturnThis()
+  disconnect = vi.fn()
+}
+
+class FakeAudioContext {
+  state: 'running' | 'suspended' | 'closed' = 'running'
+  destination = {}
+  createBufferSource = vi.fn(() => new FakeAudioBufferSourceNode())
+  createGain = vi.fn(() => new FakeGainNode())
+  decodeAudioData = vi.fn().mockResolvedValue({} as AudioBuffer)
+  resume = vi.fn(function (this: FakeAudioContext) {
+    this.state = 'running'
+    return Promise.resolve()
+  })
+  close = vi.fn().mockResolvedValue(undefined)
+}
+
+let lastContext: FakeAudioContext | null = null
+
+describe('useAmbientSounds — moteur des sons d’ambiance, Web Audio API sans coupure (LOT C3)', () => {
   beforeEach(() => {
-    vi.useFakeTimers()
+    // shouldAdvanceTime: waitFor()/findBy* de RTL interrogent via de vrais setTimeout —
+    // sans cette option, de faux timers purs les font rester bloqués indéfiniment.
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    lastContext = null
+    // vi.fn() doit recevoir une "function" classique (pas une arrow function) pour être
+    // utilisable via `new` — une arrow function ne peut pas servir de constructeur.
+    vi.stubGlobal(
+      'AudioContext',
+      vi.fn(function () {
+        lastContext = new FakeAudioContext()
+        return lastContext
+      }),
+    )
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+      }),
+    )
   })
 
   afterEach(() => {
     vi.useRealTimers()
+    vi.unstubAllGlobals()
   })
 
   it('démarre sans aucun son actif, avec de la place pour en activer', () => {
@@ -18,11 +67,12 @@ describe('useAmbientSounds — moteur des sons d’ambiance (§12/§17/§18 du c
     expect(result.current.canActivateMore).toBe(true)
   })
 
-  it('active un son au premier basculement, le désactive au second', () => {
+  it('active un son au premier basculement, le désactive au second', async () => {
     const { result } = renderHook(() => useAmbientSounds())
 
     act(() => result.current.toggle('rain'))
     expect(result.current.activeIds).toEqual(['rain'])
+    await waitFor(() => expect(lastContext?.createBufferSource).toHaveBeenCalled())
 
     act(() => result.current.toggle('rain'))
     expect(result.current.activeIds).toEqual([])
@@ -70,5 +120,68 @@ describe('useAmbientSounds — moteur des sons d’ambiance (§12/§17/§18 du c
 
     expect(result.current.sleepTimerMinutes).toBeNull()
     expect(result.current.remainingSleepMs).toBeNull()
+  })
+
+  it('boucle via AudioBufferSourceNode.loop (pas <audio loop>), pour une lecture sans coupure', async () => {
+    const { result } = renderHook(() => useAmbientSounds())
+
+    act(() => result.current.toggle('rain'))
+    await waitFor(() => expect(lastContext?.createBufferSource).toHaveBeenCalled())
+
+    const source = lastContext?.createBufferSource.mock.results[0]?.value as FakeAudioBufferSourceNode
+    expect(source.loop).toBe(true)
+    expect(source.start).toHaveBeenCalled()
+  })
+
+  it('règle le volume via un GainNode plutôt que le volume natif (absent sur AudioBufferSourceNode)', async () => {
+    const { result } = renderHook(() => useAmbientSounds())
+
+    act(() => result.current.setVolume('rain', 0.3))
+    act(() => result.current.toggle('rain'))
+    await waitFor(() => expect(lastContext?.createGain).toHaveBeenCalled())
+
+    const gain = lastContext?.createGain.mock.results[0]?.value as FakeGainNode
+    expect(gain.gain.value).toBe(0.3)
+
+    act(() => result.current.setVolume('rain', 0.8))
+    expect(gain.gain.value).toBe(0.8)
+  })
+
+  it('arrête bien la source Web Audio en désactivant un son déjà démarré', async () => {
+    const { result } = renderHook(() => useAmbientSounds())
+
+    act(() => result.current.toggle('rain'))
+    await waitFor(() => expect(lastContext?.createBufferSource).toHaveBeenCalled())
+    const source = lastContext?.createBufferSource.mock.results[0]?.value as FakeAudioBufferSourceNode
+
+    act(() => result.current.toggle('rain'))
+    expect(source.stop).toHaveBeenCalled()
+  })
+
+  it('ne démarre pas la lecture si le son a été désactivé pendant le décodage (annulation de la course)', async () => {
+    let resolveDecode: (buffer: AudioBuffer) => void = () => {}
+    vi.stubGlobal(
+      'AudioContext',
+      vi.fn(function () {
+        lastContext = new FakeAudioContext()
+        lastContext.decodeAudioData = vi.fn(
+          () => new Promise<AudioBuffer>((resolve) => (resolveDecode = resolve)),
+        )
+        return lastContext
+      }),
+    )
+
+    const { result } = renderHook(() => useAmbientSounds())
+
+    act(() => result.current.toggle('rain'))
+    act(() => result.current.toggle('rain'))
+    expect(result.current.activeIds).toEqual([])
+
+    await act(async () => {
+      resolveDecode({} as AudioBuffer)
+      await Promise.resolve()
+    })
+
+    expect(lastContext?.createBufferSource).not.toHaveBeenCalled()
   })
 })
