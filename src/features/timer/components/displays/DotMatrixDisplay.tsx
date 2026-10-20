@@ -1,3 +1,4 @@
+import type { ClockStyleCss } from '@/features/home/clock-settings'
 import { BigDigits } from '@/shared/design-system'
 
 interface DotMatrixDisplayProps {
@@ -6,6 +7,7 @@ interface DotMatrixDisplayProps {
   compact?: boolean
   sizeScale?: number
   color?: string
+  styleCss?: ClockStyleCss
 }
 
 export function DotMatrixDisplay({
@@ -14,6 +16,7 @@ export function DotMatrixDisplay({
   compact = false,
   sizeScale = 1,
   color,
+  styleCss,
 }: DotMatrixDisplayProps) {
   const scale = compact ? 1 : sizeScale
   const columns = compact ? 6 : 10
@@ -26,7 +29,16 @@ export function DotMatrixDisplay({
 
   return (
     <div className={`flex flex-col items-center ${compact ? 'gap-2' : 'gap-4'}`}>
-      <BigDigits label={label} sizePx={compact ? 28 : 120} sizeScale={scale} color={color} />
+      <BigDigits
+        label={label}
+        sizePx={compact ? 28 : 120}
+        sizeScale={scale}
+        color={color}
+        fontFamily={styleCss?.fontFamily}
+        fontWeight={styleCss?.fontWeight}
+        letterSpacing={styleCss?.letterSpacing}
+        fontStyle={styleCss?.fontStyle}
+      />
       <div
         className="grid"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: gapPx }}

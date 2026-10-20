@@ -3,7 +3,7 @@ import { useState } from 'react'
 
 import { AmbientSoundsPanel } from '@/features/ambient/components/AmbientSoundsPanel'
 import { useAmbientSounds } from '@/features/ambient/useAmbientSounds'
-import { CLOCK_SIZE_SCALE, resolveClockColor } from '@/features/home/clock-settings'
+import { CLOCK_SIZE_SCALE, CLOCK_STYLE_CSS, resolveClockColor } from '@/features/home/clock-settings'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { BigDigits, GlassCard } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
@@ -52,6 +52,10 @@ export function AmbientScreen() {
             sizePx={AMBIENT_CLOCK_BASE_PX}
             sizeScale={CLOCK_SIZE_SCALE[clockSettings.size]}
             color={resolveClockColor(clockSettings.color)}
+            fontFamily={CLOCK_STYLE_CSS[clockSettings.style].fontFamily}
+            fontWeight={CLOCK_STYLE_CSS[clockSettings.style].fontWeight}
+            letterSpacing={CLOCK_STYLE_CSS[clockSettings.style].letterSpacing}
+            fontStyle={CLOCK_STYLE_CSS[clockSettings.style].fontStyle}
           />
           <button
             type="button"

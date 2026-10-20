@@ -1,3 +1,4 @@
+import type { ClockStyleCss } from '@/features/home/clock-settings'
 import { BigDigits } from '@/shared/design-system'
 
 interface GaugeDisplayProps {
@@ -6,6 +7,7 @@ interface GaugeDisplayProps {
   compact?: boolean
   sizeScale?: number
   color?: string
+  styleCss?: ClockStyleCss
 }
 
 export function GaugeDisplay({
@@ -14,6 +16,7 @@ export function GaugeDisplay({
   compact = false,
   sizeScale = 1,
   color,
+  styleCss,
 }: GaugeDisplayProps) {
   const scale = compact ? 1 : sizeScale
   const size = (compact ? 72 : 200) * scale
@@ -51,7 +54,16 @@ export function GaugeDisplay({
         />
       </svg>
       <div className="absolute">
-        <BigDigits label={label} sizePx={compact ? 16 : 64} sizeScale={scale} color={color} />
+        <BigDigits
+          label={label}
+          sizePx={compact ? 16 : 64}
+          sizeScale={scale}
+          color={color}
+          fontFamily={styleCss?.fontFamily}
+          fontWeight={styleCss?.fontWeight}
+          letterSpacing={styleCss?.letterSpacing}
+          fontStyle={styleCss?.fontStyle}
+        />
       </div>
     </div>
   )

@@ -1,3 +1,4 @@
+import type { ClockStyleCss } from '@/features/home/clock-settings'
 import { BigDigits } from '@/shared/design-system'
 
 interface PieChartDisplayProps {
@@ -6,6 +7,7 @@ interface PieChartDisplayProps {
   compact?: boolean
   sizeScale?: number
   color?: string
+  styleCss?: ClockStyleCss
 }
 
 export function PieChartDisplay({
@@ -14,6 +16,7 @@ export function PieChartDisplay({
   compact = false,
   sizeScale = 1,
   color,
+  styleCss,
 }: PieChartDisplayProps) {
   const scale = compact ? 1 : sizeScale
   const size = (compact ? 56 : 140) * scale
@@ -32,7 +35,16 @@ export function PieChartDisplay({
           background: `conic-gradient(var(--accent) ${percent}%, var(--line) ${percent}%)`,
         }}
       />
-      <BigDigits label={label} sizePx={compact ? 20 : 72} sizeScale={scale} color={color} />
+      <BigDigits
+        label={label}
+        sizePx={compact ? 20 : 72}
+        sizeScale={scale}
+        color={color}
+        fontFamily={styleCss?.fontFamily}
+        fontWeight={styleCss?.fontWeight}
+        letterSpacing={styleCss?.letterSpacing}
+        fontStyle={styleCss?.fontStyle}
+      />
     </div>
   )
 }
