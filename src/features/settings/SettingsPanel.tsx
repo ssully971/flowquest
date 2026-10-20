@@ -261,7 +261,7 @@ export function SettingsPanel({
             type="button"
             onClick={onClose}
             aria-label={strings.settings.close}
-            className="absolute right-6 top-6 inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--panel-muted)] transition-colors duration-200 hover:text-[var(--panel-text)]"
+            className="absolute right-5 top-5 inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--panel-muted)] transition-colors duration-200 hover:text-[var(--panel-text)]"
           >
             <X size={20} strokeWidth={1.75} aria-hidden="true" />
           </button>

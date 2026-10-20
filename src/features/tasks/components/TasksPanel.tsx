@@ -80,13 +80,13 @@ export function TasksPanel({ open, onClose }: TasksPanelProps) {
           value={newTitle}
           onChange={(event) => setNewTitle(event.target.value)}
           placeholder={strings.tasks.addPlaceholder}
-          className="h-10 flex-1 rounded-xl border border-[var(--line)] bg-transparent px-3 text-sm text-[var(--text)] outline-none transition-colors duration-200 focus:border-[var(--accent)]"
+          className="h-11 flex-1 rounded-xl border border-[var(--line)] bg-transparent px-3 text-sm text-[var(--text)] outline-none transition-colors duration-200 focus:border-[var(--accent)]"
         />
         <button
           type="submit"
           disabled={!newTitle.trim()}
           aria-label={strings.tasks.addButton}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--on-accent)] transition-opacity duration-200 disabled:opacity-40"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--on-accent)] transition-opacity duration-200 disabled:opacity-40"
         >
           <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
         </button>

@@ -40,7 +40,7 @@ export function FloatingPanel({
         type="button"
         onClick={onClose}
         aria-label={closeLabel}
-        className="rounded-full p-1 text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
+        className="-m-2.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
       >
         <X size={16} strokeWidth={1.75} aria-hidden="true" />
       </button>

@@ -45,4 +45,17 @@ describe('Switch — interrupteur accessible unifié (lot 2)', () => {
     expect(thumb?.className).toContain('left-0')
     expect(thumb?.className).toContain('translate-x-6')
   })
+
+  it('interactive={false} rend une piste purement visuelle, sans rôle ni bouton (LOT D, SettingsToggleRow)', () => {
+    const onChange = vi.fn()
+    const { container } = render(
+      <Switch checked label="Son" onChange={onChange} interactive={false} />,
+    )
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+    expect(container.querySelector('button')).toBeNull()
+    const track = container.querySelector('[aria-hidden="true"]')
+    expect(track).not.toBeNull()
+    expect(track?.className).toContain('h-7')
+    expect(track?.className).toContain('w-12')
+  })
 })
