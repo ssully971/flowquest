@@ -1,7 +1,10 @@
 import { createPortal } from 'react-dom'
 
+import { CLOCK_SIZE_SCALE, resolveClockColor } from '@/features/home/clock-settings'
+import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
 import { useQuote } from '@/features/home/useQuote'
+import { isIOSDevice } from '@/features/pwa/platform'
 import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { useActiveTask } from '@/features/tasks/active-task-context'
 import { useTasks } from '@/features/tasks/useTasks'
@@ -52,6 +55,7 @@ export function FocusScreen() {
   const { activeTaskId } = useActiveTask()
   const { tasks } = useTasks()
   const { settings: timerSettings } = useTimerSettings()
+  const { settings: clockSettings } = useClockSettings()
   const { settings: quotesSettings } = useQuotesSettings()
   const { settings: extrasSettings } = useExtrasSettings()
   const now = useCurrentTime(60_000)
@@ -154,7 +158,13 @@ export function FocusScreen() {
               role="timer"
               aria-label={`${isStopwatch ? strings.focus.timeElapsed : strings.focus.timeRemaining} : ${displayLabel}`}
             >
-              <TimerFace style={timerSettings.displayStyle} label={displayLabel} progress={progress} />
+              <TimerFace
+                style={timerSettings.displayStyle}
+                label={displayLabel}
+                progress={progress}
+                sizeScale={CLOCK_SIZE_SCALE[clockSettings.size]}
+                color={resolveClockColor(clockSettings.color)}
+              />
             </div>
 
             <TimerControls
@@ -165,6 +175,7 @@ export function FocusScreen() {
               showSkip={timer.mode === 'pomodoro'}
               onPictureInPicture={pip.toggle}
               pipAvailable={pip.isSupported}
+              showPip={!isIOSDevice()}
             />
           </>
         )}

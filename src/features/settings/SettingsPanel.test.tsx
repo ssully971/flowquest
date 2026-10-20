@@ -202,6 +202,22 @@ describe('SettingsPanel — onglet ouvert par défaut (§7.6 Extras)', () => {
   })
 })
 
+describe('SettingsPanel — côté du panneau (LOT B9)', () => {
+  it('s’ancre à gauche par défaut', async () => {
+    renderPanel(true)
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.className).toContain('left-0')
+    expect(dialog.className).not.toContain('right-0')
+  })
+
+  it('s’ancre à droite quand Extras est réglé sur « Droite »', async () => {
+    renderPanel(true, { ...DEFAULT_EXTRAS_SETTINGS, settingsPanelSide: 'right' })
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.className).toContain('right-0')
+    expect(dialog.className).not.toContain('left-0')
+  })
+})
+
 describe('SettingsPanel — badge « nouveau » sur Nouveautés (§7.9)', () => {
   it('affiche le badge tant que la dernière entrée n’a pas été vue', async () => {
     renderPanel(true)

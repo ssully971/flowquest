@@ -12,7 +12,7 @@ describe('TallyIconSetPicker — grille des 8 jeux d’icônes de sessions (lot 
       'false',
     )
     expect(screen.getByRole('button', { name: 'Cœurs' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'Stéthoscopes' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Médical' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Pilules' })).toBeInTheDocument()
   })
 
@@ -20,7 +20,7 @@ describe('TallyIconSetPicker — grille des 8 jeux d’icônes de sessions (lot 
     const onChange = vi.fn()
     render(<TallyIconSetPicker value="dots" onChange={onChange} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Stéthoscopes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Médical' }))
     expect(onChange).toHaveBeenCalledWith('stethoscope')
   })
 })

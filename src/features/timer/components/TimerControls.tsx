@@ -13,6 +13,7 @@ interface TimerControlsProps {
   showSkip?: boolean
   onPictureInPicture: () => void
   pipAvailable: boolean
+  showPip?: boolean
 }
 
 export function TimerControls({
@@ -23,6 +24,7 @@ export function TimerControls({
   showSkip = true,
   onPictureInPicture,
   pipAvailable,
+  showPip = true,
 }: TimerControlsProps) {
   const isRunning = status === 'running'
   const PrimaryIcon = isRunning ? Pause : Play
@@ -51,16 +53,18 @@ export function TimerControls({
       {showSkip ? (
         <IconButton icon={SkipForward} label={strings.focus.controls.skip} onClick={onSkip} />
       ) : null}
-      <IconButton
-        icon={PictureInPicture2}
-        label={
-          pipAvailable
-            ? strings.focus.controls.pictureInPicture
-            : strings.focus.controls.pictureInPictureUnavailable
-        }
-        onClick={onPictureInPicture}
-        disabled={!pipAvailable}
-      />
+      {showPip ? (
+        <IconButton
+          icon={PictureInPicture2}
+          label={
+            pipAvailable
+              ? strings.focus.controls.pictureInPicture
+              : strings.focus.controls.pictureInPictureUnavailable
+          }
+          onClick={onPictureInPicture}
+          disabled={!pipAvailable}
+        />
+      ) : null}
     </div>
   )
 }

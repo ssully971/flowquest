@@ -8,6 +8,9 @@ interface BigDigitsProps {
   fontStyle?: 'italic' | 'normal'
   flip?: boolean
   meridiem?: string
+  /** Couleur personnalisée (Réglages > Horloge, LOT B10) — `undefined` garde le
+   * comportement par défaut (var(--text), suit automatiquement le thème). */
+  color?: string
 }
 
 export function BigDigits({
@@ -20,6 +23,7 @@ export function BigDigits({
   fontStyle = 'normal',
   flip = false,
   meridiem,
+  color,
 }: BigDigitsProps) {
   const parts = label.split(':')
   const scaledSizePx = Math.round(sizePx * sizeScale)
@@ -37,6 +41,7 @@ export function BigDigits({
           letterSpacing,
           lineHeight: 1,
           fontVariantNumeric: 'tabular-nums',
+          ...(color ? { color } : {}),
         }}
       >
         {parts.map((part, partIndex) => (

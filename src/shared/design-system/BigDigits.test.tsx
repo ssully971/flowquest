@@ -51,3 +51,16 @@ describe('BigDigits — animation « flip » chiffre par chiffre (lot 2)', () =>
     expect(after[3].textContent).toBe('1')
   })
 })
+
+describe('BigDigits — couleur personnalisée (LOT B10)', () => {
+  it('sans couleur, suit var(--text) (comportement « Auto »)', () => {
+    const { getByTestId } = render(<BigDigits label="05:30" sizePx={100} />)
+    expect(getByTestId('big-digits').style.color).toBe('')
+    expect(getByTestId('big-digits').className).toContain('text-[var(--text)]')
+  })
+
+  it('avec une couleur, l’applique en style inline', () => {
+    const { getByTestId } = render(<BigDigits label="05:30" sizePx={100} color="#F2555A" />)
+    expect(getByTestId('big-digits').style.color).toBe('rgb(242, 85, 90)')
+  })
+})

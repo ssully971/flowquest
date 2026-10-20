@@ -4,11 +4,20 @@ interface GaugeDisplayProps {
   label: string
   progress: number
   compact?: boolean
+  sizeScale?: number
+  color?: string
 }
 
-export function GaugeDisplay({ label, progress, compact = false }: GaugeDisplayProps) {
-  const size = compact ? 72 : 200
-  const stroke = compact ? 6 : 10
+export function GaugeDisplay({
+  label,
+  progress,
+  compact = false,
+  sizeScale = 1,
+  color,
+}: GaugeDisplayProps) {
+  const scale = compact ? 1 : sizeScale
+  const size = (compact ? 72 : 200) * scale
+  const stroke = (compact ? 6 : 10) * scale
   const radius = (size - stroke) / 2
   const circumference = 2 * Math.PI * radius
   const clamped = Math.min(1, Math.max(0, progress))
@@ -42,7 +51,7 @@ export function GaugeDisplay({ label, progress, compact = false }: GaugeDisplayP
         />
       </svg>
       <div className="absolute">
-        <BigDigits label={label} sizePx={compact ? 16 : 64} />
+        <BigDigits label={label} sizePx={compact ? 16 : 64} sizeScale={scale} color={color} />
       </div>
     </div>
   )

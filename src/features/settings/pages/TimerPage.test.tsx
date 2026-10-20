@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -10,14 +10,10 @@ describe('TimerPage — durées Pomodoro et démarrage automatique', () => {
   it('affiche les durées et le nombre de sessions configurés', () => {
     render(<TimerPage settings={DEFAULT_TIMER_SETTINGS} onChange={vi.fn()} />)
 
-    expect(screen.getByText('25 min')).toBeInTheDocument()
-    expect(screen.getByText('5 min')).toBeInTheDocument()
-    expect(screen.getByText('10 min')).toBeInTheDocument()
-
-    const sessionsStepper = screen
-      .getByText('Sessions avant la pause longue')
-      .closest('div') as HTMLElement
-    expect(within(sessionsStepper).getByText('4')).toBeInTheDocument()
+    expect(screen.getByLabelText('Durée de focus')).toHaveValue(25)
+    expect(screen.getByLabelText('Pause courte')).toHaveValue(5)
+    expect(screen.getByLabelText('Pause longue')).toHaveValue(10)
+    expect(screen.getByLabelText('Sessions avant la pause longue')).toHaveValue(4)
   })
 
   it('augmente la durée du compte à rebours de 1 min au clic sur +', async () => {

@@ -4,6 +4,14 @@ import { AMBIENT_SOUNDS, MAX_SIMULTANEOUS_SOUNDS } from './sounds'
 
 const DEFAULT_VOLUME = 0.6
 
+declare global {
+  interface Window {
+    // Repli Safari historique : certaines versions n'exposent AudioContext que sous ce
+    // nom préfixé.
+    webkitAudioContext?: typeof AudioContext
+  }
+}
+
 export interface UseAmbientSoundsResult {
   activeIds: string[]
   volumes: Record<string, number>
@@ -15,64 +23,132 @@ export interface UseAmbientSoundsResult {
   remainingSleepMs: number | null
 }
 
-/** Moteur des sons d'ambiance : au plus deux sons simultanés, chargés à la demande
- * (aucun <audio> créé avant le premier démarrage), bouclés sans coupure, avec un volume
- * par son et un minuteur d'arrêt optionnel. */
+interface ActiveSound {
+  source: AudioBufferSourceNode
+  gain: GainNode
+}
+
+/**
+ * Moteur des sons d'ambiance (LOT C3) : Web Audio API (AudioContext +
+ * AudioBufferSourceNode) plutôt que `<audio loop>`, pour une boucle réellement sans
+ * coupure. Un `<audio loop>` doit recharger/resynchroniser le flux à chaque tour — un
+ * à-coup souvent audible à la jonction, en particulier sur des MP3 qui ont un silence
+ * d'encodage en tête (repli LAME courant). AudioBufferSourceNode boucle, lui, une mémoire
+ * tampon déjà décodée en PCM, échantillon par échantillon, sans redémarrage du flux.
+ *
+ * Au plus deux sons simultanés (MAX_SIMULTANEOUS_SOUNDS), mémoire tampon décodée à la
+ * demande et mise en cache (une seule fois par son, réutilisée d'une activation à
+ * l'autre), volume par son via un GainNode (AudioBufferSourceNode n'a pas de volume
+ * natif), et un minuteur d'arrêt optionnel.
+ */
 export function useAmbientSounds(): UseAmbientSoundsResult {
   const [activeIds, setActiveIds] = useState<string[]>([])
   const [volumes, setVolumes] = useState<Record<string, number>>({})
   const [sleepTimerMinutes, setSleepTimerMinutesState] = useState<number | null>(null)
   const [sleepEndAt, setSleepEndAt] = useState<number | null>(null)
   const [remainingSleepMs, setRemainingSleepMs] = useState<number | null>(null)
-  const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map())
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const buffersRef = useRef<Map<string, AudioBuffer>>(new Map())
+  const activeSoundsRef = useRef<Map<string, ActiveSound>>(new Map())
+  // Miroir synchrone de `activeIds` : contrairement à l'état React, lisible immédiatement
+  // dans la continuation async de startSound pour savoir si le son est toujours voulu une
+  // fois son décodage terminé (l'utilisateur a pu le désactiver entre-temps).
+  const desiredRef = useRef<Set<string>>(new Set())
 
-  const getOrCreateAudio = useCallback(
-    (id: string) => {
-      const existing = audioElementsRef.current.get(id)
-      if (existing) return existing
+  const getAudioContext = useCallback((): AudioContext => {
+    if (!audioContextRef.current) {
+      const Ctor = window.AudioContext ?? window.webkitAudioContext
+      audioContextRef.current = new Ctor()
+    }
+    return audioContextRef.current
+  }, [])
+
+  const getOrDecodeBuffer = useCallback(
+    async (id: string): Promise<AudioBuffer | null> => {
+      const cached = buffersRef.current.get(id)
+      if (cached) return cached
       const sound = AMBIENT_SOUNDS.find((candidate) => candidate.id === id)
       if (!sound) return null
-      const audio = new Audio(sound.src)
-      audio.loop = true
-      audio.volume = volumes[id] ?? DEFAULT_VOLUME
-      audioElementsRef.current.set(id, audio)
-      return audio
+      const context = getAudioContext()
+      const response = await fetch(sound.src)
+      const arrayBuffer = await response.arrayBuffer()
+      const audioBuffer = await context.decodeAudioData(arrayBuffer)
+      buffersRef.current.set(id, audioBuffer)
+      return audioBuffer
     },
-    [volumes],
+    [getAudioContext],
+  )
+
+  const stopSound = useCallback((id: string) => {
+    const active = activeSoundsRef.current.get(id)
+    if (!active) return
+    try {
+      active.source.stop()
+    } catch {
+      // Déjà arrêté (ex. fin naturelle improbable vu loop=true) : sans conséquence.
+    }
+    active.source.disconnect()
+    active.gain.disconnect()
+    activeSoundsRef.current.delete(id)
+  }, [])
+
+  const startSound = useCallback(
+    async (id: string) => {
+      try {
+        const context = getAudioContext()
+        if (context.state === 'suspended') await context.resume()
+        const buffer = await getOrDecodeBuffer(id)
+        // Désactivé entre-temps (pendant le décodage, asynchrone), ou son inconnu : ne
+        // pas démarrer une lecture qui ne correspond plus à l'état voulu.
+        if (!buffer || !desiredRef.current.has(id)) return
+
+        const source = context.createBufferSource()
+        source.buffer = buffer
+        source.loop = true
+        const gain = context.createGain()
+        gain.gain.value = volumes[id] ?? DEFAULT_VOLUME
+        source.connect(gain)
+        gain.connect(context.destination)
+        source.start()
+        activeSoundsRef.current.set(id, { source, gain })
+      } catch {
+        // Décodage, réseau ou API audio indisponible : le son reste simplement inactif
+        // plutôt que de faire planter l'appelant.
+        desiredRef.current.delete(id)
+        setActiveIds((prev) => prev.filter((activeId) => activeId !== id))
+      }
+    },
+    [getAudioContext, getOrDecodeBuffer, volumes],
   )
 
   const stopAll = useCallback(() => {
-    for (const audio of audioElementsRef.current.values()) {
-      audio.pause()
+    for (const id of Array.from(activeSoundsRef.current.keys())) {
+      stopSound(id)
     }
+    desiredRef.current.clear()
     setActiveIds([])
-  }, [])
+  }, [stopSound])
 
   const toggle = useCallback(
     (id: string) => {
-      if (activeIds.includes(id)) {
-        audioElementsRef.current.get(id)?.pause()
+      if (desiredRef.current.has(id)) {
+        desiredRef.current.delete(id)
         setActiveIds((prev) => prev.filter((activeId) => activeId !== id))
+        stopSound(id)
         return
       }
-      if (activeIds.length >= MAX_SIMULTANEOUS_SOUNDS) return
-      const audio = getOrCreateAudio(id)
-      // play() renvoie une Promise selon les navigateurs (pas en jsdom) ; si elle est
-      // rejetée (lecture bloquée faute d'interaction utilisateur), le son reste
-      // simplement inactif plutôt que de faire planter l'appelant.
-      const playResult = audio?.play()
-      if (playResult && typeof playResult.catch === 'function') {
-        playResult.catch(() => {})
-      }
+      if (desiredRef.current.size >= MAX_SIMULTANEOUS_SOUNDS) return
+      desiredRef.current.add(id)
       setActiveIds((prev) => [...prev, id])
+      void startSound(id)
     },
-    [activeIds, getOrCreateAudio],
+    [stopSound, startSound],
   )
 
   const setVolume = useCallback((id: string, volume: number) => {
     setVolumes((prev) => ({ ...prev, [id]: volume }))
-    const audio = audioElementsRef.current.get(id)
-    if (audio) audio.volume = volume
+    const active = activeSoundsRef.current.get(id)
+    if (active) active.gain.gain.value = volume
   }, [])
 
   const setSleepTimerMinutes = useCallback((minutes: number | null) => {
@@ -103,13 +179,20 @@ export function useAmbientSounds(): UseAmbientSoundsResult {
     return () => window.clearInterval(interval)
   }, [sleepEndAt, stopAll])
 
-  // Coupe tous les sons au démontage (ex. en quittant le mode Ambiant).
+  // Coupe tous les sons et ferme le contexte audio au démontage (ex. en quittant le mode
+  // Ambiant).
   useEffect(() => {
-    const elements = audioElementsRef.current
+    const activeSounds = activeSoundsRef.current
+    const audioContext = audioContextRef
     return () => {
-      for (const audio of elements.values()) {
-        audio.pause()
+      for (const active of activeSounds.values()) {
+        try {
+          active.source.stop()
+        } catch {
+          // Sans conséquence si déjà arrêté.
+        }
       }
+      void audioContext.current?.close().catch(() => {})
     }
   }, [])
 

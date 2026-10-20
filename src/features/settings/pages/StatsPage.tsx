@@ -18,15 +18,8 @@ import { strings } from '@/shared/i18n'
 import { CalendarSection } from './stats/CalendarSection'
 import { FocusTrend } from './stats/FocusTrend'
 import { PeriodStatCards } from './stats/PeriodStatCards'
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-1 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] px-5 py-4">
-      <span className="text-xs text-[var(--panel-muted)]">{label}</span>
-      <span className="text-2xl font-semibold text-[var(--panel-text)]">{value}</span>
-    </div>
-  )
-}
+import { StatCard } from './stats/StatCard'
+import { useEditableNumber } from './useEditableNumber'
 
 interface StatsPageProps {
   dailyGoalMinutes: number
@@ -40,6 +33,12 @@ export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProp
   const focusScore = useFocusScore(period)
   const trendDays = useDailyFocusHistory(getTrendWindowDays(period), dailyGoalMinutes)
   const s = strings.settings.stats
+  const goalDraft = useEditableNumber(
+    dailyGoalMinutes,
+    MIN_DAILY_GOAL_MINUTES,
+    MAX_DAILY_GOAL_MINUTES,
+    onDailyGoalChange,
+  )
 
   const hasAnyData =
     stats &&
@@ -83,10 +82,35 @@ export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProp
           >
             <Plus size={16} strokeWidth={1.75} aria-hidden="true" />
           </button>
-          <span className="shrink-0 text-sm text-[var(--panel-text)]">
-            {formatFocusDuration(stats?.todayFocusSeconds ?? 0)} / {dailyGoalMinutes} min
+          <span className="flex shrink-0 items-center gap-1 text-sm text-[var(--panel-text)]">
+            {formatFocusDuration(stats?.todayFocusSeconds ?? 0)} /
+            <input
+              type="number"
+              inputMode="numeric"
+              aria-label={s.dailyGoal}
+              aria-invalid={goalDraft.error ? 'true' : undefined}
+              min={MIN_DAILY_GOAL_MINUTES}
+              max={MAX_DAILY_GOAL_MINUTES}
+              step={DAILY_GOAL_STEP_MINUTES}
+              value={goalDraft.draft}
+              onChange={(event) => goalDraft.onDraftChange(event.target.value)}
+              onBlur={goalDraft.onCommit}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  event.currentTarget.blur()
+                }
+              }}
+              className="w-12 rounded-lg border border-transparent bg-transparent text-center text-sm text-[var(--panel-text)] outline-none transition-colors duration-200 [appearance:textfield] focus:border-[var(--panel-line)] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+            min
           </span>
         </div>
+        {goalDraft.error ? (
+          <p role="alert" className="text-xs text-[#E5484D]">
+            {goalDraft.error}
+          </p>
+        ) : null}
         <p className="text-xs text-[var(--panel-muted)]">{s.dailyGoalHint}</p>
       </div>
 
@@ -98,10 +122,12 @@ export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProp
             <StatCard
               label={s.currentStreak}
               value={`${stats.currentStreakDays} ${stats.currentStreakDays === 1 ? s.day : s.days}`}
+              tone="currentStreak"
             />
             <StatCard
               label={s.longestStreak}
               value={`${stats.longestStreakDays} ${stats.longestStreakDays === 1 ? s.day : s.days}`}
+              tone="longestStreak"
             />
           </div>
 

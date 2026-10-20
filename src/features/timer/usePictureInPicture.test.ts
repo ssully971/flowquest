@@ -5,6 +5,22 @@ import { usePictureInPicture } from './usePictureInPicture'
 
 const CONTENT = { segmentLabel: 'Focus', timeLabel: '24:59', taskLabel: null as string | null }
 
+const ORIGINAL_UA = window.navigator.userAgent
+const ORIGINAL_MAX_TOUCH_POINTS = window.navigator.maxTouchPoints
+
+function setUserAgent(ua: string) {
+  Object.defineProperty(window.navigator, 'userAgent', { value: ua, configurable: true })
+}
+
+function setMaxTouchPoints(points: number) {
+  Object.defineProperty(window.navigator, 'maxTouchPoints', { value: points, configurable: true })
+}
+
+function resetPlatform() {
+  setUserAgent(ORIGINAL_UA)
+  setMaxTouchPoints(ORIGINAL_MAX_TOUCH_POINTS)
+}
+
 function cleanupGlobals() {
   Reflect.deleteProperty(window, 'documentPictureInPicture')
   Reflect.deleteProperty(document, 'pictureInPictureEnabled')
@@ -21,6 +37,7 @@ function cleanupGlobals() {
 describe('usePictureInPicture — Document PiP et repli vidéo/canvas (§6.3 du cahier des charges)', () => {
   afterEach(() => {
     cleanupGlobals()
+    resetPlatform()
     vi.restoreAllMocks()
   })
 
@@ -127,6 +144,41 @@ describe('usePictureInPicture — Document PiP et repli vidéo/canvas (§6.3 du 
     act(() => result.current.toggle())
     await waitFor(() => expect(setPresentationModeMock).toHaveBeenCalledWith('inline'))
     expect(result.current.isActive).toBe(false)
+  })
+
+  it('désactive totalement le PiP sur iPhone, même si l’API WebKit est annoncée (LOT B8)', () => {
+    setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15')
+    HTMLCanvasElement.prototype.captureStream = vi.fn().mockReturnValue({} as MediaStream)
+    HTMLVideoElement.prototype.webkitSupportsPresentationMode = vi.fn().mockReturnValue(true)
+
+    const { result } = renderHook(() => usePictureInPicture(CONTENT))
+    expect(result.current.mode).toBeNull()
+    expect(result.current.isSupported).toBe(false)
+  })
+
+  it('désactive totalement le PiP sur iPad (iPadOS 13+), même avec Document PiP annoncé (LOT B8)', () => {
+    setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/605.1.15')
+    setMaxTouchPoints(5)
+    const fakeWindow = { addEventListener: vi.fn(), close: vi.fn() } as unknown as Window
+    Object.defineProperty(window, 'documentPictureInPicture', {
+      value: { window: null, requestWindow: vi.fn().mockResolvedValue(fakeWindow) },
+      configurable: true,
+    })
+
+    const { result } = renderHook(() => usePictureInPicture(CONTENT))
+    expect(result.current.mode).toBeNull()
+    expect(result.current.isSupported).toBe(false)
+  })
+
+  it('garde le PiP sur un Mac de bureau (pas d’écran tactile)', () => {
+    setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/605.1.15')
+    setMaxTouchPoints(0)
+    HTMLCanvasElement.prototype.captureStream = vi.fn().mockReturnValue({} as MediaStream)
+    HTMLVideoElement.prototype.webkitSupportsPresentationMode = vi.fn().mockReturnValue(true)
+
+    const { result } = renderHook(() => usePictureInPicture(CONTENT))
+    expect(result.current.mode).toBe('video')
+    expect(result.current.isSupported).toBe(true)
   })
 
   it('n’affiche rien dans la fenêtre PiP quand le hook est démonté (nettoyage)', () => {

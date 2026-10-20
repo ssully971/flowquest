@@ -17,6 +17,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [profileState, setProfileState] = useState<ProfileState>('idle')
   const [profileError, setProfileError] = useState<string | null>(null)
+  const [profileErrorDetails, setProfileErrorDetails] = useState<string | null>(null)
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
   // Supabase déclenche plusieurs évènements onAuthStateChange coup sur coup pour la même
   // session (INITIAL_SESSION, SIGNED_IN, parfois TOKEN_REFRESHED), en particulier juste
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!supabase) return
       setProfileState('loading')
       setProfileError(null)
+      setProfileErrorDetails(null)
 
       const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single()
       if (!error && data) {
@@ -57,6 +59,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ? translateAuthError(ensureError.message)
         : 'Impossible de charger ton profil. Réessaie plus tard.'
       setProfileError(message)
+      // Détail technique conservé pour le bloc dépliable « Détails techniques » de
+      // l'interface (jamais affiché par défaut) : code et message bruts de Supabase,
+      // utiles pour diagnostiquer sans avoir à ouvrir la console.
+      const technicalParts = [
+        error ? `profiles.select : ${error.code ?? '?'} ${error.message}` : null,
+        ensureError ? `ensure_profile : ${ensureError.code ?? '?'} ${ensureError.message}` : null,
+      ].filter((part): part is string => part !== null)
+      setProfileErrorDetails(technicalParts.length > 0 ? technicalParts.join(' · ') : null)
       setProfileState('error')
       showToast({ type: 'error', message })
     },
@@ -124,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { username } },
+        options: { data: { username }, emailRedirectTo: window.location.origin },
       })
       if (error) {
         showToast({ type: 'error', message: translateAuthError(error.message) })
@@ -179,7 +189,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resendConfirmationEmail = useCallback(
     async (email: string) => {
       if (!supabase) throw new Error('Supabase non configuré')
-      const { error } = await supabase.auth.resend({ type: 'signup', email })
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: { emailRedirectTo: window.location.origin },
+      })
       if (error) {
         showToast({ type: 'error', message: translateAuthError(error.message) })
         throw error
@@ -237,6 +251,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null)
     setProfileState('idle')
     setProfileError(null)
+    setProfileErrorDetails(null)
     setSession(null)
     setUser(null)
     setStatus('guest')
@@ -280,6 +295,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       profileState,
       profileError,
+      profileErrorDetails,
       retryLoadProfile,
       signUpWithEmail,
       signInWithEmail,
@@ -301,6 +317,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       profileState,
       profileError,
+      profileErrorDetails,
       retryLoadProfile,
       signUpWithEmail,
       signInWithEmail,

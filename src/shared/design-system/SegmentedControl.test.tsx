@@ -40,4 +40,19 @@ describe('SegmentedControl', () => {
 
     expect(onChange).toHaveBeenCalledWith('c')
   })
+
+  it('porte un indicateur unique (fond partagé) plutôt qu’un fond par bouton (LOT D)', () => {
+    const { container } = render(
+      <SegmentedControl ariaLabel="Test" value="b" onChange={vi.fn()} options={options} />,
+    )
+    // Un seul calque d'indicateur, en dehors des boutons eux-mêmes (dont aucun ne porte
+    // plus le fond directement — le glissement visuel réel ne se vérifie qu'en navigateur,
+    // jsdom ne mesurant jamais de vraie mise en page).
+    expect(container.querySelectorAll('[aria-hidden="true"]')).toHaveLength(1)
+    for (const option of options) {
+      expect(screen.getByRole('radio', { name: option.label }).className).not.toContain(
+        'bg-[var(--accent)]',
+      )
+    }
+  })
 })

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { isIOSDevice } from '@/features/pwa/platform'
+
 import { PIP_CANVAS_HEIGHT, PIP_CANVAS_WIDTH, drawPipFrame } from './pip-canvas'
 import type { PipFrameContent } from './pip-canvas'
 
@@ -51,6 +53,13 @@ function supportsVideoPip(): boolean {
 }
 
 function detectMode(): PictureInPictureMode {
+  // §6.3 / LOT B8 : sur iPad et iPhone, webkitSetPresentationMode est annoncé par
+  // Safari mais ne fonctionne pas pour un flux canvas.captureStream() (voir le
+  // commentaire ci-dessous) — le bouton y apparaissait donc pour une fonctionnalité
+  // qui ne marche jamais. On désactive complètement le PiP sur ces appareils plutôt
+  // que de proposer un bouton inopérant ; il reste disponible sur ordinateur (y
+  // compris Safari macOS, où webkitSetPresentationMode fonctionne réellement).
+  if (isIOSDevice()) return null
   if (typeof window !== 'undefined' && 'documentPictureInPicture' in window) return 'document'
   if (supportsVideoPip()) return 'video'
   return null
@@ -62,13 +71,12 @@ function detectMode(): PictureInPictureMode {
  * standard, ou via webkitSetPresentationMode() sur les navigateurs WebKit qui n'ont que
  * l'API historique.
  *
- * Limite connue et honnête sur iPadOS : Safari y expose bien webkitSetPresentationMode,
- * mais le flux vidéo vient ici d'un <canvas> (canvas.captureStream()), pas d'un média
- * réel — WebKit refuse ou ignore silencieusement le passage en PiP pour ce type de
- * source sur iPad dans plusieurs versions connues (contrairement à macOS, où cela
- * fonctionne). Aucune contournement fiable n'existe à ce jour : le bouton reste donc
- * affiché dès que l'API est détectée (meilleur effort), mais `isActive` ne passe à vrai
- * que si le navigateur confirme réellement l'entrée en PiP — jamais de faux positif.
+ * Limite connue sur iPadOS/iOS : Safari y expose bien webkitSetPresentationMode, mais
+ * le flux vidéo vient ici d'un <canvas> (canvas.captureStream()), pas d'un média réel —
+ * WebKit refuse ou ignore silencieusement le passage en PiP pour ce type de source sur
+ * iPad/iPhone dans plusieurs versions connues (contrairement à macOS, où cela
+ * fonctionne). `detectMode()` exclut donc ces appareils en amont (voir isIOSDevice) :
+ * le PiP n'est proposé que là où il est réellement utilisable.
  */
 export function usePictureInPicture(content: PipFrameContent): UsePictureInPictureResult {
   const [pipWindow, setPipWindow] = useState<Window | null>(null)

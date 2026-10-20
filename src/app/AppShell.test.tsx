@@ -1,13 +1,14 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { AppMode } from '@/app/useAppMode'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
 import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
 import { BackgroundDisplaySettingsProvider } from '@/features/settings/BackgroundDisplaySettingsProvider'
+import { DEFAULT_EXTRAS_SETTINGS } from '@/features/settings/extras-settings'
 import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
 import { TimerSettingsProvider } from '@/features/timer/TimerSettingsProvider'
@@ -41,6 +42,10 @@ function renderAppShell(children: ReactNode, mode: AppMode = 'home') {
     </ThemeProvider>,
   )
 }
+
+afterEach(() => {
+  window.localStorage.clear()
+})
 
 describe('AppShell — mise en page en calques (pas de décalage par la barre du bas)', () => {
   it('le contenu occupe tout le conteneur (absolute inset-0) indépendamment de la barre du bas', () => {
@@ -83,6 +88,24 @@ describe('AppShell — Réglages et Plein écran à gauche, Tâches/Notes à dro
       el.getAttribute('aria-label'),
     )
     expect(labels.slice(-2)).toEqual(['Tâches', 'Bloc-notes'])
+  })
+
+  it('Réglages se déplace dans le groupe de droite quand Extras le règle sur « Droite » (LOT B9)', () => {
+    window.localStorage.setItem(
+      'flowquest.extrasSettings',
+      JSON.stringify({ ...DEFAULT_EXTRAS_SETTINGS, settingsPanelSide: 'right' }),
+    )
+    renderAppShell(<div>Contenu</div>)
+
+    const leftGroup = screen.getByTestId('left-button-group')
+    const leftLabels = Array.from(leftGroup.children).map((el) => el.getAttribute('aria-label'))
+    expect(leftLabels).toEqual(['Plein écran'])
+
+    const rightGroup = screen.getByTestId('right-button-group')
+    const rightLabels = Array.from(rightGroup.querySelectorAll('[aria-label]')).map((el) =>
+      el.getAttribute('aria-label'),
+    )
+    expect(rightLabels[0]).toBe('Réglages')
   })
 })
 

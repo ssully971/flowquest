@@ -1,41 +1,52 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 
 import { useDailyFocusHistory } from '@/features/stats/useDailyFocusHistory'
 import { strings } from '@/shared/i18n'
 
 import { CategoryChip } from '../CategoryChip'
+import { getYearRange } from './calendar-year'
 import { FocusCalendar } from './FocusCalendar'
 import type { CalendarMetric } from './FocusCalendar'
-
-type CalendarRange = '6months' | 'year'
-
-const RANGE_DAYS: Record<CalendarRange, number> = {
-  '6months': 182,
-  year: 365,
-}
 
 interface CalendarSectionProps {
   dailyGoalMinutes: number
 }
 
+/** §9 : calendrier de régularité façon GitHub, navigable par année civile complète
+ * (l'année en cours s'arrête au jour présent, jamais de jours futurs). */
 export function CalendarSection({ dailyGoalMinutes }: CalendarSectionProps) {
   const s = strings.settings.stats
-  const [range, setRange] = useState<CalendarRange>('6months')
+  const currentYear = new Date().getFullYear()
+  const [year, setYear] = useState(currentYear)
   const [metric, setMetric] = useState<CalendarMetric>('hours')
-  const days = useDailyFocusHistory(RANGE_DAYS[range], dailyGoalMinutes)
+  const { anchor, days: windowDays } = getYearRange(year)
+  const days = useDailyFocusHistory(windowDays, dailyGoalMinutes, anchor)
 
   if (!days) return null
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex gap-2">
-          <CategoryChip
-            label={s.calendar6Months}
-            active={range === '6months'}
-            onClick={() => setRange('6months')}
-          />
-          <CategoryChip label={s.calendarYear} active={range === 'year'} onClick={() => setRange('year')} />
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label={s.calendarPreviousYear}
+            onClick={() => setYear((current) => current - 1)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--panel-line)] text-[var(--panel-text)] transition-colors duration-200 hover:bg-[var(--panel-line)]"
+          >
+            <ChevronLeft size={16} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+          <span className="w-12 text-center text-sm font-medium text-[var(--panel-text)]">{year}</span>
+          <button
+            type="button"
+            aria-label={s.calendarNextYear}
+            disabled={year >= currentYear}
+            onClick={() => setYear((current) => current + 1)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--panel-line)] text-[var(--panel-text)] transition-colors duration-200 hover:bg-[var(--panel-line)] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" />
+          </button>
         </div>
         <div className="flex gap-2">
           <CategoryChip

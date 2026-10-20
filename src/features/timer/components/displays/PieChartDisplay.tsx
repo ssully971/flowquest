@@ -4,10 +4,19 @@ interface PieChartDisplayProps {
   label: string
   progress: number
   compact?: boolean
+  sizeScale?: number
+  color?: string
 }
 
-export function PieChartDisplay({ label, progress, compact = false }: PieChartDisplayProps) {
-  const size = compact ? 56 : 140
+export function PieChartDisplay({
+  label,
+  progress,
+  compact = false,
+  sizeScale = 1,
+  color,
+}: PieChartDisplayProps) {
+  const scale = compact ? 1 : sizeScale
+  const size = (compact ? 56 : 140) * scale
   const percent = Math.round(Math.min(1, Math.max(0, progress)) * 100)
 
   return (
@@ -23,7 +32,7 @@ export function PieChartDisplay({ label, progress, compact = false }: PieChartDi
           background: `conic-gradient(var(--accent) ${percent}%, var(--line) ${percent}%)`,
         }}
       />
-      <BigDigits label={label} sizePx={compact ? 20 : 72} />
+      <BigDigits label={label} sizePx={compact ? 20 : 72} sizeScale={scale} color={color} />
     </div>
   )
 }

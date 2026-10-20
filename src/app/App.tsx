@@ -1,5 +1,7 @@
 import { AdminGate } from '@/features/admin/AdminGate'
+import { AuthGate } from '@/features/auth/AuthGate'
 import { AuthProvider } from '@/features/auth/AuthProvider'
+import { DiagnosticPage } from '@/features/diagnostic/DiagnosticPage'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
 import { HomeScreen } from '@/features/home/HomeScreen'
 import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
@@ -19,6 +21,8 @@ import { useAppMode } from './useAppMode'
 export function App() {
   const [mode, setMode] = useAppMode()
   const isAdminRoute = typeof window !== 'undefined' && window.location.pathname === '/admin'
+  const isDiagnosticRoute =
+    typeof window !== 'undefined' && window.location.pathname === '/diagnostic'
 
   return (
     <ThemeProvider>
@@ -31,18 +35,22 @@ export function App() {
                   <ExtrasSettingsProvider>
                     <BackgroundDisplaySettingsProvider>
                       <CustomBackgroundProvider>
-                        {isAdminRoute ? (
+                        {isDiagnosticRoute ? (
+                          <DiagnosticPage />
+                        ) : isAdminRoute ? (
                           <AdminGate />
                         ) : (
-                          <AppShell mode={mode} onModeChange={setMode}>
-                            {mode === 'home' ? (
-                              <HomeScreen />
-                            ) : mode === 'focus' ? (
-                              <FocusScreen />
-                            ) : (
-                              <AmbientScreen />
-                            )}
-                          </AppShell>
+                          <AuthGate>
+                            <AppShell mode={mode} onModeChange={setMode}>
+                              {mode === 'home' ? (
+                                <HomeScreen />
+                              ) : mode === 'focus' ? (
+                                <FocusScreen />
+                              ) : (
+                                <AmbientScreen />
+                              )}
+                            </AppShell>
+                          </AuthGate>
                         )}
                       </CustomBackgroundProvider>
                     </BackgroundDisplaySettingsProvider>

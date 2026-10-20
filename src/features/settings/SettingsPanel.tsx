@@ -197,10 +197,16 @@ export function SettingsPanel({
         role="dialog"
         aria-modal="true"
         aria-label={strings.settings.title}
-        className="absolute inset-y-0 left-0 flex w-full max-w-[880px] flex-col transition-transform duration-[250ms] ease-out sm:flex-row"
+        className={`absolute inset-y-0 flex w-full max-w-[880px] flex-col transition-transform duration-[250ms] ease-out sm:flex-row ${
+          extrasSettings.settingsPanelSide === 'right' ? 'right-0' : 'left-0'
+        }`}
         style={{
           background: 'var(--panel-surface)',
-          transform: entered ? 'translateX(0)' : 'translateX(-100%)',
+          transform: entered
+            ? 'translateX(0)'
+            : extrasSettings.settingsPanelSide === 'right'
+              ? 'translateX(100%)'
+              : 'translateX(-100%)',
         }}
         onTransitionEnd={handleDialogTransitionEnd}
       >
@@ -255,7 +261,7 @@ export function SettingsPanel({
             type="button"
             onClick={onClose}
             aria-label={strings.settings.close}
-            className="absolute right-6 top-6 inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--panel-muted)] transition-colors duration-200 hover:text-[var(--panel-text)]"
+            className="absolute right-5 top-5 inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--panel-muted)] transition-colors duration-200 hover:text-[var(--panel-text)]"
           >
             <X size={20} strokeWidth={1.75} aria-hidden="true" />
           </button>

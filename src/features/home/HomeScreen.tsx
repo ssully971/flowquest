@@ -3,7 +3,7 @@ import { BigDigits, Logo } from '@/shared/design-system'
 import { useCurrentTime } from '@/shared/hooks/useCurrentTime'
 import { strings } from '@/shared/i18n'
 
-import { CLOCK_SIZE_SCALE, CLOCK_STYLE_CSS } from './clock-settings'
+import { CLOCK_SIZE_SCALE, CLOCK_STYLE_CSS, resolveClockColor } from './clock-settings'
 import { useClockSettings } from './clock-settings-context'
 import { getGreeting } from './greeting'
 import { useQuotesSettings } from './quotes-settings-context'
@@ -51,10 +51,10 @@ export function HomeScreen() {
 
   return (
     <div className="relative h-full">
-      <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-8 px-6 pt-8 sm:px-14 sm:pt-16">
+      <div className="absolute inset-x-0 top-0 flex flex-col items-center gap-3 px-6 pt-[max(2rem,env(safe-area-inset-top))] text-center sm:flex-row sm:items-start sm:justify-between sm:gap-8 sm:px-14 sm:pt-[max(4rem,env(safe-area-inset-top))] sm:text-left">
         <Logo className="h-9 w-auto sm:h-11" />
         {showQuote ? (
-          <figure className="max-w-sm pt-1.5 text-right sm:max-w-md sm:pt-2">
+          <figure className="max-w-sm sm:max-w-md sm:pt-2 sm:text-right">
             <blockquote className="text-[18px] leading-snug text-[var(--text)] sm:text-[20px]">
               “{quote.text}”
             </blockquote>
@@ -87,6 +87,7 @@ export function HomeScreen() {
           letterSpacing={styleCss.letterSpacing}
           fontStyle={styleCss.fontStyle}
           flip={clockSettings.flipClock}
+          color={resolveClockColor(clockSettings.color)}
         />
         <p className="w-full text-sm text-[var(--muted)]">{formatLongDate(now)}</p>
       </div>

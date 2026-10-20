@@ -73,7 +73,7 @@ describe('App', () => {
     render(<App />)
 
     await user.click(screen.getByRole('radio', { name: 'Ambiant' }))
-    expect(await screen.findByText('25:00')).toBeInTheDocument()
+    expect(await screen.findByTestId('big-digits')).toHaveTextContent('25:00')
     expect(screen.queryByRole('button', { name: 'Tâches' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Bloc-notes' })).not.toBeInTheDocument()
   })
@@ -83,6 +83,16 @@ describe('App', () => {
     render(<App />)
 
     expect(screen.getByText('Accès réservé aux administrateurs.')).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: 'Accueil' })).not.toBeInTheDocument()
+
+    window.history.pushState({}, '', '/')
+  })
+
+  it('/diagnostic affiche la page de diagnostic au lieu du tableau de bord normal', () => {
+    window.history.pushState({}, '', '/diagnostic')
+    render(<App />)
+
+    expect(screen.getByRole('heading', { name: 'Diagnostic' })).toBeInTheDocument()
     expect(screen.queryByRole('radio', { name: 'Accueil' })).not.toBeInTheDocument()
 
     window.history.pushState({}, '', '/')

@@ -123,6 +123,13 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
 
   const CurrentBackground = getBackgroundDefinition(selection[mode]).Component
   const blurPx = blurPercentToPx(backgroundDisplaySettings.blurPercent)
+  const settingsButton = (
+    <IconButton
+      icon={Settings}
+      label={strings.common.settings}
+      onClick={() => setIsSettingsOpen(true)}
+    />
+  )
 
   return (
     <div className="relative h-dvh overflow-hidden">
@@ -143,11 +150,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
         style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
       >
         <div data-testid="left-button-group" className="flex items-center gap-3">
-          <IconButton
-            icon={Settings}
-            label={strings.common.settings}
-            onClick={() => setIsSettingsOpen(true)}
-          />
+          {extrasSettings.settingsPanelSide === 'left' ? settingsButton : null}
           <IconButton
             icon={fullscreen.isFullscreen ? Minimize2 : Maximize2}
             label={
@@ -161,6 +164,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
           data-testid="right-button-group"
           className="flex flex-wrap items-center justify-center gap-3"
         >
+          {extrasSettings.settingsPanelSide === 'right' ? settingsButton : null}
           {extrasSettings.showStreak ? (
             <div className="relative">
               <button

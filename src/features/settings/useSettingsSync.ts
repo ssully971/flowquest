@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
+import { hasOfferedImport } from '@/features/auth/guest-import'
 import { useAuth } from '@/features/auth/useAuth'
 import type { ClockSettings } from '@/features/home/clock-settings'
 import type { QuotesSettings } from '@/features/home/quotes-settings'
@@ -65,6 +66,18 @@ export function useSettingsSync({
 }: UseSettingsSyncParams): void {
   const { status, user } = useAuth()
   const pulledForUserRef = useRef<string | null>(null)
+  // Vrai une fois que l'effet de tirage ci-dessous a résolu pour l'utilisateur courant
+  // (compte distant lu, appliqué localement s'il était plus récent). Tant que ce n'est
+  // pas le cas, l'effet d'envoi juste en dessous ne pousse rien vers le compte : sans
+  // cette garde, le premier rendu après connexion pourrait pousser les valeurs encore
+  // par défaut (pas encore remplacées par le tirage, qui est asynchrone) et écraser des
+  // réglages de compte pourtant valides.
+  const pullResolvedForUserRef = useRef<string | null>(null)
+  // Vrai si le compte n'avait encore aucun réglage au moment du tirage (nouveau compte) :
+  // dans ce cas précis, on attend aussi que GuestImportPrompt ait tranché (importer ou
+  // ignorer les réglages invité) avant de pousser quoi que ce soit — sinon l'envoi
+  // automatique ci-dessous court-circuiterait ce choix, proposé une seule fois.
+  const remoteWasEmptyRef = useRef(false)
 
   useEffect(() => {
     const settings: AppSettings = {
@@ -81,7 +94,11 @@ export function useSettingsSync({
     const updatedAt = Date.now()
     void localRepo.save(settings, updatedAt)
     if (status === 'authenticated' && user) {
-      void remoteRepo.save(user.id, settings, updatedAt)
+      const pullResolved = pullResolvedForUserRef.current === user.id
+      const waitingOnImportDecision = remoteWasEmptyRef.current && !hasOfferedImport(user.id)
+      if (pullResolved && !waitingOnImportDecision) {
+        void remoteRepo.save(user.id, settings, updatedAt)
+      }
     }
   }, [
     appearance,
@@ -103,21 +120,27 @@ export function useSettingsSync({
     pulledForUserRef.current = user.id
 
     void (async () => {
-      const [local, remote] = await Promise.all([localRepo.load(), remoteRepo.load(user.id)])
-      if (!remote) return
-      if (local && local.updatedAt >= remote.updatedAt) return
+      const userId = user.id
+      try {
+        const [local, remote] = await Promise.all([localRepo.load(), remoteRepo.load(userId)])
+        remoteWasEmptyRef.current = !remote
+        if (!remote) return
+        if (local && local.updatedAt >= remote.updatedAt) return
 
-      setAppearance(remote.settings.appearance)
-      for (const mode of Object.keys(remote.settings.backgrounds) as AppMode[]) {
-        setBackground(mode, remote.settings.backgrounds[mode])
+        setAppearance(remote.settings.appearance)
+        for (const mode of Object.keys(remote.settings.backgrounds) as AppMode[]) {
+          setBackground(mode, remote.settings.backgrounds[mode])
+        }
+        setBackgroundDisplaySettings(remote.settings.backgroundDisplaySettings)
+        setActiveTaskId(remote.settings.activeTaskId)
+        setDailyGoalMinutes(remote.settings.dailyGoalMinutes)
+        setTimerSettings(remote.settings.timerSettings)
+        setClockSettings(remote.settings.clockSettings)
+        setQuotesSettings(remote.settings.quotesSettings)
+        setExtrasSettings(remote.settings.extrasSettings)
+      } finally {
+        pullResolvedForUserRef.current = userId
       }
-      setBackgroundDisplaySettings(remote.settings.backgroundDisplaySettings)
-      setActiveTaskId(remote.settings.activeTaskId)
-      setDailyGoalMinutes(remote.settings.dailyGoalMinutes)
-      setTimerSettings(remote.settings.timerSettings)
-      setClockSettings(remote.settings.clockSettings)
-      setQuotesSettings(remote.settings.quotesSettings)
-      setExtrasSettings(remote.settings.extrasSettings)
     })()
   }, [
     status,

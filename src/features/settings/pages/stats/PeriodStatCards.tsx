@@ -4,6 +4,8 @@ import { formatFocusDuration } from '@/features/stats/format'
 import { strings } from '@/shared/i18n'
 
 import { CategoryChip } from '../CategoryChip'
+import { StatCard } from './StatCard'
+import type { StatCardToneKey } from './stat-card-palette'
 
 interface PeriodStatCardsProps {
   period: StatsPeriod
@@ -17,10 +19,10 @@ function StatDelta({ percent }: { percent: number | null }) {
   if (percent === null) return null
   const rounded = Math.round(percent)
   if (rounded === 0) {
-    return <span className="text-[11px] text-[var(--panel-muted)]">{s.noChange}</span>
+    return <span className="text-[11px] text-white/75">{s.noChange}</span>
   }
   return (
-    <span className="text-[11px] text-[var(--panel-muted)]">
+    <span className="text-[11px] text-white/75">
       {rounded > 0 ? '↑' : '↓'} {Math.abs(rounded)} % {s.vsPreviousPeriod}
     </span>
   )
@@ -30,21 +32,16 @@ function PeriodStatCard({
   label,
   value,
   percent,
+  tone,
   hint,
 }: {
   label: string
   value: string
   percent: number | null
+  tone: StatCardToneKey
   hint?: string
 }) {
-  return (
-    <div className="flex flex-col gap-1 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] px-5 py-4">
-      <span className="text-xs text-[var(--panel-muted)]">{label}</span>
-      <span className="text-2xl font-semibold text-[var(--panel-text)]">{value}</span>
-      <StatDelta percent={percent} />
-      {hint ? <span className="text-[11px] text-[var(--panel-muted)]">{hint}</span> : null}
-    </div>
-  )
+  return <StatCard label={label} value={value} tone={tone} delta={<StatDelta percent={percent} />} hint={hint} />
 }
 
 export function PeriodStatCards({ period, onPeriodChange, stats, focusScore }: PeriodStatCardsProps) {
@@ -73,21 +70,25 @@ export function PeriodStatCards({ period, onPeriodChange, stats, focusScore }: P
           label={s.focusTime}
           value={formatFocusDuration(current.focusSeconds)}
           percent={previous ? percentChange(current.focusSeconds, previous.focusSeconds) : null}
+          tone="focusTime"
         />
         <PeriodStatCard
           label={s.sessionsCount}
           value={`${current.sessionsCount} ${current.sessionsCount === 1 ? s.session : s.sessions}`}
           percent={previous ? percentChange(current.sessionsCount, previous.sessionsCount) : null}
+          tone="sessionsCount"
         />
         <PeriodStatCard
           label={s.pauseTime}
           value={formatFocusDuration(current.pauseSeconds)}
           percent={previous ? percentChange(current.pauseSeconds, previous.pauseSeconds) : null}
+          tone="pauseTime"
         />
         <PeriodStatCard
           label={s.tasksCompleted}
           value={`${current.tasksCompleted} ${current.tasksCompleted === 1 ? s.task : s.tasks}`}
           percent={previous ? percentChange(current.tasksCompleted, previous.tasksCompleted) : null}
+          tone="tasksCompleted"
         />
         {focusScore ? (
           <PeriodStatCard
@@ -98,6 +99,7 @@ export function PeriodStatCards({ period, onPeriodChange, stats, focusScore }: P
                 ? percentChange(focusScore.current.score, focusScore.previous.score)
                 : null
             }
+            tone="focusScore"
             hint={s.focusScoreHint}
           />
         ) : null}

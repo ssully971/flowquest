@@ -1,6 +1,14 @@
-import { CLOCK_SIZE_SCALE, CLOCK_STYLES, CLOCK_STYLE_CSS } from '@/features/home/clock-settings'
+import { isLowContrast } from '@/features/home/clock-color-contrast'
+import {
+  CLOCK_COLOR_AUTO,
+  CLOCK_COLORS,
+  CLOCK_SIZE_SCALE,
+  CLOCK_STYLES,
+  CLOCK_STYLE_CSS,
+  resolveClockColor,
+} from '@/features/home/clock-settings'
 import type { ClockFormat, ClockSettings, ClockSize } from '@/features/home/clock-settings'
-import { BigDigits, SegmentedControl, SettingsToggleRow } from '@/shared/design-system'
+import { BigDigits, SegmentedControl, SettingsToggleRow, useResolvedTheme } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import { CategoryChip } from './CategoryChip'
@@ -13,6 +21,9 @@ interface ClockPageProps {
 export function ClockPage({ settings, onChange }: ClockPageProps) {
   const s = strings.settings.clock
   const styleCss = CLOCK_STYLE_CSS[settings.style]
+  const resolvedTheme = useResolvedTheme()
+  const showContrastWarning =
+    settings.color !== CLOCK_COLOR_AUTO && isLowContrast(settings.color, resolvedTheme)
 
   return (
     <div className="flex flex-col gap-6">
@@ -66,6 +77,7 @@ export function ClockPage({ settings, onChange }: ClockPageProps) {
             letterSpacing={styleCss.letterSpacing}
             fontStyle={styleCss.fontStyle}
             flip={settings.flipClock}
+            color={resolveClockColor(settings.color)}
           />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -78,6 +90,46 @@ export function ClockPage({ settings, onChange }: ClockPageProps) {
             />
           ))}
         </div>
+      </div>
+
+      <div>
+        <p className="mb-2 text-sm font-medium text-[var(--panel-muted)]">{s.color}</p>
+        <div className="flex flex-wrap gap-2.5" role="group" aria-label={s.color}>
+          <button
+            type="button"
+            aria-pressed={settings.color === CLOCK_COLOR_AUTO}
+            aria-label={s.colorAuto}
+            onClick={() => onChange({ ...settings, color: CLOCK_COLOR_AUTO })}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold uppercase"
+            style={{
+              background: 'conic-gradient(var(--text) 0deg 180deg, var(--surface) 180deg 360deg)',
+              border: '1px solid var(--panel-line)',
+              outline: settings.color === CLOCK_COLOR_AUTO ? '2px solid var(--accent)' : 'none',
+              outlineOffset: 2,
+            }}
+          />
+          {CLOCK_COLORS.map((color) => (
+            <button
+              key={color}
+              type="button"
+              aria-pressed={settings.color === color}
+              aria-label={color}
+              onClick={() => onChange({ ...settings, color })}
+              className="h-8 w-8 shrink-0 rounded-full"
+              style={{
+                background: color,
+                outline: settings.color === color ? '2px solid var(--panel-text)' : 'none',
+                outlineOffset: 2,
+              }}
+            />
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-[var(--panel-muted)]">{s.colorHint}</p>
+        {showContrastWarning ? (
+          <p role="alert" className="mt-2 text-xs text-[#E5484D]">
+            {s.colorContrastWarning}
+          </p>
+        ) : null}
       </div>
 
       <SettingsToggleRow

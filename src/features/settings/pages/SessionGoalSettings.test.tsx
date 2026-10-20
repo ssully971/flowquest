@@ -46,7 +46,7 @@ describe('SessionGoalSettings — objectif de session (lot 4)', () => {
     )
 
     expect(screen.getByText('Durée totale visée')).toBeInTheDocument()
-    expect(screen.getByText('90 min')).toBeInTheDocument()
+    expect(screen.getByLabelText('Durée totale visée')).toHaveValue(90)
   })
 
   it('augmente le nombre de sessions visé au clic sur +', async () => {

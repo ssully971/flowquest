@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { getDb } from '@/shared/storage/db'
 
 import { ActiveTaskProvider } from '../ActiveTaskProvider'
@@ -14,14 +15,16 @@ vi.mock('canvas-confetti', () => ({ default: vi.fn() }))
 function renderPanel(open = true) {
   const onClose = () => {}
   return render(
-    <ActiveTaskProvider>
-      <div>
-        <button type="button">Déclencheur</button>
-        <div className="relative">
-          <TasksPanel open={open} onClose={onClose} />
+    <ExtrasSettingsProvider>
+      <ActiveTaskProvider>
+        <div>
+          <button type="button">Déclencheur</button>
+          <div className="relative">
+            <TasksPanel open={open} onClose={onClose} />
+          </div>
         </div>
-      </div>
-    </ActiveTaskProvider>,
+      </ActiveTaskProvider>
+    </ExtrasSettingsProvider>,
   )
 }
 

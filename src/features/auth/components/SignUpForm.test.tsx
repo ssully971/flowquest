@@ -88,7 +88,11 @@ describe('SignUpForm — renvoi de l’e-mail de confirmation avec délai (LOT 1
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0)
     })
-    expect(resendMock).toHaveBeenCalledWith({ type: 'signup', email: 'sullivan@exemple.com' })
+    expect(resendMock).toHaveBeenCalledWith({
+      type: 'signup',
+      email: 'sullivan@exemple.com',
+      options: { emailRedirectTo: expect.any(String) },
+    })
     expect(screen.getByRole('button', { name: /Renvoyer dans 45 s/ })).toBeDisabled()
 
     await act(async () => {

@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { getDb } from '@/shared/storage/db'
 
 vi.mock('@/features/auth/useAuth', () => ({
@@ -14,23 +15,27 @@ vi.mock('@/shared/supabase/client', () => ({
 
 function renderPanel(open = true, onClose = () => {}) {
   const utils = render(
-    <div>
-      <button type="button">Déclencheur</button>
-      <div className="relative">
-        <NotesPanel open={open} onClose={onClose} />
+    <ExtrasSettingsProvider>
+      <div>
+        <button type="button">Déclencheur</button>
+        <div className="relative">
+          <NotesPanel open={open} onClose={onClose} />
+        </div>
       </div>
-    </div>,
+    </ExtrasSettingsProvider>,
   )
   return {
     ...utils,
     setOpen: (nextOpen: boolean) =>
       utils.rerender(
-        <div>
-          <button type="button">Déclencheur</button>
-          <div className="relative">
-            <NotesPanel open={nextOpen} onClose={onClose} />
+        <ExtrasSettingsProvider>
+          <div>
+            <button type="button">Déclencheur</button>
+            <div className="relative">
+              <NotesPanel open={nextOpen} onClose={onClose} />
+            </div>
           </div>
-        </div>,
+        </ExtrasSettingsProvider>,
       ),
   }
 }
