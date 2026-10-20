@@ -87,4 +87,14 @@ describe('App', () => {
 
     window.history.pushState({}, '', '/')
   })
+
+  it('/diagnostic affiche la page de diagnostic au lieu du tableau de bord normal', () => {
+    window.history.pushState({}, '', '/diagnostic')
+    render(<App />)
+
+    expect(screen.getByRole('heading', { name: 'Diagnostic' })).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: 'Accueil' })).not.toBeInTheDocument()
+
+    window.history.pushState({}, '', '/')
+  })
 })

@@ -19,6 +19,7 @@ export interface AuthContextValue {
   profile: Profile | null
   profileState: ProfileState
   profileError: string | null
+  profileErrorDetails: string | null
   retryLoadProfile: () => void
   signUpWithEmail: (email: string, password: string, username: string) => Promise<SignUpResult>
   signInWithEmail: (email: string, password: string) => Promise<void>

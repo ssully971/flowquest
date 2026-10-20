@@ -15,6 +15,7 @@ export function AccountPage() {
     isSupabaseConfigured,
     profileState,
     profileError,
+    profileErrorDetails,
     retryLoadProfile,
     isPasswordRecovery,
   } = useAuth()
@@ -48,6 +49,16 @@ export function AccountPage() {
             >
               {strings.auth.profile.retry}
             </button>
+            {profileErrorDetails ? (
+              <details className="text-xs text-[var(--panel-muted)]">
+                <summary className="cursor-pointer select-none">
+                  {strings.auth.profile.technicalDetails}
+                </summary>
+                <p className="mt-1 whitespace-pre-wrap break-words font-mono">
+                  {profileErrorDetails}
+                </p>
+              </details>
+            ) : null}
           </div>
         ) : profileState === 'loaded' ? (
           <AccountSummary />
