@@ -34,6 +34,19 @@ export const fr = {
     profileError: 'Ligne profiles introuvable ou erreur de lecture',
     profileNotApplicable: 'Non applicable (pas de session active)',
     checking: 'Vérification…',
+    accountTitle: 'Compte connecté',
+    accountEmail: 'E-mail',
+    accountId: 'Identifiant (id)',
+    accountUsername: 'Pseudo',
+    accountRole: 'Rôle',
+    accountNotSignedIn: 'Aucun compte connecté (mode invité).',
+    clearStorageTitle: 'Vider le stockage local',
+    clearStorageHint:
+      'Dernier recours si l’app reste bloquée sur cet appareil (par exemple après la suppression du compte côté Supabase sans déconnexion préalable). Efface tous les réglages, tâches, notes et sessions enregistrés localement sur cet appareil, puis recharge la page. Rien n’est supprimé côté serveur.',
+    clearStorageButton: 'Vider le stockage de cet appareil',
+    clearStorageConfirm:
+      'Vider tout le stockage local de cet appareil ? Réglages, tâches, notes et sessions non synchronisées seront perdus sur cet appareil. Cette action ne peut pas être annulée.',
+    clearStorageInProgress: 'Suppression en cours…',
   },
   admin: {
     loading: 'Vérification de ton accès…',

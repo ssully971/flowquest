@@ -73,4 +73,23 @@ describe('AmbientScreen — minuteur compact en carte Liquid Glass, reste de l�
     const digits = await screen.findByTestId('big-digits')
     expect(digits.style.color).toBe('rgb(242, 85, 90)')
   })
+
+  it('l’horloge suit aussi le style de police réglé dans Réglages > Horloge (LOT E2)', async () => {
+    window.localStorage.setItem(
+      'flowquest.clockSettings',
+      JSON.stringify({
+        format: '24h',
+        size: 'normal',
+        showSeconds: false,
+        showGreeting: true,
+        flipClock: false,
+        style: 'serif',
+        color: 'auto',
+      }),
+    )
+    renderAmbientScreen()
+
+    const digits = await screen.findByTestId('big-digits')
+    expect(digits.style.fontFamily).toContain('Georgia')
+  })
 })

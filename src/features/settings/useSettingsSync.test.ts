@@ -64,7 +64,10 @@ function buildAuthValue(overrides: Partial<AuthContextValue>): AuthContextValue 
   }
 }
 
-function buildParams(dailyGoalMinutes = DEFAULT_SETTINGS.dailyGoalMinutes) {
+function buildParams(
+  dailyGoalMinutes = DEFAULT_SETTINGS.dailyGoalMinutes,
+  timerSettings = DEFAULT_SETTINGS.timerSettings,
+) {
   return {
     appearance: DEFAULT_SETTINGS.appearance,
     setAppearance: vi.fn(),
@@ -76,7 +79,7 @@ function buildParams(dailyGoalMinutes = DEFAULT_SETTINGS.dailyGoalMinutes) {
     setActiveTaskId: vi.fn(),
     dailyGoalMinutes,
     setDailyGoalMinutes: vi.fn(),
-    timerSettings: DEFAULT_SETTINGS.timerSettings,
+    timerSettings,
     setTimerSettings: vi.fn(),
     clockSettings: DEFAULT_SETTINGS.clockSettings,
     setClockSettings: vi.fn(),
@@ -91,10 +94,16 @@ function renderWithAuth(authOverrides: Partial<AuthContextValue>, dailyGoalMinut
   const authValue = buildAuthValue(authOverrides)
   const wrapper = ({ children }: { children: ReactNode }) =>
     createElement(AuthContext.Provider, { value: authValue }, children)
-  return renderHook(({ minutes }) => useSettingsSync(buildParams(minutes)), {
-    wrapper,
-    initialProps: { minutes: dailyGoalMinutes ?? DEFAULT_SETTINGS.dailyGoalMinutes },
-  })
+  return renderHook(
+    ({ minutes, timerSettings }) => useSettingsSync(buildParams(minutes, timerSettings)),
+    {
+      wrapper,
+      initialProps: {
+        minutes: dailyGoalMinutes ?? DEFAULT_SETTINGS.dailyGoalMinutes,
+        timerSettings: DEFAULT_SETTINGS.timerSettings,
+      },
+    },
+  )
 }
 
 describe('useSettingsSync — synchronisation des réglages avec le compte (LOT A)', () => {
@@ -142,7 +151,7 @@ describe('useSettingsSync — synchronisation des réglages avec le compte (LOT 
       await Promise.resolve()
     })
 
-    rerender({ minutes: 45 })
+    rerender({ minutes: 45, timerSettings: DEFAULT_SETTINGS.timerSettings })
 
     expect(saveRemoteMock).toHaveBeenCalled()
   })
@@ -157,7 +166,7 @@ describe('useSettingsSync — synchronisation des réglages avec le compte (LOT 
       await Promise.resolve()
     })
 
-    rerender({ minutes: 45 })
+    rerender({ minutes: 45, timerSettings: DEFAULT_SETTINGS.timerSettings })
 
     expect(saveRemoteMock).not.toHaveBeenCalled()
     expect(hasOfferedImportMock).toHaveBeenCalledWith('user-1')
@@ -173,9 +182,33 @@ describe('useSettingsSync — synchronisation des réglages avec le compte (LOT 
       await Promise.resolve()
     })
 
-    rerender({ minutes: 45 })
+    rerender({ minutes: 45, timerSettings: DEFAULT_SETTINGS.timerSettings })
 
     expect(saveRemoteMock).toHaveBeenCalled()
+  })
+
+  it('synchronise le jeu d’icônes de sessions choisi (timerSettings.tallyIconSet, LOT E3)', async () => {
+    loadRemoteMock.mockResolvedValue({
+      schemaVersion: 1,
+      settings: DEFAULT_SETTINGS,
+      updatedAt: 1,
+    })
+    loadLocalMock.mockResolvedValue({ schemaVersion: 1, settings: DEFAULT_SETTINGS, updatedAt: 2 })
+
+    const { rerender } = renderWithAuth({ status: 'authenticated', user: USER })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    rerender({
+      minutes: DEFAULT_SETTINGS.dailyGoalMinutes,
+      timerSettings: { ...DEFAULT_SETTINGS.timerSettings, tallyIconSet: 'stethoscope' },
+    })
+
+    expect(saveRemoteMock).toHaveBeenCalled()
+    const pushedSettings = saveRemoteMock.mock.calls.at(-1)?.[1]
+    expect(pushedSettings.timerSettings.tallyIconSet).toBe('stethoscope')
   })
 
   it('enregistre toujours en local, même en mode invité', async () => {

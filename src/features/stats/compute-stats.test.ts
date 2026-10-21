@@ -49,17 +49,17 @@ function task(overrides: Partial<TaskRecord> & { doneAt: number }): TaskRecord {
 }
 
 describe('computeStats — temps de focus aujourd’hui/cette semaine', () => {
-  it('ignore les sessions non terminées (abandonnées) et les pauses', () => {
+  it('compte le temps réel d’une session de focus même abandonnée (LOT E7), ignore les pauses', () => {
     const now = Date.UTC(2026, 0, 15, 12, 0, 0)
     const sessions: FocusSessionRecord[] = [
       session({ startedAt: now - 1000, completed: false, actualSeconds: 300 }),
       session({ startedAt: now - 1000, kind: 'short_break', actualSeconds: 300 }),
     ]
     const stats = computeStats(sessions, now)
-    expect(stats.todayFocusSeconds).toBe(0)
+    expect(stats.todayFocusSeconds).toBe(300)
   })
 
-  it('cumule uniquement les sessions focus terminées du jour courant', () => {
+  it('cumule uniquement les sessions focus du jour courant (vs. la semaine)', () => {
     const now = Date.UTC(2026, 0, 15, 12, 0, 0)
     const sessions: FocusSessionRecord[] = [
       session({ startedAt: now - 1000, actualSeconds: 1200 }),
@@ -150,7 +150,7 @@ describe('computeDailyFocus — historique jour par jour (calendrier et tendance
     expect(result[0].dayStart).toBe(Date.UTC(2026, 0, 9))
   })
 
-  it('cumule les sessions focus terminées du même jour, ignore pauses et abandons', () => {
+  it('cumule toutes les sessions focus du même jour (même abandonnées, LOT E7), ignore les pauses', () => {
     const now = Date.UTC(2026, 0, 15, 20, 0, 0)
     const sessions: FocusSessionRecord[] = [
       session({ startedAt: now - 2000, actualSeconds: 600 }),
@@ -159,7 +159,7 @@ describe('computeDailyFocus — historique jour par jour (calendrier et tendance
       session({ startedAt: now - 100, completed: false, actualSeconds: 1000 }),
     ]
     const result = computeDailyFocus(sessions, now, 1, 120)
-    expect(result[0].focusSeconds).toBe(900)
+    expect(result[0].focusSeconds).toBe(1900)
   })
 
   it('marque goalMet à partir du seuil de l’objectif quotidien', () => {
@@ -252,6 +252,31 @@ describe('computePeriodStats — cartes de la période choisie, comparées à la
     ]
     const { current } = computePeriodStats(sessions, [], now, 'all')
     expect(current.focusSeconds).toBe(1500)
+  })
+
+  it('crédite le temps réel d’un Pomodoro arrêté en cours de route, compte la session (LOT E7)', () => {
+    const now = Date.UTC(2026, 0, 15, 20, 0, 0)
+    const sessions: FocusSessionRecord[] = [
+      // 25 min planifiées, arrêté à 18 min : 1080 s doivent être crédités, pas 0.
+      session({
+        startedAt: now - 1000,
+        plannedSeconds: 1500,
+        actualSeconds: 1080,
+        completed: false,
+      }),
+      session({
+        startedAt: now - 500,
+        kind: 'short_break',
+        plannedSeconds: 300,
+        actualSeconds: 120,
+        completed: false,
+      }),
+    ]
+
+    const { current } = computePeriodStats(sessions, [], now, 'today')
+    expect(current.focusSeconds).toBe(1080)
+    expect(current.sessionsCount).toBe(1)
+    expect(current.pauseSeconds).toBe(120)
   })
 })
 

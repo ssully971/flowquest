@@ -30,9 +30,11 @@ h3 {
 }
 
 /*
- * Style « Liquid Glass » minimal (LOT A : fenêtre de connexion plein écran). Composant
- * partagé prévu au LOT C1 (mode ambiant, grandes fenêtres tâches/notes) — cette classe
- * locale sera remplacée par lui sans changer le balisage qui l'utilise déjà.
+ * Style « Liquid Glass » (posé au LOT A, formalisé en composant partagé GlassCard au
+ * LOT C1 — fenêtre de connexion, mode Ambiant, grandes fenêtres tâches/notes). Verre
+ * sobre : flou, fond translucide, bordure fine — pas de lueur colorée (LOT E1 : la halo
+ * `box-shadow` autour du panneau, surtout visible en thème sombre, a été retirée ; seul
+ * le fin reflet intérieur en haut subsiste, ce n'est pas une lueur de couleur).
  * Repli sans backdrop-filter (navigateur trop ancien) et respect de
  * prefers-reduced-transparency : fond quasi opaque, aucun flou, dans les deux cas.
  */
@@ -41,9 +43,7 @@ h3 {
   backdrop-filter: blur(32px) saturate(160%);
   -webkit-backdrop-filter: blur(32px) saturate(160%);
   border: 1px solid color-mix(in srgb, var(--line) 160%, transparent);
-  box-shadow:
-    0 20px 60px var(--glow),
-    inset 0 1px 0 color-mix(in srgb, white 20%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 20%, transparent);
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {

@@ -81,3 +81,24 @@ describe('FocusScreen — citation optionnelle (masquée par défaut)', () => {
     expect(document.querySelector('blockquote')).not.toBeNull()
   })
 })
+
+describe('FocusScreen — la police de l’horloge suit Réglages > Horloge (LOT E2)', () => {
+  it('applique le style de police choisi à l’horloge du Focus, pas seulement à celle de l’accueil', async () => {
+    window.localStorage.setItem(
+      'flowquest.clockSettings',
+      JSON.stringify({
+        format: '24h',
+        size: 'normal',
+        showSeconds: false,
+        showGreeting: true,
+        flipClock: false,
+        style: 'serif',
+        color: 'auto',
+      }),
+    )
+    renderFocusScreen()
+    await screen.findByText('Sur quoi te concentres-tu ?')
+    const digits = await screen.findByTestId('big-digits')
+    expect(digits.style.fontFamily).toContain('Georgia')
+  })
+})
