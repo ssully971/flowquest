@@ -4,6 +4,8 @@ import { getCurrentUserId } from '@/features/auth/current-user'
 import { useAuth } from '@/features/auth/useAuth'
 import { getDb } from '@/shared/storage/db'
 
+import type { CycleSummary } from './cycle-summary'
+import { computeCycleSummary } from './cycle-summary'
 import type { SegmentKind, TimerMode, TimerSnapshot } from './engine/timer-engine'
 import { getDefaultSegmentForMode, getDurationForSegment, getDurationMsForMode } from './durations'
 import { notifySegmentFinished, requestNotificationPermission } from './notifications'
@@ -11,6 +13,7 @@ import {
   advancePomodoroCycle,
   countFocusSessionsSinceLastLongBreak,
   createPomodoroCycle,
+  effectiveSessionsBeforeLongBreak,
 } from './pomodoro-cycle'
 import type { PomodoroCycleState } from './pomodoro-cycle'
 import { recordSession } from './session-recorder'
@@ -39,6 +42,19 @@ export interface UseFocusTimerResult {
   goalProgress: number
   goalReached: boolean
   continueAfterGoal: () => void
+  /** Vrai pendant qu'une session (focus ou pause) tourne ou est en pause : les onglets de
+   * segment doivent rester bloqués tant que c'est le cas (LOT E5 — jamais de fin de
+   * session implicite en cliquant sur « Pause courte »/« Pause longue »). */
+  isSegmentSwitchBlocked: boolean
+  /** Vrai une fois le cycle terminé (bouton Terminer, ou seuil « s'arrêter après N
+   * sessions » atteint) : un écran de fin doit remplacer l'affichage normal du minuteur. */
+  cycleEnded: boolean
+  sessionSummary: CycleSummary | null
+  /** Termine le cycle en cours pour de bon (LOT E6) : enregistre la session active si besoin,
+   * puis affiche l'écran de fin. */
+  endSession: () => void
+  /** Accuse réception de l'écran de fin et repart sur un cycle neuf. */
+  acknowledgeSessionEnd: () => void
   selectMode: (mode: TimerMode) => void
   selectSegment: (segment: SegmentKind) => void
   start: () => void
@@ -97,6 +113,8 @@ export function useFocusTimer(): UseFocusTimerResult {
   const [cycle, setCycle] = useState<PomodoroCycleState>(() => createPomodoroCycle())
   const [goalProgress, setGoalProgress] = useState(0)
   const [goalReached, setGoalReached] = useState(false)
+  const [cycleEnded, setCycleEnded] = useState(false)
+  const [sessionSummary, setSessionSummary] = useState<CycleSummary | null>(null)
   const [isReady, setIsReady] = useState(false)
   const [snapshot, refresh] = useTimerSnapshot(controller)
   const settledEndedAtRef = useRef<number | null>(null)
@@ -149,13 +167,22 @@ export function useFocusTimer(): UseFocusTimerResult {
   const advanceToNext = useCallback(async () => {
     const config = timerSettingsRef.current
     const next = advancePomodoroCycle(cycle, {
-      sessionsBeforeLongBreak: config.sessionsBeforeLongBreak,
+      sessionsBeforeLongBreak: effectiveSessionsBeforeLongBreak(config),
     })
     const nextController = await createSelectedController('pomodoro', next.segment, config)
     setCycle(next)
     setController(nextController)
     return nextController
   }, [cycle])
+
+  /** Bilan + bascule vers l'écran de fin (LOT E6), utilisé aussi bien par l'arrêt manuel
+   * (bouton Terminer) que par le seuil automatique « s'arrêter après N sessions ». */
+  const finishCycle = useCallback(async () => {
+    const db = await getDb()
+    const [sessions, tasks] = await Promise.all([db.getAll('focusSessions'), db.getAll('tasks')])
+    setSessionSummary(computeCycleSummary(sessions, tasks))
+    setCycleEnded(true)
+  }, [])
 
   const skip = useCallback(() => {
     void (async () => {
@@ -185,6 +212,18 @@ export function useFocusTimer(): UseFocusTimerResult {
     void recordSession(state, snapshot.endedAt, true).then(() => {
       if (state.mode !== 'pomodoro') return
 
+      // Réglage « Fin de cycle » (LOT E5) : en mode « s'arrêter après N sessions », on ne
+      // boucle jamais indéfiniment — une fois le seuil atteint, la session se termine pour
+      // de bon (écran de fin) au lieu d'enchaîner une pause longue.
+      if (
+        state.segment === 'focus' &&
+        config.cycleEndMode === 'stopAfterN' &&
+        cycle.completedFocusCount + 1 >= config.sessionsBeforeLongBreak
+      ) {
+        void finishCycle()
+        return
+      }
+
       if (state.segment === 'focus') {
         const target = getGoalFocusSessions({
           goalType: config.sessionGoalType,
@@ -208,7 +247,7 @@ export function useFocusTimer(): UseFocusTimerResult {
         void nextController.start().then(refresh)
       })
     })
-  }, [controller, snapshot, advanceToNext, refresh, goalProgress])
+  }, [controller, snapshot, advanceToNext, refresh, goalProgress, cycle, finishCycle])
 
   const continueAfterGoal = useCallback(() => {
     setGoalReached(false)
@@ -219,14 +258,46 @@ export function useFocusTimer(): UseFocusTimerResult {
     })
   }, [advanceToNext, refresh])
 
+  const endSession = useCallback(() => {
+    void (async () => {
+      if (controller) {
+        const state = controller.getState()
+        const liveSnapshot = controller.getSnapshot()
+        if (state.startedAt !== null && liveSnapshot.status !== 'completed') {
+          await recordSession(state, Date.now(), false)
+        }
+      }
+      await finishCycle()
+    })()
+  }, [controller, finishCycle])
+
+  const acknowledgeSessionEnd = useCallback(() => {
+    void (async () => {
+      const nextController = await createSelectedController(
+        'pomodoro',
+        'focus',
+        timerSettingsRef.current,
+      )
+      setCycle(createPomodoroCycle('focus'))
+      setController(nextController)
+      setGoalProgress(0)
+      setGoalReached(false)
+      setCycleEnded(false)
+      setSessionSummary(null)
+    })()
+  }, [])
+
   const selectSegment = useCallback(
     (segment: SegmentKind) => {
       void (async () => {
         if (controller) {
           const state = controller.getState()
           const liveSnapshot = controller.getSnapshot()
+          // LOT E5 : jamais de fin de session implicite en changeant d'onglet — l'UI
+          // désactive déjà les onglets tant qu'une session tourne ou est en pause ; ce
+          // garde-fou protège aussi un appel direct à selectSegment.
           if (state.startedAt !== null && liveSnapshot.status !== 'completed') {
-            await recordSession(state, Date.now(), false)
+            return
           }
         }
         const nextController = await createSelectedController(
@@ -302,6 +373,11 @@ export function useFocusTimer(): UseFocusTimerResult {
     goalProgress,
     goalReached,
     continueAfterGoal,
+    isSegmentSwitchBlocked: snapshot?.status === 'running' || snapshot?.status === 'paused',
+    cycleEnded,
+    sessionSummary,
+    endSession,
+    acknowledgeSessionEnd,
     selectMode,
     selectSegment,
     start,

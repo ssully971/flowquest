@@ -2,7 +2,6 @@ import {
   COUNTDOWN_MINUTES_RANGE,
   FOCUS_MINUTES_RANGE,
   LONG_BREAK_MINUTES_RANGE,
-  SESSIONS_BEFORE_LONG_BREAK_RANGE,
   SHORT_BREAK_MINUTES_RANGE,
 } from '@/features/timer/timer-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
@@ -10,6 +9,7 @@ import { SettingsToggleRow } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import { AlertSoundSettings } from './AlertSoundSettings'
+import { CycleEndSettings } from './CycleEndSettings'
 import { NumericStepper } from './NumericStepper'
 import { SessionGoalSettings } from './SessionGoalSettings'
 import { TallyIconSetPicker } from './TallyIconSetPicker'
@@ -61,14 +61,6 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
           onChange={(longBreakMinutes) => onChange({ ...settings, longBreakMinutes })}
         />
         <NumericStepper
-          label={s.sessionsBeforeLongBreak}
-          value={settings.sessionsBeforeLongBreak}
-          min={SESSIONS_BEFORE_LONG_BREAK_RANGE.min}
-          max={SESSIONS_BEFORE_LONG_BREAK_RANGE.max}
-          step={SESSIONS_BEFORE_LONG_BREAK_RANGE.step}
-          onChange={(sessionsBeforeLongBreak) => onChange({ ...settings, sessionsBeforeLongBreak })}
-        />
-        <NumericStepper
           label={s.countdownDuration}
           value={settings.countdownMinutes}
           min={COUNTDOWN_MINUTES_RANGE.min}
@@ -110,6 +102,28 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
       />
 
       <SessionGoalSettings settings={settings} onChange={onChange} />
+
+      <CycleEndSettings settings={settings} onChange={onChange} />
+
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-medium text-[var(--panel-muted)]">{s.sessionEndTitle}</p>
+
+        <SettingsToggleRow
+          label={s.confettiEnabled}
+          hint={s.confettiEnabledHint}
+          checked={settings.confettiEnabled}
+          onToggle={() => onChange({ ...settings, confettiEnabled: !settings.confettiEnabled })}
+        />
+
+        <SettingsToggleRow
+          label={s.sessionSummaryEnabled}
+          hint={s.sessionSummaryEnabledHint}
+          checked={settings.sessionSummaryEnabled}
+          onToggle={() =>
+            onChange({ ...settings, sessionSummaryEnabled: !settings.sessionSummaryEnabled })
+          }
+        />
+      </div>
 
       <AlertSoundSettings settings={settings} onChange={onChange} />
     </div>

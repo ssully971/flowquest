@@ -8,6 +8,10 @@ import type { SegmentKind } from '../engine/timer-engine'
 interface SegmentTabsProps {
   value: SegmentKind
   onChange: (segment: SegmentKind) => void
+  /** Bloque le changement d'onglet (LOT E5) : une session de focus ou de pause tourne ou
+   * est en pause, et ne doit jamais se terminer implicitement en cliquant sur un autre
+   * onglet. L'utilisateur doit d'abord l'arrêter explicitement (bouton Terminer). */
+  disabled?: boolean
 }
 
 const TABS: { value: SegmentKind; label: string }[] = [
@@ -16,10 +20,11 @@ const TABS: { value: SegmentKind; label: string }[] = [
   { value: 'long_break', label: strings.focus.tabs.longBreak },
 ]
 
-export function SegmentTabs({ value, onChange }: SegmentTabsProps) {
+export function SegmentTabs({ value, onChange, disabled = false }: SegmentTabsProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (disabled) return
     const currentIndex = TABS.findIndex((tab) => tab.value === value)
     let nextIndex: number | null = null
     if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
@@ -53,11 +58,19 @@ export function SegmentTabs({ value, onChange }: SegmentTabsProps) {
             type="button"
             role="tab"
             aria-selected={selected}
+            aria-disabled={disabled}
             tabIndex={selected ? 0 : -1}
-            onClick={() => onChange(tab.value)}
+            onClick={() => {
+              if (disabled) return
+              onChange(tab.value)
+            }}
             onKeyDown={handleKeyDown}
             className={`relative pb-2 text-sm font-medium transition-colors duration-200 ${
-              selected ? 'text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'
+              disabled
+                ? 'cursor-not-allowed text-[var(--muted)] opacity-50'
+                : selected
+                  ? 'text-[var(--text)]'
+                  : 'text-[var(--muted)] hover:text-[var(--text)]'
             }`}
           >
             {tab.label}

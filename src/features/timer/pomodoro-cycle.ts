@@ -1,6 +1,7 @@
 import type { FocusSessionRecord } from '@/shared/storage/db'
 
 import type { SegmentKind } from './engine/timer-engine'
+import type { CycleEndMode } from './timer-settings'
 
 export interface PomodoroCycleConfig {
   sessionsBeforeLongBreak: number
@@ -15,10 +16,29 @@ export function createPomodoroCycle(segment: SegmentKind = 'focus'): PomodoroCyc
   return { segment, completedFocusCount: 0 }
 }
 
-function startOfDay(timestamp: number): number {
+export function startOfDay(timestamp: number): number {
   const date = new Date(timestamp)
   date.setHours(0, 0, 0, 0)
   return date.getTime()
+}
+
+/**
+ * Nombre de sessions à atteindre avant une pause longue AUTOMATIQUE (LOT E5), selon le
+ * réglage « Fin de cycle » : seul le mode 'longBreakAfterN' avec un nombre de sessions
+ * défini déclenche encore une pause longue automatique. Dans les deux autres cas
+ * (illimité, ou 'stopAfterN' qui se termine plutôt qu'il n'enchaîne une pause longue —
+ * voir la vérification dédiée dans useFocusTimer), on neutralise ce seuil pour
+ * advancePomodoroCycle en le rendant inatteignable.
+ */
+export function effectiveSessionsBeforeLongBreak(config: {
+  cycleEndMode: CycleEndMode
+  cycleEndUnlimited: boolean
+  sessionsBeforeLongBreak: number
+}): number {
+  if (config.cycleEndMode === 'longBreakAfterN' && !config.cycleEndUnlimited) {
+    return config.sessionsBeforeLongBreak
+  }
+  return Number.POSITIVE_INFINITY
 }
 
 /**

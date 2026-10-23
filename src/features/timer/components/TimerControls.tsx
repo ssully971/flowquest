@@ -1,4 +1,4 @@
-import { Pause, PictureInPicture2, Play, RotateCcw, SkipForward } from 'lucide-react'
+import { Pause, PictureInPicture2, Play, RotateCcw, SkipForward, Square } from 'lucide-react'
 
 import { IconButton } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
@@ -11,6 +11,8 @@ interface TimerControlsProps {
   onPrimary: () => void
   onSkip: () => void
   showSkip?: boolean
+  onEndSession?: () => void
+  showEndSession?: boolean
   onPictureInPicture: () => void
   pipAvailable: boolean
   showPip?: boolean
@@ -22,6 +24,8 @@ export function TimerControls({
   onPrimary,
   onSkip,
   showSkip = true,
+  onEndSession,
+  showEndSession = false,
   onPictureInPicture,
   pipAvailable,
   showPip = true,
@@ -52,6 +56,9 @@ export function TimerControls({
       </button>
       {showSkip ? (
         <IconButton icon={SkipForward} label={strings.focus.controls.skip} onClick={onSkip} />
+      ) : null}
+      {showEndSession && onEndSession ? (
+        <IconButton icon={Square} label={strings.focus.controls.endSession} onClick={onEndSession} />
       ) : null}
       {showPip ? (
         <IconButton
