@@ -159,9 +159,21 @@ Menu : Thèmes · Horloge · Minuteur · Stats · Citations · Extras · Compte 
   confidentialité ») : mode invisible, statut en direct, temps/score visibles, participation
   au classement — tous appliqués côté base, pas seulement côté interface.
 
-### 10.2 Classement
-- Heures de focus, **période au choix** (semaine, mois, depuis le début), **visible entre amis uniquement**.
-- Un utilisateur peut masquer ses stats (il disparaît alors du classement des autres).
+### 10.1 bis Statut en direct et encouragements ✅ (LOT F2)
+- Statut en direct (focus/pause/inactif, jamais le détail de ce qui est étudié), visible
+  des amis qui l'autorisent, avec battement de cœur et détection « hors ligne » après 2
+  minutes sans mise à jour.
+- Encouragements : cinq emojis fixes, quotas, affichés en bandeau groupé hors des sessions
+  de focus (jamais pendant, toujours à la fin ou à l'ouverture de l'app).
+
+### 10.2 Classement ✅ (LOT F2)
+- Classement **hebdomadaire** (semaine en cours ou précédente — pas « semaine/mois/depuis
+  le début » comme envisagé plus haut : simplifié à la semaine seule pour ce lot, visible
+  entre amis uniquement, et toujours soi-même en plus des amis participants).
+- Un utilisateur peut désactiver sa participation (`participate_leaderboard`) : il
+  disparaît alors du classement des autres, sans affecter sa propre vue.
+- Score = taux d'achèvement × (0,7 + 0,3 × régularité) — voir `docs/AMIS.md` pour le détail
+  et l'écart assumé avec le score personnel de la page Stats.
 
 ### 10.3 Salles de groupe
 - Création d'une salle : **code court** (ex. `PX7K2`) + lien. Le créateur choisit les paramètres d'étude (durées de focus et de pause, nombre de cycles).
@@ -242,6 +254,9 @@ Toutes les tables ont `id` (uuid), `created_at`, et le **RLS activé**.
 - `tasks` : `user_id`, `title`, `emoji`, `color`, `eta_minutes`, `parent_id`, `position`, `done`, `done_at`.
 - `notes` : `user_id`, `content`, `updated_at`.
 - `friendships` ✅ : `requester_id`, `addressee_id`, `status` (`pending`|`accepted`|`blocked`), `blocked_by`, `user_low`/`user_high` (générées, unicité de la paire).
+- `live_status` ✅ : `user_id`, `state` (`focus`|`pause`|`inactive`), `started_at`, `duration_ms`, `updated_at` — publiée en Realtime.
+- `cheers` ✅ : `sender_id`, `recipient_id`, `emoji` (cinq valeurs fixes), `read_at`, `created_at`.
+- `weekly_leaderboard()` ✅ : fonction (pas de table), agrège `focus_sessions` à la demande pour soi et ses amis participants.
 - Bucket Storage `avatars` ✅ : `{uid}/avatar.webp` (ou `.jpg`), public en lecture, écriture limitée à son propre dossier.
 - `rooms` : `code` (unique), `owner_id`, `settings`, `control_mode`, `status`, `started_at`.
 - `room_members` : `room_id`, `user_id`, `joined_at`, `left_at`, `abandoned`.

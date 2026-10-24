@@ -3,17 +3,21 @@ import { useEffect, useRef, useState } from 'react'
 
 import { Avatar } from '@/features/avatar/components/Avatar'
 import { strings } from '@/shared/i18n'
+import type { CheerEmoji } from '@/shared/supabase/database.types'
 
+import { formatElapsedMinutes, liveStateColor } from '../live-status-format'
 import type { Friend } from '../types'
+import { CheerPicker } from './CheerPicker'
 
 interface FriendCardProps {
   friend: Friend
   onRemove: (otherUserId: string) => void
   onBlock: (otherUserId: string) => void
   onReport: (friend: Friend) => void
+  onCheer: (otherUserId: string, emoji: CheerEmoji) => void
 }
 
-export function FriendCard({ friend, onRemove, onBlock, onReport }: FriendCardProps) {
+export function FriendCard({ friend, onRemove, onBlock, onReport, onCheer }: FriendCardProps) {
   const s = strings.friends
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -47,6 +51,14 @@ export function FriendCard({ friend, onRemove, onBlock, onReport }: FriendCardPr
     onReport(friend)
   }
 
+  const live = friend.live
+  const statusLabel =
+    live.isOnline && live.state && live.state !== 'inactive'
+      ? `${live.state === 'focus' ? s.live.focusSince : s.live.pauseSince}${
+          live.startedAt ? ` ${formatElapsedMinutes(live.startedAt)} ${s.live.minutes}` : ''
+        }`
+      : undefined
+
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3.5 py-3">
       <Avatar
@@ -55,13 +67,21 @@ export function FriendCard({ friend, onRemove, onBlock, onReport }: FriendCardPr
         displayName={friend.displayName}
         avatarUrl={friend.avatarUrl}
         avatarVersion={friend.avatarVersion}
+        statusDotColor={live.isOnline && live.state ? liveStateColor(live.state) : undefined}
+        statusLabel={statusLabel}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-sm font-medium text-[var(--text)]">
           {friend.displayName || friend.username}
         </span>
-        <span className="truncate text-xs text-[var(--muted)]">@{friend.username}</span>
+        {statusLabel ? (
+          <span className="truncate text-xs text-[var(--muted)]">{statusLabel}</span>
+        ) : (
+          <span className="truncate text-xs text-[var(--muted)]">@{friend.username}</span>
+        )}
       </div>
+
+      <CheerPicker onSend={(emoji) => onCheer(friend.id, emoji)} />
 
       <div ref={menuRef} className="relative">
         <button

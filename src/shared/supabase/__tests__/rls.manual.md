@@ -200,3 +200,75 @@ testAvatarsStorage().then(() => console.log('Script Storage terminé.'))
 Mêmes règles que plus haut : uniquement des lignes `OK :`. Si `testAvatarsStorage` échoue à
 l'étape 1 avec une erreur de permission, vérifie d'abord que le bucket `avatars` existe bien
 (migration `0024_avatars_storage.sql` collée) avant de soupçonner les politiques.
+
+## Statut en direct, encouragements, classement (LOT F2)
+
+À exécuter après `0025` à `0027`, avec A et B déjà amis (voir `testFriendsAndPrivacy()`
+plus haut).
+
+```ts
+async function testLiveStatusAndCheers() {
+  const clientA = await signIn('a@test.flowquest.dev', 'Motdepasse1')
+  const clientB = await signIn('b@test.flowquest.dev', 'Motdepasse1')
+  const { data: userA } = await clientA.auth.getUser()
+  const { data: userB } = await clientB.auth.getUser()
+
+  // 1. A se met « en focus », B (son ami) doit le voir dans list_friends().
+  const { error: upsertError } = await clientA
+    .from('live_status')
+    .upsert({ user_id: userA.user!.id, state: 'focus', started_at: new Date().toISOString() })
+  if (upsertError) throw upsertError
+  const { data: bSeesA } = await clientB.rpc('list_friends')
+  const aFromB = bSeesA?.find((f: { id: string }) => f.id === userA.user!.id)
+  console.assert(aFromB?.live_state === 'focus' && aFromB?.live_is_online === true, 'ÉCHEC : B ne voit pas A en focus.')
+  console.log('OK : B voit le statut en direct de A.')
+
+  // 2. A désactive show_live_status : B ne doit plus rien voir (null, jamais la vraie valeur).
+  const { error: privacyError } = await clientA.from('profiles').update({ show_live_status: false }).eq('id', userA.user!.id)
+  if (privacyError) throw privacyError
+  const { data: bSeesAHidden } = await clientB.rpc('list_friends')
+  const aHidden = bSeesAHidden?.find((f: { id: string }) => f.id === userA.user!.id)
+  console.assert(aHidden?.live_state === null && aHidden?.live_is_online === false, 'ÉCHEC : B voit encore le statut de A après désactivation.')
+  console.log('OK : statut masqué dès que show_live_status est désactivé.')
+  await clientA.from('profiles').update({ show_live_status: true }).eq('id', userA.user!.id) // remet en place
+
+  // 3. Un non-ami (ex. un 3e compte C non ami de A) ne doit JAMAIS lire la ligne live_status
+  // de A directement (même si A est "en focus") : à vérifier manuellement avec un 3e
+  // compte si besoin, même principe que l'étape 1 du script générique plus haut.
+
+  // 4. B envoie un encouragement à A.
+  const { error: cheerError } = await clientB.rpc('send_cheer', { p_recipient_id: userA.user!.id, p_emoji: '🔥' })
+  if (cheerError) throw cheerError
+  const { data: aUnread } = await clientA.rpc('list_unread_cheers')
+  console.assert(aUnread?.some((c: { sender_id: string }) => c.sender_id === userB.user!.id), 'ÉCHEC : A ne voit pas l’encouragement de B.')
+  console.log('OK : A reçoit bien l’encouragement de B.')
+
+  // 5. Quota : B ré-encourage A moins de 10 min après — doit échouer.
+  const { error: quotaError } = await clientB.rpc('send_cheer', { p_recipient_id: userA.user!.id, p_emoji: '👏' })
+  console.assert(quotaError !== null, 'ÉCHEC : le quota de 10 minutes par destinataire n’a pas été appliqué !')
+  console.log('OK : quota 10 min/destinataire respecté :', quotaError?.message)
+
+  // 6. weekly_leaderboard() renvoie toujours au moins l'appelant lui-même.
+  const { data: leaderboard, error: leaderboardError } = await clientA.rpc('weekly_leaderboard', { p_week_offset: 0 })
+  if (leaderboardError) throw leaderboardError
+  console.assert(leaderboard?.some((row: { is_self: boolean }) => row.is_self), 'ÉCHEC : weekly_leaderboard() ne renvoie pas l’appelant.')
+  console.log('OK : le classement inclut toujours soi-même.')
+
+  // 7. p_week_offset hors de {0,1} doit échouer.
+  const { error: offsetError } = await clientA.rpc('weekly_leaderboard', { p_week_offset: 5 })
+  console.assert(offsetError !== null, 'ÉCHEC : un décalage de semaine invalide a été accepté !')
+  console.log('OK : p_week_offset invalide rejeté :', offsetError?.message)
+
+  // Nettoyage.
+  await clientA.from('live_status').delete().eq('user_id', userA.user!.id)
+}
+
+testLiveStatusAndCheers().then(() => console.log('Script Statut/Encouragements/Classement terminé.'))
+```
+
+### Résultat attendu
+
+Uniquement des lignes `OK :`. Vérifie aussi, dans le tableau de bord Supabase (Database >
+Replication), que `live_status` apparaît bien activée pour `supabase_realtime` — la
+migration `0025_live_status.sql` l'active par SQL, mais une vérification visuelle reste
+utile selon les droits du projet.

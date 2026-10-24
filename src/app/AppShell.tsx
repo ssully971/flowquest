@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react'
 
 import { GuestImportPrompt } from '@/features/auth/components/GuestImportPrompt'
 import { useCurrentUserSync } from '@/features/auth/useCurrentUserSync'
+import { CheersBanner } from '@/features/friends/components/CheersBanner'
 import { FriendsPanel } from '@/features/friends/components/FriendsPanel'
+import { useCheers } from '@/features/friends/useCheers'
+import { useLiveStatusSync } from '@/features/friends/useLiveStatusSync'
 import { InstallPrompt } from '@/features/pwa/InstallPrompt'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
@@ -80,6 +83,8 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   }
 
   useCurrentUserSync()
+  useLiveStatusSync()
+  const cheers = useCheers()
   useSettingsSync({
     appearance,
     setAppearance,
@@ -248,6 +253,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
 
       <GuestImportPrompt />
       <InstallPrompt />
+      <CheersBanner cheers={cheers.cheers} onDismiss={cheers.dismiss} />
     </div>
   )
 }

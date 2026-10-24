@@ -1,7 +1,14 @@
 import { supabase } from '@/shared/supabase/client'
-import type { FriendProfilePreviewRow, FriendRequestRow, FriendRow } from '@/shared/supabase/database.types'
+import type {
+  CheerEmoji,
+  FriendProfilePreviewRow,
+  FriendRequestRow,
+  FriendRow,
+  LeaderboardRow,
+  UnreadCheerRow,
+} from '@/shared/supabase/database.types'
 
-import type { Friend, FriendProfilePreview, FriendRequest } from './types'
+import type { Friend, FriendProfilePreview, FriendRequest, Leaderboard, UnreadCheer } from './types'
 
 export class FriendsError extends Error {}
 
@@ -21,7 +28,17 @@ function mapPreview(row: FriendProfilePreviewRow): FriendProfilePreview {
 }
 
 function mapFriend(row: FriendRow): Friend {
-  return { ...mapPreview(row), friendshipId: row.friendship_id, since: row.since }
+  return {
+    ...mapPreview(row),
+    friendshipId: row.friendship_id,
+    since: row.since,
+    live: {
+      state: row.live_state,
+      startedAt: row.live_started_at,
+      durationMs: row.live_duration_ms,
+      isOnline: row.live_is_online,
+    },
+  }
 }
 
 function mapRequest(row: FriendRequestRow): FriendRequest {
@@ -119,4 +136,68 @@ export async function reportUser(targetUserId: string, reason: string): Promise<
   const client = requireClient()
   const { error } = await client.rpc('report_user', { p_target_user_id: targetUserId, p_reason: reason })
   if (error) throw new FriendsError(translateRpcError(error.message))
+}
+
+function mapUnreadCheer(row: UnreadCheerRow): UnreadCheer {
+  return {
+    id: row.id,
+    emoji: row.emoji,
+    createdAt: row.created_at,
+    sender: {
+      id: row.sender_id,
+      username: row.sender_username,
+      displayName: row.sender_display_name,
+      avatarUrl: row.sender_avatar_url,
+      avatarVersion: row.sender_avatar_version,
+    },
+  }
+}
+
+export async function sendCheer(recipientId: string, emoji: CheerEmoji): Promise<void> {
+  const client = requireClient()
+  const { error } = await client.rpc('send_cheer', { p_recipient_id: recipientId, p_emoji: emoji })
+  if (error) throw new FriendsError(translateRpcError(error.message))
+}
+
+export async function listUnreadCheers(): Promise<UnreadCheer[]> {
+  const client = requireClient()
+  const { data, error } = await client.rpc('list_unread_cheers')
+  if (error) throw new FriendsError(translateRpcError(error.message))
+  return (data ?? []).map(mapUnreadCheer)
+}
+
+export async function markCheersRead(): Promise<void> {
+  const client = requireClient()
+  const { error } = await client.rpc('mark_cheers_read')
+  if (error) throw new FriendsError(translateRpcError(error.message))
+}
+
+function mapLeaderboardRow(row: LeaderboardRow): Leaderboard['entries'][number] {
+  return {
+    id: row.id,
+    username: row.username,
+    displayName: row.display_name,
+    avatarUrl: row.avatar_url,
+    avatarVersion: row.avatar_version,
+    rank: row.leaderboard_rank,
+    isSelf: row.is_self,
+    score: row.score,
+    focusSeconds: row.focus_seconds,
+    completionRate: row.completion_rate,
+    regularityRate: row.regularity_rate,
+  }
+}
+
+/** p_week_offset : 0 = semaine en cours, 1 = semaine précédente (seules valeurs acceptées
+ * par weekly_leaderboard(), migration 0027). */
+export async function fetchWeeklyLeaderboard(weekOffset: 0 | 1): Promise<Leaderboard> {
+  const client = requireClient()
+  const { data, error } = await client.rpc('weekly_leaderboard', { p_week_offset: weekOffset })
+  if (error) throw new FriendsError(translateRpcError(error.message))
+  const rows = data ?? []
+  return {
+    entries: rows.map(mapLeaderboardRow),
+    weekStart: rows[0]?.week_start ?? '',
+    weekEnd: rows[0]?.week_end ?? '',
+  }
 }

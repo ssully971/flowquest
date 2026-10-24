@@ -13,6 +13,8 @@ export type SupportMessageStatus = 'pending' | 'processed'
 export type SupportMessageCategory = 'contact' | 'report'
 export type FriendshipStatus = 'pending' | 'accepted' | 'blocked'
 export type FriendRequestDirection = 'incoming' | 'outgoing'
+export type LiveState = 'focus' | 'pause' | 'inactive'
+export type CheerEmoji = '💪' | '🔥' | '👏' | '❤️' | '☕'
 
 export interface Database {
   public: {
@@ -71,6 +73,42 @@ export interface Database {
         // Aucune politique RLS INSERT/UPDATE/DELETE : toute mutation passe par les RPC
         // dédiées (send_friend_request, respond_friend_request...), jamais une écriture
         // directe côté client.
+        Insert: Record<string, never>
+        Update: Record<string, never>
+        Relationships: []
+      }
+      live_status: {
+        Row: {
+          user_id: string
+          state: LiveState
+          started_at: string | null
+          duration_ms: number | null
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          state?: LiveState
+          started_at?: string | null
+          duration_ms?: number | null
+        }
+        Update: {
+          state?: LiveState
+          started_at?: string | null
+          duration_ms?: number | null
+        }
+        Relationships: []
+      }
+      cheers: {
+        Row: {
+          id: string
+          sender_id: string
+          recipient_id: string
+          emoji: CheerEmoji
+          read_at: string | null
+          created_at: string
+        }
+        // Aucune politique RLS INSERT/UPDATE/DELETE : toute mutation passe par
+        // send_cheer()/mark_cheers_read().
         Insert: Record<string, never>
         Update: Record<string, never>
         Relationships: []
@@ -393,6 +431,22 @@ export interface Database {
         Args: { p_target_user_id: string }
         Returns: undefined
       }
+      send_cheer: {
+        Args: { p_recipient_id: string; p_emoji: string }
+        Returns: undefined
+      }
+      list_unread_cheers: {
+        Args: Record<string, never>
+        Returns: UnreadCheerRow[]
+      }
+      mark_cheers_read: {
+        Args: Record<string, never>
+        Returns: undefined
+      }
+      weekly_leaderboard: {
+        Args: { p_week_offset?: number }
+        Returns: LeaderboardRow[]
+      }
     }
   }
 }
@@ -413,6 +467,37 @@ export interface FriendRow {
   avatar_url: string | null
   avatar_version: number
   since: string
+  live_state: LiveState | null
+  live_started_at: string | null
+  live_duration_ms: number | null
+  live_is_online: boolean
+}
+
+export interface UnreadCheerRow {
+  id: string
+  emoji: CheerEmoji
+  created_at: string
+  sender_id: string
+  sender_username: string
+  sender_display_name: string | null
+  sender_avatar_url: string | null
+  sender_avatar_version: number
+}
+
+export interface LeaderboardRow {
+  leaderboard_rank: number
+  id: string
+  username: string
+  display_name: string | null
+  avatar_url: string | null
+  avatar_version: number
+  is_self: boolean
+  score: number
+  focus_seconds: number
+  completion_rate: number
+  regularity_rate: number
+  week_start: string
+  week_end: string
 }
 
 export interface FriendRequestRow {

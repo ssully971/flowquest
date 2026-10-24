@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { useAuth } from '@/features/auth/useAuth'
 import { useToast } from '@/shared/toast'
+import type { CheerEmoji } from '@/shared/supabase/database.types'
 
 import {
   FriendsError,
@@ -14,20 +15,22 @@ import {
   removeFriend,
   reportUser,
   respondFriendRequest,
+  sendCheer,
   sendFriendRequest,
   unblockUser,
 } from './friends-repository'
 import type { Friend, FriendProfilePreview, FriendRequest } from './types'
+import { useFriendsRealtime } from './useFriendsRealtime'
 
 function errorMessage(err: unknown): string {
   return err instanceof FriendsError ? err.message : 'Une erreur est survenue. Réessaie.'
 }
 
 /**
- * Charge et tient à jour amis + demandes (LOT F1). Pas d'abonnement Realtime ici — les
- * mises à jour en direct (statut, invitations instantanées) arrivent en LOT F2 ; pour
- * l'instant chaque action locale déclenche un rechargement explicite, suffisant pour une
- * page qu'on ouvre ponctuellement.
+ * Charge et tient à jour amis + demandes (LOT F1), avec abonnement Realtime au statut en
+ * direct depuis le LOT F2 (useFriendsRealtime) : chaque action locale déclenche aussi un
+ * rechargement explicite (withFeedback), donc la liste reste à jour même si le canal
+ * Realtime venait à tomber.
  */
 export function useFriends() {
   const { status } = useAuth()
@@ -60,6 +63,11 @@ export function useFriends() {
     if (status !== 'authenticated') return
     void refresh()
   }, [status, refresh])
+
+  // Rafraîchit la liste (donc le statut en direct de chaque ami) dès qu'un évènement
+  // Realtime arrive sur live_status — voir useFriendsRealtime pour la reconnexion et le
+  // repli par interrogation (règles transversales du Mode Amis).
+  useFriendsRealtime(refresh, status === 'authenticated')
 
   const withFeedback = useCallback(
     async (action: () => Promise<void>, successMessage?: string) => {
@@ -118,6 +126,19 @@ export function useFriends() {
       withFeedback(() => reportUser(targetUserId, reason), 'Signalement envoyé.'),
     [withFeedback],
   )
+  const cheer = useCallback(
+    async (otherUserId: string, emoji: CheerEmoji): Promise<boolean> => {
+      try {
+        await sendCheer(otherUserId, emoji)
+        showToast({ type: 'success', message: 'Encouragement envoyé.' })
+        return true
+      } catch (err) {
+        showToast({ type: 'error', message: errorMessage(err) })
+        return false
+      }
+    },
+    [showToast],
+  )
   const regenerateCode = useCallback(async (): Promise<string | null> => {
     try {
       const code = await regenerateFriendCode()
@@ -149,6 +170,7 @@ export function useFriends() {
     block,
     unblock,
     report,
+    cheer,
     regenerateCode,
   }
 }

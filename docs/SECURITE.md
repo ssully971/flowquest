@@ -149,6 +149,59 @@ compte banni, ni (pour `find_profile_preview()`) un compte qui a bloqué l'appel
 dernier cas échoue avec le même message générique (« Compte introuvable ») que pour un
 compte réellement inexistant, pour ne jamais laisser deviner qu'on a été bloqué.
 
+### `live_status` (Mode Amis, LOT F2)
+
+| Opération | Règle |
+|---|---|
+| SELECT | `auth.uid() = user_id` (toujours soi-même) **ou** `are_friends(auth.uid(), user_id)` **et** le propriétaire a `show_live_status = true` et `invisible_mode = false` — appliqué côté base, pas seulement filtré côté interface. |
+| INSERT / UPDATE | `auth.uid() = user_id` — pas de règle métier complexe ici (contrairement à `friendships`), donc pas de RPC dédiée : le client écrit directement sa propre ligne (même principe que `timer_state`). |
+| DELETE | Aucune politique. |
+
+« Hors ligne » n'est **pas** une valeur stockée de `state` (`focus`/`pause`/`inactive`
+seulement) : c'est calculé à la lecture par `list_friends()`, qui compare `updated_at` à
+« il y a moins de 2 minutes ». `list_friends()` a été recréée (migration `0025`, `DROP
+FUNCTION` obligatoire pour changer la forme d'un `RETURNS TABLE`) pour joindre ce statut,
+toujours filtré par la vie privée du propriétaire — un ami dont `show_live_status` est
+désactivé ou qui est en mode invisible a `live_state`/`live_started_at` à `null` et
+`live_is_online` à `false`, jamais la vraie valeur masquée côté client seulement.
+
+Table ajoutée à la publication `supabase_realtime` (migration `0025`) : les évènements
+Realtime restent filtrés par la politique SELECT ci-dessus (RLS s'applique aussi aux
+abonnements `postgres_changes`), donc un abonné ne reçoit jamais le statut d'un compte
+qu'il n'a pas le droit de lire.
+
+### `cheers` (encouragements, Mode Amis, LOT F2)
+
+| Opération | Règle |
+|---|---|
+| SELECT | `auth.uid() in (sender_id, recipient_id)`. |
+| INSERT / UPDATE / DELETE | **Aucune politique.** Envoi via `send_cheer()` (vérifie `are_friends()`, quota 1/destinataire/10 min et 30/jour), lecture des non-lus via `list_unread_cheers()`, marquage lu via `mark_cheers_read()` — toutes `security definer`, migration `0026_cheers.sql`. |
+
+Jeu d'emojis fixe imposé par une contrainte `check` sur la colonne (`💪 🔥 👏 ❤️ ☕`), en
+plus de la vérification dans `send_cheer()` : même si la contrainte venait à être
+contournée côté fonction, la colonne refuserait quand même toute autre valeur. Le moment
+où un encouragement est *affiché* (jamais pendant que le destinataire est en focus) est une
+décision purement côté client (`useCheers`), la base ne fait qu'enregistrer et exposer les
+non-lus.
+
+### `weekly_leaderboard()` (classement hebdomadaire, Mode Amis, LOT F2)
+
+Fonction `security definer` (migration `0027_weekly_leaderboard.sql`), pas de nouvelle
+table : agrège `focus_sessions` pour l'appelant et ses amis ayant `participate_leaderboard
+= true` et `invisible_mode = false` (un utilisateur banni est systématiquement exclu).
+`p_week_offset` n'accepte que `0` (semaine en cours) ou `1` (semaine précédente) — toute
+autre valeur lève une exception. Semaine du lundi au dimanche, calculée dans le fuseau
+`America/Guadeloupe` (explicitement demandé), jamais le fuseau du serveur ni celui du
+navigateur de l'appelant.
+
+**Score de classement, distinct du score personnel** : `taux d'achèvement × (0,7 + 0,3 ×
+régularité sur les 7 jours de la semaine) × 100`. C'est une formule différente de
+`computeFocusScore()` côté client (`src/features/stats/compute-stats.ts`, utilisé par la
+page Stats — un simple produit achèvement × régularité, sans le plancher à 0,7). Cet écart
+est assumé : la formule du classement a été fournie telle quelle pour ce lot, et toucher au
+score personnel déjà en production n'était pas dans le périmètre demandé. Une unification
+éventuelle est une décision produit à trancher plus tard, pas une correction de bug.
+
 ### Avatars (Storage, bucket `avatars`, LOT F1)
 
 | Opération | Règle |
@@ -234,6 +287,8 @@ production, corrigé manuellement dans le SQL Editor puis répercuté dans cette
 | `admin_log` | — | SELECT, INSERT |
 | `friendships` | — | SELECT (toute mutation passe par RPC) |
 | `storage.objects` (bucket `avatars`) | lecture publique hors RLS (bucket `public = true`) | list/get/upload/update/delete limités à son propre dossier |
+| `live_status` | — | SELECT, INSERT, UPDATE |
+| `cheers` | — | SELECT (toute mutation passe par RPC) |
 
 Un `ALTER DEFAULT PRIVILEGES` (toujours dans `0018_grants.sql`) fait que toute future table
 ou fonction créée par le rôle `postgres` (donc depuis l'éditeur SQL Supabase) hérite

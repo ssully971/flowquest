@@ -5,10 +5,12 @@ import { FloatingPanel } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import { useFriends } from '../useFriends'
+import { useLeaderboard } from '../useLeaderboard'
 import type { Friend } from '../types'
 import { AddFriendForm } from './AddFriendForm'
 import { FriendCard } from './FriendCard'
 import { FriendRequestsList } from './FriendRequestsList'
+import { LeaderboardTab } from './LeaderboardTab'
 import { MyFriendCode } from './MyFriendCode'
 import { ReportUserDialog } from './ReportUserDialog'
 
@@ -17,7 +19,7 @@ interface FriendsPanelProps {
   onClose: () => void
 }
 
-type Tab = 'friends' | 'requests' | 'add'
+type Tab = 'friends' | 'requests' | 'leaderboard' | 'add'
 
 export function FriendsPanel({ open, onClose }: FriendsPanelProps) {
   const s = strings.friends
@@ -26,6 +28,7 @@ export function FriendsPanel({ open, onClose }: FriendsPanelProps) {
   const [tab, setTab] = useState<Tab>('friends')
   const [reportTarget, setReportTarget] = useState<Friend | null>(null)
   const friendsState = useFriends()
+  const leaderboardState = useLeaderboard()
 
   if (!open) return null
 
@@ -34,6 +37,7 @@ export function FriendsPanel({ open, onClose }: FriendsPanelProps) {
   const TABS: { value: Tab; label: string; badge?: number }[] = [
     { value: 'friends', label: s.tabs.friends },
     { value: 'requests', label: s.tabs.requests, badge: requestCount },
+    { value: 'leaderboard', label: s.leaderboard.tab },
     { value: 'add', label: s.tabs.add },
   ]
 
@@ -79,7 +83,16 @@ export function FriendsPanel({ open, onClose }: FriendsPanelProps) {
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              {friendsState.isLoading ? (
+              {tab === 'leaderboard' ? (
+                <LeaderboardTab
+                  leaderboard={leaderboardState.leaderboard}
+                  isLoading={leaderboardState.isLoading}
+                  loadError={leaderboardState.loadError}
+                  weekOffset={leaderboardState.weekOffset}
+                  onWeekOffsetChange={leaderboardState.setWeekOffset}
+                  onRetry={() => void leaderboardState.refresh()}
+                />
+              ) : friendsState.isLoading ? (
                 <p className="text-sm text-[var(--muted)]">{s.loading}</p>
               ) : friendsState.loadError ? (
                 <div className="flex flex-col items-start gap-2">
@@ -106,6 +119,7 @@ export function FriendsPanel({ open, onClose }: FriendsPanelProps) {
                         onRemove={(id) => void friendsState.unfriend(id)}
                         onBlock={(id) => void friendsState.block(id)}
                         onReport={setReportTarget}
+                        onCheer={(id, emoji) => void friendsState.cheer(id, emoji)}
                       />
                     ))
                   )}

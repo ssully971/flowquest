@@ -18,6 +18,7 @@ const FRIEND = {
   avatarUrl: null,
   avatarVersion: 0,
   since: '2026-01-01T00:00:00Z',
+  live: { state: null, startedAt: null, durationMs: null, isOnline: false },
 }
 const INCOMING = {
   friendshipId: 'r1',
@@ -49,6 +50,7 @@ function baseFriendsState(overrides: Record<string, unknown> = {}) {
     unblock: vi.fn().mockResolvedValue(true),
     report: vi.fn().mockResolvedValue(true),
     regenerateCode: vi.fn().mockResolvedValue('NEWCODE1'),
+    cheer: vi.fn().mockResolvedValue(true),
     ...overrides,
   }
 }
@@ -126,5 +128,19 @@ describe('FriendsPanel — onglet principal Amis (LOT F1)', () => {
     expect(screen.getByRole('alert')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Réessayer' }))
     expect(friendsState.refresh).toHaveBeenCalled()
+  })
+
+  it('bascule vers l’onglet Classement, indépendant de l’état de chargement des amis', async () => {
+    const user = userEvent.setup()
+    // Même si les amis sont en erreur, le classement (chargement/erreur séparés via
+    // useLeaderboard) doit rester accessible.
+    useFriendsMock.mockReturnValue(baseFriendsState({ loadError: 'Impossible de charger tes amis. Réessaie.' }))
+    render(<FriendsPanel open onClose={vi.fn()} />)
+
+    await user.click(screen.getByRole('tab', { name: 'Classement' }))
+
+    // Pas de Supabase configuré dans ce test : useLeaderboard tombe sur son propre état
+    // d'erreur, distinct de celui des amis — preuve que les deux ne sont pas couplés.
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
   })
 })

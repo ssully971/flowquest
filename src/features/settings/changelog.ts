@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.5.0',
+    date: '2026-10-25',
+    text: 'Mode Amis (2/4) : statut en direct sur la liste d’amis (en focus, en pause), encouragements avec cinq emojis, et un classement hebdomadaire entre amis avec ta position et un message d’encouragement.',
+  },
+  {
     version: '0.4.0',
     date: '2026-10-24',
     text: 'Mode Amis (1/4) : photo de profil avec recadrage, code ami et ajout par pseudo exact, liste d’amis et demandes, blocage et signalement, et un nouveau réglage « Amis et confidentialité » pour choisir ce que tes amis voient de toi.',
