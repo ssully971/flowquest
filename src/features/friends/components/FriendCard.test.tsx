@@ -79,6 +79,25 @@ describe('FriendCard — statut en direct et encouragements (LOT F2)', () => {
     expect(onCheer).toHaveBeenCalledWith('u1', '💪')
   })
 
+  it('n’affiche aucune flamme sans série commune', () => {
+    render(<FriendCard friend={friend()} onRemove={vi.fn()} onBlock={vi.fn()} onReport={vi.fn()} onCheer={vi.fn()} />)
+    expect(screen.queryByTitle(/Série commune/)).not.toBeInTheDocument()
+  })
+
+  it('affiche la série commune avec son nombre de jours', () => {
+    render(
+      <FriendCard
+        friend={friend()}
+        streak={{ friendId: 'u1', currentStreak: 5, longestStreak: 9, lastActiveDate: '2026-01-10', activeToday: true }}
+        onRemove={vi.fn()}
+        onBlock={vi.fn()}
+        onReport={vi.fn()}
+        onCheer={vi.fn()}
+      />,
+    )
+    expect(screen.getByTitle(/Série commune : 5 — fait aujourd’hui/)).toHaveTextContent('5')
+  })
+
   it('retirer demande confirmation puis appelle onRemove', async () => {
     const user = userEvent.setup()
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)

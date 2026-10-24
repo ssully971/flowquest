@@ -231,6 +231,39 @@ comptant les invitations valides, pas seulement côté interface. Chaque invité
 avec l'hôte (`are_friends()`) au moment de la création — un salon ne peut pas servir à
 contourner le système d'amis.
 
+### `duo_streaks` (série partagée, Mode Amis, LOT F4)
+
+| Opération | Règle |
+|---|---|
+| SELECT | `auth.uid() in (user_low, user_high)` — chacun ne voit que ses propres paires. |
+| INSERT / UPDATE / DELETE | **Aucune politique.** Entretenue exclusivement par le trigger `bump_duo_streaks()` (`after insert or update on focus_sessions`, `security definer`, migration `0031_duo_streaks.sql`) et par le reset paresseux de `list_duo_streaks()` (migration `0032`). |
+
+Un jour compte pour la paire dès que **chacun** des deux amis a complété (`completed =
+true`) au moins une session de focus ce jour-là, dans le fuseau `America/Guadeloupe` (même
+référence que `weekly_leaderboard()`, LOT F2) — définition volontairement différente de la
+série personnelle (`src/features/stats/compute-stats.ts`), qui exige d'atteindre
+l'objectif quotidien propre à chaque compte : deux amis n'ont pas forcément le même
+objectif, « une vraie session chacun » reste le plus petit dénominateur commun. Le trigger
+ne s'exécute qu'au moment précis où une session devient complétée (jamais sur les pauses,
+jamais en boucle sur des mises à jour déjà traitées), et ne compte que des amis acceptés
+(`are_friends()`) non bannis. La remise à zéro d'une série interrompue est **paresseuse** :
+calculée et appliquée à la lecture (`list_duo_streaks()`) plutôt que par un job planifié,
+même principe que `_room_tick()` (LOT F3).
+
+### Passe de sécurité (LOT F4)
+
+Relecture systématique de toutes les migrations `0001` à `0029` contre cette page (RLS
+activée partout, chaque fonction `SECURITY DEFINER` a `search_path` fixé, chaque fonction
+non-trigger a un `GRANT` ou un `REVOKE` explicite — jamais un accès implicite via le
+comportement par défaut de PostgreSQL qui accorde `EXECUTE` à `PUBLIC` à la création d'une
+fonction). Un seul écart trouvé : `generate_unique_username()` (migration
+`0009_ensure_profile.sql`) n'avait ni `GRANT` ni `REVOKE` explicite — contrairement à
+`generate_friend_code()` (son équivalent, migration `0020`), déjà correctement révoquée.
+Risque réel limité (fonction pure, sans effet de bord, qui ne renvoie qu'un nom candidat
+non utilisé — rien que `is_username_available()` n'expose déjà volontairement), mais
+corrigé par principe (migration `0030_security_pass.sql`) : jamais d'accès qui n'a pas été
+consciemment décidé, même sans conséquence pratique.
+
 ### Avatars (Storage, bucket `avatars`, LOT F1)
 
 | Opération | Règle |
@@ -320,6 +353,7 @@ production, corrigé manuellement dans le SQL Editor puis répercuté dans cette
 | `cheers` | — | SELECT (toute mutation passe par RPC) |
 | `rooms` | — | SELECT (toute mutation passe par RPC) |
 | `room_participants` | — | SELECT (toute mutation passe par RPC) |
+| `duo_streaks` | — | SELECT (entretenue par trigger, jamais une écriture directe) |
 
 Un `ALTER DEFAULT PRIVILEGES` (toujours dans `0018_grants.sql`) fait que toute future table
 ou fonction créée par le rôle `postgres` (donc depuis l'éditeur SQL Supabase) hérite

@@ -91,7 +91,12 @@ export function RoomsPanel({ open, onClose, onOpenRoom }: RoomsPanelProps) {
 
           <div className="flex-1 overflow-y-auto">
             {tab === 'create' ? (
-              <CreateRoomForm friends={friendsState.friends} onCreate={roomsState.create} onCreated={handleCreated} />
+              <CreateRoomForm
+                friends={friendsState.friends}
+                friendsLoading={friendsState.isLoading}
+                onCreate={roomsState.create}
+                onCreated={handleCreated}
+              />
             ) : roomsState.isLoading ? (
               <p className="text-sm text-[var(--muted)]">{s.loading}</p>
             ) : roomsState.loadError ? (

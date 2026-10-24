@@ -21,6 +21,25 @@ describe('CreateRoomForm — LOT F3', () => {
     expect(screen.getByText(/Ajoute des amis/)).toBeInTheDocument()
   })
 
+  it('affiche un état de chargement plutôt que « pas d’amis » tant que la liste charge (LOT F4, finitions)', () => {
+    render(<CreateRoomForm friends={[]} friendsLoading onCreate={vi.fn()} onCreated={vi.fn()} />)
+    expect(screen.getByText('Chargement…')).toBeInTheDocument()
+    expect(screen.queryByText(/Ajoute des amis/)).not.toBeInTheDocument()
+  })
+
+  it('désactive la création tant qu’aucun ami n’est invité (LOT F4, finitions)', async () => {
+    const user = userEvent.setup()
+    render(<CreateRoomForm friends={[FRIEND('u1', 'ami1')]} onCreate={vi.fn()} onCreated={vi.fn()} />)
+
+    expect(screen.getByRole('button', { name: 'Créer le salon' })).toBeDisabled()
+
+    await user.click(screen.getByText('ami1'))
+    expect(screen.getByRole('button', { name: 'Créer le salon' })).toBeEnabled()
+
+    await user.click(screen.getByText('ami1'))
+    expect(screen.getByRole('button', { name: 'Créer le salon' })).toBeDisabled()
+  })
+
   it('crée un salon avec la durée choisie et les amis cochés', async () => {
     const user = userEvent.setup()
     const onCreate = vi.fn().mockResolvedValue('new-room')

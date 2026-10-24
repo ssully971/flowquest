@@ -287,6 +287,11 @@ async function testRooms() {
   const { data: userA } = await clientA.auth.getUser()
   const { data: userB } = await clientB.auth.getUser()
 
+  // 0. Un salon sans aucun ami invité est refusé (LOT F4, finitions — migration 0033).
+  const { error: emptyInviteError } = await clientA.rpc('create_room', { p_focus_minutes: 25, p_friend_ids: [] })
+  console.assert(emptyInviteError !== null, 'ÉCHEC : un salon sans aucun invité a pu être créé !')
+  console.log('OK : create_room() refuse une liste d’invités vide :', emptyInviteError?.message)
+
   // 1. A crée un salon et invite B.
   const { data: roomId, error: createError } = await clientA.rpc('create_room', {
     p_focus_minutes: 25,
@@ -354,3 +359,64 @@ manuel) — à vérifier en inspectant `room_participants.last_seen_at` et `room
 après avoir laissé un onglet hôte inactif plus de 2 minutes pendant une session en cours.
 Vérifie aussi, dans Database > Replication, que `rooms` et `room_participants`
 apparaissent bien activées pour `supabase_realtime`.
+
+## Série partagée (LOT F4)
+
+À exécuter après avoir collé les migrations `0031` et `0032`. A et B doivent déjà être
+amis. `focus_sessions` est inséré directement ici (plutôt que via l'app) pour contrôler
+précisément `started_at` et simuler « hier »/« avant-hier » sans attendre un vrai jour.
+
+```ts
+async function testDuoStreaks() {
+  const clientA = await signIn('a@test.flowquest.dev', 'Motdepasse1')
+  const clientB = await signIn('b@test.flowquest.dev', 'Motdepasse1')
+  const { data: userA } = await clientA.auth.getUser()
+  const { data: userB } = await clientB.auth.getUser()
+
+  const dayAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString()
+
+  async function completeFocusSession(client: typeof clientA, userId: string, startedAt: string) {
+    const { error } = await client
+      .from('focus_sessions')
+      .insert({ user_id: userId, kind: 'focus', planned_seconds: 1500, actual_seconds: 1500, started_at: startedAt, completed: true })
+    if (error) throw error
+  }
+
+  // 1. A et B complètent chacun une session aujourd'hui : la série démarre à 1 pour les deux.
+  await completeFocusSession(clientA, userA.user!.id, dayAgo(0))
+  await completeFocusSession(clientB, userB.user!.id, dayAgo(0))
+  const { data: aStreaks1 } = await clientA.rpc('list_duo_streaks')
+  const bFromA1 = aStreaks1?.find((s: { friend_id: string }) => s.friend_id === userB.user!.id)
+  console.assert(bFromA1?.current_streak === 1 && bFromA1?.active_today === true, 'ÉCHEC : la série commune n’a pas démarré à 1.')
+  console.log('OK : série commune démarrée à 1 pour A et B.')
+
+  // 2. Le lendemain (simulé), les deux complètent encore une session : la série passe à 2.
+  await completeFocusSession(clientA, userA.user!.id, dayAgo(-1))
+  await completeFocusSession(clientB, userB.user!.id, dayAgo(-1))
+  // Remarque : dayAgo(-1) pointe dans le futur par rapport à « aujourd'hui » réel ; à
+  // adapter si tu rejoues ce script plus tard dans la même journée (utilise de vraies
+  // dates passées/futures cohérentes avec le moment où tu testes).
+  const { data: aStreaks2 } = await clientA.rpc('list_duo_streaks')
+  const bFromA2 = aStreaks2?.find((s: { friend_id: string }) => s.friend_id === userB.user!.id)
+  console.assert(bFromA2?.current_streak === 2, 'ÉCHEC : la série commune n’a pas incrémenté le jour suivant.')
+  console.log('OK : série commune incrémentée à 2 le jour suivant.')
+
+  // 3. Un tiers non ami ne doit jamais voir cette ligne de duo_streaks directement.
+  const { data: directRead } = await clientA.from('duo_streaks').select('*')
+  console.assert(
+    directRead?.every((row: { user_low: string; user_high: string }) => [row.user_low, row.user_high].includes(userA.user!.id)),
+    'ÉCHEC : duo_streaks renvoie des paires qui ne concernent pas l’appelant !',
+  )
+  console.log('OK : duo_streaks reste limitée aux paires dont on fait partie.')
+}
+
+testDuoStreaks().then(() => console.log('Script Série partagée terminé.'))
+```
+
+### Résultat attendu
+
+Uniquement des lignes `OK :`. La remise à zéro après un jour manqué (reset paresseux de
+`list_duo_streaks()`) n'est pas couverte par ce script simplifié — à vérifier en insérant
+une session complétée pour un seul des deux comptes, en avançant artificiellement
+`last_active_date` de plus d'un jour dans le passé via le SQL Editor, puis en rappelant
+`list_duo_streaks()` et en confirmant que `current_streak` retombe à 0.

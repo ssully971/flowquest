@@ -260,4 +260,37 @@ describe('friends-repository — appels RPC et mise en forme (LOT F1)', () => {
       ],
     })
   })
+
+  it('listDuoStreaks appelle list_duo_streaks et met les colonnes en camelCase', async () => {
+    rpcMock.mockResolvedValue({
+      data: [
+        {
+          friend_id: 'u1',
+          username: 'ami',
+          display_name: 'Ami',
+          avatar_url: null,
+          avatar_version: 0,
+          current_streak: 5,
+          longest_streak: 9,
+          last_active_date: '2026-01-10',
+          active_today: true,
+        },
+      ],
+      error: null,
+    })
+    const { listDuoStreaks } = await import('./friends-repository')
+
+    const result = await listDuoStreaks()
+
+    expect(rpcMock).toHaveBeenCalledWith('list_duo_streaks')
+    expect(result).toEqual([
+      {
+        friendId: 'u1',
+        currentStreak: 5,
+        longestStreak: 9,
+        lastActiveDate: '2026-01-10',
+        activeToday: true,
+      },
+    ])
+  })
 })

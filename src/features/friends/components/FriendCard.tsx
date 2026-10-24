@@ -1,4 +1,4 @@
-import { Flag, MoreVertical, UserMinus, UserX } from 'lucide-react'
+import { Flag, Flame, MoreVertical, UserMinus, UserX } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { Avatar } from '@/features/avatar/components/Avatar'
@@ -6,18 +6,19 @@ import { strings } from '@/shared/i18n'
 import type { CheerEmoji } from '@/shared/supabase/database.types'
 
 import { formatElapsedMinutes, liveStateColor } from '../live-status-format'
-import type { Friend } from '../types'
+import type { DuoStreak, Friend } from '../types'
 import { CheerPicker } from './CheerPicker'
 
 interface FriendCardProps {
   friend: Friend
+  streak?: DuoStreak | null
   onRemove: (otherUserId: string) => void
   onBlock: (otherUserId: string) => void
   onReport: (friend: Friend) => void
   onCheer: (otherUserId: string, emoji: CheerEmoji) => void
 }
 
-export function FriendCard({ friend, onRemove, onBlock, onReport, onCheer }: FriendCardProps) {
+export function FriendCard({ friend, streak, onRemove, onBlock, onReport, onCheer }: FriendCardProps) {
   const s = strings.friends
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -71,8 +72,21 @@ export function FriendCard({ friend, onRemove, onBlock, onReport, onCheer }: Fri
         statusLabel={statusLabel}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-sm font-medium text-[var(--text)]">
-          {friend.displayName || friend.username}
+        <span className="flex items-center gap-1 truncate text-sm font-medium text-[var(--text)]">
+          <span className="truncate">{friend.displayName || friend.username}</span>
+          {streak && streak.currentStreak > 0 ? (
+            <span
+              className={`inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold ${
+                streak.activeToday ? 'text-[#F59E0B]' : 'text-[var(--muted)]'
+              }`}
+              title={`${s.duoStreak.title} : ${streak.currentStreak} — ${
+                streak.activeToday ? s.duoStreak.doneToday : s.duoStreak.pendingToday
+              }`}
+            >
+              <Flame size={12} strokeWidth={2} aria-hidden="true" />
+              {streak.currentStreak}
+            </span>
+          ) : null}
         </span>
         {statusLabel ? (
           <span className="truncate text-xs text-[var(--muted)]">{statusLabel}</span>

@@ -4,6 +4,7 @@ import { useAuth } from '@/features/auth/useAuth'
 import { FloatingPanel } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
+import { useDuoStreaks } from '../useDuoStreaks'
 import { useFriends } from '../useFriends'
 import { useLeaderboard } from '../useLeaderboard'
 import type { Friend } from '../types'
@@ -29,8 +30,11 @@ export function FriendsPanel({ open, onClose }: FriendsPanelProps) {
   const [reportTarget, setReportTarget] = useState<Friend | null>(null)
   const friendsState = useFriends()
   const leaderboardState = useLeaderboard()
+  const duoStreaksState = useDuoStreaks()
 
   if (!open) return null
+
+  const streakByFriendId = new Map(duoStreaksState.streaks.map((streak) => [streak.friendId, streak]))
 
   const requestCount = friendsState.incomingRequests.length
 
@@ -116,6 +120,7 @@ export function FriendsPanel({ open, onClose }: FriendsPanelProps) {
                       <FriendCard
                         key={friend.friendshipId}
                         friend={friend}
+                        streak={streakByFriendId.get(friend.id)}
                         onRemove={(id) => void friendsState.unfriend(id)}
                         onBlock={(id) => void friendsState.block(id)}
                         onReport={setReportTarget}

@@ -362,6 +362,11 @@ export const fr = {
         encourage: 'Chaque session compte, continue !',
       },
     },
+    duoStreak: {
+      title: 'Série commune',
+      doneToday: 'fait aujourd’hui',
+      pendingToday: 'à faire aujourd’hui',
+    },
   },
   rooms: {
     panelTitle: 'Salons',

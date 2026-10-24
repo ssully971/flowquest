@@ -151,6 +151,21 @@ export interface Database {
         Update: Record<string, never>
         Relationships: []
       }
+      duo_streaks: {
+        Row: {
+          user_low: string
+          user_high: string
+          current_streak: number
+          longest_streak: number
+          last_active_date: string | null
+          updated_at: string
+        }
+        // Aucune politique RLS INSERT/UPDATE/DELETE : entretenue exclusivement par le
+        // trigger bump_duo_streaks() et par le reset paresseux de list_duo_streaks().
+        Insert: Record<string, never>
+        Update: Record<string, never>
+        Relationships: []
+      }
       user_settings: {
         Row: {
           user_id: string
@@ -525,6 +540,10 @@ export interface Database {
         Args: { p_room_id: string }
         Returns: RoomStateRow[]
       }
+      list_duo_streaks: {
+        Args: Record<string, never>
+        Returns: DuoStreakRow[]
+      }
     }
   }
 }
@@ -619,4 +638,16 @@ export interface RoomStateRow {
   participant_role: RoomParticipantRole
   participant_status: RoomParticipantStatus
   participant_is_present: boolean
+}
+
+export interface DuoStreakRow {
+  friend_id: string
+  username: string
+  display_name: string | null
+  avatar_url: string | null
+  avatar_version: number
+  current_streak: number
+  longest_streak: number
+  last_active_date: string | null
+  active_today: boolean
 }

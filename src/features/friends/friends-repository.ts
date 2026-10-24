@@ -1,6 +1,7 @@
 import { supabase } from '@/shared/supabase/client'
 import type {
   CheerEmoji,
+  DuoStreakRow,
   FriendProfilePreviewRow,
   FriendRequestRow,
   FriendRow,
@@ -8,7 +9,7 @@ import type {
   UnreadCheerRow,
 } from '@/shared/supabase/database.types'
 
-import type { Friend, FriendProfilePreview, FriendRequest, Leaderboard, UnreadCheer } from './types'
+import type { DuoStreak, Friend, FriendProfilePreview, FriendRequest, Leaderboard, UnreadCheer } from './types'
 
 export class FriendsError extends Error {}
 
@@ -200,4 +201,21 @@ export async function fetchWeeklyLeaderboard(weekOffset: 0 | 1): Promise<Leaderb
     weekStart: rows[0]?.week_start ?? '',
     weekEnd: rows[0]?.week_end ?? '',
   }
+}
+
+function mapDuoStreak(row: DuoStreakRow): DuoStreak {
+  return {
+    friendId: row.friend_id,
+    currentStreak: row.current_streak,
+    longestStreak: row.longest_streak,
+    lastActiveDate: row.last_active_date,
+    activeToday: row.active_today,
+  }
+}
+
+export async function listDuoStreaks(): Promise<DuoStreak[]> {
+  const client = requireClient()
+  const { data, error } = await client.rpc('list_duo_streaks')
+  if (error) throw new FriendsError(translateRpcError(error.message))
+  return (data ?? []).map(mapDuoStreak)
 }

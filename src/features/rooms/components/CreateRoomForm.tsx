@@ -8,13 +8,14 @@ import { ROOM_MAX_INVITEES, ROOM_MAX_FOCUS_MINUTES, ROOM_MIN_FOCUS_MINUTES } fro
 
 interface CreateRoomFormProps {
   friends: Friend[]
+  friendsLoading?: boolean
   onCreate: (focusMinutes: number, friendIds: string[]) => Promise<string | null>
   onCreated: (roomId: string) => void
 }
 
 const DURATION_PRESETS = [15, 25, 45, 60]
 
-export function CreateRoomForm({ friends, onCreate, onCreated }: CreateRoomFormProps) {
+export function CreateRoomForm({ friends, friendsLoading, onCreate, onCreated }: CreateRoomFormProps) {
   const s = strings.rooms.create
   const [focusMinutes, setFocusMinutes] = useState(25)
   const [selected, setSelected] = useState<string[]>([])
@@ -69,7 +70,9 @@ export function CreateRoomForm({ friends, onCreate, onCreated }: CreateRoomFormP
 
       <div className="flex flex-col gap-2">
         <span className="text-sm font-medium text-[var(--text)]">{s.friendsLabel}</span>
-        {friends.length === 0 ? (
+        {friendsLoading ? (
+          <p className="text-sm text-[var(--muted)]">{strings.rooms.loading}</p>
+        ) : friends.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">{s.noFriends}</p>
         ) : (
           <ul className="flex flex-col gap-2">
@@ -110,7 +113,7 @@ export function CreateRoomForm({ friends, onCreate, onCreated }: CreateRoomFormP
       <button
         type="button"
         onClick={() => void handleSubmit()}
-        disabled={isCreating}
+        disabled={isCreating || selected.length === 0}
         className="h-11 rounded-xl bg-[var(--accent)] px-4 text-sm font-medium text-[var(--on-accent)] transition-opacity duration-200 disabled:opacity-40"
       >
         {isCreating ? s.creating : s.submit}

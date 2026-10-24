@@ -200,6 +200,26 @@ envisagée — voir `docs/AMIS.md` pour le détail produit complet et les écart
   et les sessions de salon ne comptent pas encore dans les statistiques personnelles ni la
   série individuelle de chacun — décision délibérément différée, voir `docs/AMIS.md`.
 
+### 10.4 Série partagée ✅ (LOT F4)
+- Une série par paire d'amis, affichée en flamme 🔥 directement sur la liste d'amis (pas
+  d'écran dédié) : un jour compte dès que les deux ont chacun complété au moins une
+  session de focus ce jour-là — voir `docs/AMIS.md`/`docs/SECURITE.md` pour la définition
+  exacte, volontairement différente de la série individuelle (objectif quotidien).
+- Entretenue côté base (trigger sur `focus_sessions`), mise à jour en temps réel entre les
+  deux comptes concernés.
+- **Pas encore couvert** : pas de rappel avant de perdre la série, et les sessions faites
+  dans un salon de focus (§10.3) n'y comptent pas encore (même limitation assumée que pour
+  les statistiques personnelles).
+
+### 10.5 Finitions (LOT F4)
+Passe de relecture sur l'ensemble du Mode Amis (F1 à F4) avant de le considérer complet :
+- Tous les écrans vérifiés pour un état vide/chargement/erreur cohérent (liste d'amis,
+  demandes, classement, mes salons, création de salon).
+- Deux écarts trouvés et corrigés : `create_room()` acceptait une liste d'invités vide
+  (un salon sans personne n'a pas de sens — désormais refusé, côté base et côté
+  interface) ; `generate_unique_username()` n'avait pas de droit d'exécution explicite
+  (voir « Passe de sécurité » dans `docs/SECURITE.md`).
+
 ## 11. Défis et succès (V3)
 
 ### 11.1 Défis quotidiens
@@ -276,6 +296,7 @@ Toutes les tables ont `id` (uuid), `created_at`, et le **RLS activé**.
 - Bucket Storage `avatars` ✅ : `{uid}/avatar.webp` (ou `.jpg`), public en lecture, écriture limitée à son propre dossier.
 - `rooms` ✅ : `host_id`, `status` (`lobby`|`running`|`paused`|`ended`), `focus_minutes`, `started_at`, `duration_ms`, `elapsed_ms_at_pause`, `ended_at`.
 - `room_participants` ✅ : `room_id`, `user_id`, `role` (`host`|`member`), `status` (`invited`|`joined`|`declined`|`left`|`abandoned`), `joined_at`, `left_at`, `last_seen_at`.
+- `duo_streaks` ✅ : `user_low`, `user_high`, `current_streak`, `longest_streak`, `last_active_date`.
 - `push_subscriptions` : `user_id`, `endpoint`, `keys`, `device`.
 - `scheduled_alerts` : `user_id`, `fire_at`, `payload`, `sent`.
 - `themes`, `quotes`, `sounds`, `session_tally_styles`, `changelog` : contenu géré par l'admin.

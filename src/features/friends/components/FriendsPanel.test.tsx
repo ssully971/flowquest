@@ -6,9 +6,11 @@ import { FriendsPanel } from './FriendsPanel'
 
 const useAuthMock = vi.fn()
 const useFriendsMock = vi.fn()
+const useDuoStreaksMock = vi.fn()
 
 vi.mock('@/features/auth/useAuth', () => ({ useAuth: () => useAuthMock() }))
 vi.mock('../useFriends', () => ({ useFriends: () => useFriendsMock() }))
+vi.mock('../useDuoStreaks', () => ({ useDuoStreaks: () => useDuoStreaksMock() }))
 
 const FRIEND = {
   friendshipId: 'f1',
@@ -62,6 +64,7 @@ beforeEach(() => {
     profile: { friend_code: 'A3F7K9P2' },
   })
   useFriendsMock.mockReturnValue(baseFriendsState())
+  useDuoStreaksMock.mockReturnValue({ streaks: [], isLoading: false, loadError: null, refresh: vi.fn() })
 })
 
 describe('FriendsPanel — onglet principal Amis (LOT F1)', () => {
@@ -80,6 +83,17 @@ describe('FriendsPanel — onglet principal Amis (LOT F1)', () => {
     render(<FriendsPanel open onClose={vi.fn()} />)
     expect(screen.getByText('Mon Ami')).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: /Demandes/ })).toHaveTextContent('1')
+  })
+
+  it('associe la série commune (LOT F4) de useDuoStreaks à l’ami correspondant', () => {
+    useDuoStreaksMock.mockReturnValue({
+      streaks: [{ friendId: 'u1', currentStreak: 4, longestStreak: 4, lastActiveDate: '2026-01-10', activeToday: false }],
+      isLoading: false,
+      loadError: null,
+      refresh: vi.fn(),
+    })
+    render(<FriendsPanel open onClose={vi.fn()} />)
+    expect(screen.getByTitle(/Série commune : 4/)).toBeInTheDocument()
   })
 
   it('bascule vers l’onglet Demandes et affiche la demande reçue', async () => {

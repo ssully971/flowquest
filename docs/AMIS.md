@@ -13,9 +13,9 @@ produit/vie privée.
 | F1 | Profil, photo, amis, vie privée | ✅ Livré |
 | F2 | Statut en direct, encouragements, classement | ✅ Livré |
 | F3 | Salons de focus ensemble | ✅ Livré |
-| F4 | Série partagée, finitions | À venir |
+| F4 | Série partagée, finitions | ✅ Livré |
 
-## Modèle de données (F1 + F2 + F3)
+## Modèle de données (F1 + F2 + F3 + F4)
 
 ### `profiles` (étendue)
 
@@ -97,10 +97,24 @@ score personnel de la page Stats.
 | `room_participants` | `status` | `invited` → `joined` (ou `declined`) → `left`/`abandoned`. |
 | `room_participants` | `last_seen_at` | Battement de cœur du salon (mis à jour par `get_room_state()`, pas lié au statut en direct personnel du LOT F2) — silence de plus de 2 minutes pendant que le salon tourne = abandon détecté. |
 
-Fonctions (`0029_rooms_rpc.sql`) : `create_room`, `respond_room_invite`, `start_room`,
-`pause_room`, `resume_room`, `end_room`, `transfer_host`, `leave_room`, `list_my_rooms`,
-`get_room_state`. Voir `docs/SECURITE.md` pour le détail des politiques et de
-l'entretien paresseux (`_room_tick`).
+Fonctions (`0029_rooms_rpc.sql`, durcie par `0033` — voir plus bas) : `create_room`,
+`respond_room_invite`, `start_room`, `pause_room`, `resume_room`, `end_room`,
+`transfer_host`, `leave_room`, `list_my_rooms`, `get_room_state`. Voir `docs/SECURITE.md`
+pour le détail des politiques et de l'entretien paresseux (`_room_tick`).
+
+### `duo_streaks` (série partagée, nouvelle, migration `0031`)
+
+| Colonne | Rôle |
+|---|---|
+| `user_low` / `user_high` | Paire d'amis (mêmes colonnes génératrices least/greatest que `friendships`), clé primaire. |
+| `current_streak` | Jours consécutifs où les deux ont chacun complété une session de focus. |
+| `longest_streak` | Record de la paire, survit à une remise à zéro de `current_streak`. |
+| `last_active_date` | Dernier jour (America/Guadeloupe) compté pour la paire. |
+
+Entretenue par un trigger sur `focus_sessions` (`bump_duo_streaks()`, migration `0031`),
+pas recalculée à chaque lecture sur tout l'historique — voir `docs/SECURITE.md` pour le
+détail et la justification de ce choix. Fonction de lecture : `list_duo_streaks()`
+(migration `0032`), avec remise à zéro paresseuse des séries interrompues.
 
 ## Règles produit
 
@@ -195,6 +209,23 @@ désactivé par défaut.
   fonctionnalité de minimisation dédiée dans ce lot, ce comportement suffit.
 - Aucun détail de tâche n'est jamais partagé dans un salon, seulement les avatars, pseudos
   et le minuteur commun.
+- **Un salon sans invité n'a pas de sens** (finition LOT F4) : `create_room()` refuse
+  désormais une liste d'invités vide (migration `0033`), et le bouton « Créer le salon »
+  reste désactivé côté interface tant qu'aucun ami n'est coché.
+
+### Série partagée
+
+- Affichée directement sur la liste d'amis (pas d'onglet dédié) : une flamme 🔥 à côté du
+  pseudo, avec le nombre de jours — en couleur si le jour est déjà fait (`active_today`),
+  en gris sinon (rappel qu'il reste à faire une session aujourd'hui pour ne pas la perdre).
+- Un jour compte dès que **chacun** des deux amis a complété au moins une session de focus
+  ce jour-là (voir `docs/SECURITE.md` pour la définition exacte et pourquoi elle diffère
+  de la série personnelle).
+- Mise à jour en temps réel (Supabase Realtime sur `duo_streaks`) : la série de l'ami
+  avance sans recharger le panneau si lui complète une session pendant que tu le regardes.
+- Les sessions complétées dans un salon de focus (F3) ne comptent **pas** pour l'instant
+  (les salons n'écrivent pas dans `focus_sessions`, voir « Pas encore couvert » du LOT F3)
+  — une évolution possible, pas construite dans ce lot.
 
 ### Comptes bannis
 
@@ -239,18 +270,19 @@ attendant).
   (`useCheers`).
 - `useRealtimeSync` (`src/shared/supabase/useRealtimeSync.ts`) : brique générique extraite
   de `useFriendsRealtime` (F2) lors du LOT F3 — reconnexion sur `visibilitychange`, repli
-  par interrogation toutes les 30 s, canal et écouteurs paramétrables. `useFriendsRealtime`
-  et `useRoomRealtime` (F3, un canal par salon filtré sur `room_id`) en sont deux fines
-  enveloppes ; toute future fonctionnalité temps réel (série partagée, F4) peut la
-  réutiliser telle quelle plutôt que de dupliquer la logique de reconnexion.
+  par interrogation toutes les 30 s, canal et écouteurs paramétrables. `useFriendsRealtime`,
+  `useRoomRealtime` (F3, un canal par salon filtré sur `room_id`) et `useDuoStreaks` (F4,
+  statut en direct de la série partagée) en sont trois fines enveloppes — confirmé
+  réutilisable tel quel comme annoncé lors du LOT F3.
 - Le minuteur partagé d'un salon (`room-timer.ts`, F3) suit le même principe que le
   minuteur individuel : toujours recalculé depuis `started_at`/`duration_ms`/
   `elapsed_ms_at_pause`, jamais accumulé côté client — un tick local d'une seconde ne sert
   qu'à rafraîchir l'affichage, jamais au calcul lui-même.
 
-## Pas encore couvert (prévu dans les lots suivants)
+## Pas encore couvert
 
-- Série partagée à deux (F4).
+Le Mode Amis V1 (lots F1 à F4) est livré en entier. Reste volontairement hors périmètre :
+
 - Interface admin dédiée pour bannir/débannir un compte.
 - Historique du classement au-delà de la semaine précédente.
 - Partage optionnel du détail de la tâche en cours dans le statut en direct (évoqué par le
@@ -262,3 +294,6 @@ attendant).
   en salon aux statistiques personnelles/à la série individuelle (décision produit
   délibérément laissée de côté pour ce lot, pour ne pas coupler deux systèmes sans spec
   explicite sur la façon de compter une session partagée).
+- Série partagée : pas de rappel/notification quand la série est sur le point d'être
+  perdue (ex. « il te reste 3 h pour ne pas perdre ta série avec Léa ») — la flamme grise
+  sur la liste d'amis sert d'indice visuel passif en attendant.

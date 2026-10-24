@@ -51,4 +51,12 @@ export interface Leaderboard {
   weekEnd: string
 }
 
+export interface DuoStreak {
+  friendId: string
+  currentStreak: number
+  longestStreak: number
+  lastActiveDate: string | null
+  activeToday: boolean
+}
+
 export type { CheerEmoji }
