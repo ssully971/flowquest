@@ -145,11 +145,19 @@ Menu : Thèmes · Horloge · Minuteur · Stats · Citations · Extras · Compte 
 - **Tendance de focus** : courbe sur la période choisie.
 - Chaque variation est comparée à la période précédente (flèche + pourcentage).
 
-## 10. Social (V2)
+## 10. Social (V2 — « Mode Amis », livré en 4 lots F1 à F4, voir `docs/AMIS.md`)
 
-### 10.1 Amis
-- Ajout par **pseudo unique + demande à accepter**, ou par **code/lien d'invitation personnel**.
-- Liste d'amis, demandes en attente, suppression, blocage.
+### 10.1 Amis ✅ (LOT F1)
+- Ajout par **pseudo exact + demande à accepter**, ou par **code ami** (8 caractères,
+  régénérable), avec aperçu avant envoi. Quota de 20 demandes/jour.
+- Liste d'amis, demandes reçues/envoyées (acceptation, refus, retrait), blocage (un compte
+  bloqué ne peut plus recontacter, message générique sans révéler le blocage).
+- Signalement d'un compte (réutilise les messages du support, catégorie dédiée).
+- Photo de profil : recadrage carré, réduction 256×256 WebP ≤ 40 Ko, avatar par défaut
+  généré (jamais de case vide).
+- Page « Amis » (onglet principal) et réglages de vie privée dédiés (« Amis et
+  confidentialité ») : mode invisible, statut en direct, temps/score visibles, participation
+  au classement — tous appliqués côté base, pas seulement côté interface.
 
 ### 10.2 Classement
 - Heures de focus, **période au choix** (semaine, mois, depuis le début), **visible entre amis uniquement**.
@@ -227,13 +235,14 @@ Page publique, accessible sans compte, dans l'esprit de Flocus et d'Outremed : u
 
 Toutes les tables ont `id` (uuid), `created_at`, et le **RLS activé**.
 
-- `profiles` : `id` (= auth.users.id), `username` (unique), `display_name`, `role` (`user`|`admin`), `timezone`, `stats_visibility`.
+- `profiles` : `id` (= auth.users.id), `username` (unique), `display_name`, `role` (`user`|`admin`), `timezone`, `stats_visibility`, `banned_at`, `friend_code` (unique, 8 car.), `avatar_version`, `invisible_mode`, `show_live_status`, `show_total_time_score`, `participate_leaderboard` ✅.
 - `user_settings` : `user_id`, `settings` (jsonb : thèmes par mode, horloge, minuteur, extras…).
 - `timer_state` : `user_id`, `mode`, `state`, `segment`, `started_at`, `duration`, `paused_total`, `task_id`, `updated_at`.
 - `sessions` : `user_id`, `kind` (`focus`|`short_break`|`long_break`), `started_at`, `ended_at`, `planned_seconds`, `actual_seconds`, `completed`, `task_id`, `group_session_id`.
 - `tasks` : `user_id`, `title`, `emoji`, `color`, `eta_minutes`, `parent_id`, `position`, `done`, `done_at`.
 - `notes` : `user_id`, `content`, `updated_at`.
-- `friendships` : `requester_id`, `addressee_id`, `status` (`pending`|`accepted`|`blocked`).
+- `friendships` ✅ : `requester_id`, `addressee_id`, `status` (`pending`|`accepted`|`blocked`), `blocked_by`, `user_low`/`user_high` (générées, unicité de la paire).
+- Bucket Storage `avatars` ✅ : `{uid}/avatar.webp` (ou `.jpg`), public en lecture, écriture limitée à son propre dossier.
 - `rooms` : `code` (unique), `owner_id`, `settings`, `control_mode`, `status`, `started_at`.
 - `room_members` : `room_id`, `user_id`, `joined_at`, `left_at`, `abandoned`.
 - `push_subscriptions` : `user_id`, `endpoint`, `keys`, `device`.

@@ -6,7 +6,7 @@ import { isSupabaseConfigured, supabase } from '@/shared/supabase/client'
 import { useToast } from '@/shared/toast'
 
 import { AuthContext } from './auth-context'
-import type { AuthStatus, Profile, ProfileState, SignUpResult } from './auth-context'
+import type { AuthStatus, Profile, ProfileState, ProfileUpdatableFields, SignUpResult } from './auth-context'
 import { translateAuthError } from './auth-errors'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -286,6 +286,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user, showToast],
   )
 
+  const updateProfile = useCallback(
+    async (patch: Partial<ProfileUpdatableFields>) => {
+      if (!supabase || !user) throw new Error('Non connecté')
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(patch)
+        .eq('id', user.id)
+        .select()
+        .single()
+      if (error) {
+        showToast({ type: 'error', message: translateAuthError(error.message) })
+        throw error
+      }
+      setProfile(data)
+    },
+    [user, showToast],
+  )
+
   const value = useMemo(
     () => ({
       status,
@@ -309,6 +327,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isPasswordRecovery,
       clearPasswordRecovery,
       deleteAccount,
+      updateProfile,
     }),
     [
       status,
@@ -331,6 +350,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isPasswordRecovery,
       clearPasswordRecovery,
       deleteAccount,
+      updateProfile,
     ],
   )
 

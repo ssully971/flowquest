@@ -1,5 +1,14 @@
 export type SettingsPageId =
-  'themes' | 'clock' | 'timer' | 'stats' | 'quotes' | 'extras' | 'account' | 'support' | 'changelog'
+  | 'themes'
+  | 'clock'
+  | 'timer'
+  | 'stats'
+  | 'quotes'
+  | 'extras'
+  | 'account'
+  | 'friends'
+  | 'support'
+  | 'changelog'
 
 export const SETTINGS_PAGE_IDS: SettingsPageId[] = [
   'themes',
@@ -9,6 +18,7 @@ export const SETTINGS_PAGE_IDS: SettingsPageId[] = [
   'quotes',
   'extras',
   'account',
+  'friends',
   'support',
   'changelog',
 ]

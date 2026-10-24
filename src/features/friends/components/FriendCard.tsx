@@ -1,0 +1,113 @@
+import { Flag, MoreVertical, UserMinus, UserX } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+
+import { Avatar } from '@/features/avatar/components/Avatar'
+import { strings } from '@/shared/i18n'
+
+import type { Friend } from '../types'
+
+interface FriendCardProps {
+  friend: Friend
+  onRemove: (otherUserId: string) => void
+  onBlock: (otherUserId: string) => void
+  onReport: (friend: Friend) => void
+}
+
+export function FriendCard({ friend, onRemove, onBlock, onReport }: FriendCardProps) {
+  const s = strings.friends
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [menuOpen])
+
+  const handleRemove = () => {
+    setMenuOpen(false)
+    if (window.confirm(s.confirmRemove)) onRemove(friend.id)
+  }
+  const handleBlock = () => {
+    setMenuOpen(false)
+    if (window.confirm(s.confirmBlock)) onBlock(friend.id)
+  }
+  const handleReport = () => {
+    setMenuOpen(false)
+    onReport(friend)
+  }
+
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3.5 py-3">
+      <Avatar
+        userId={friend.id}
+        username={friend.username}
+        displayName={friend.displayName}
+        avatarUrl={friend.avatarUrl}
+        avatarVersion={friend.avatarVersion}
+      />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-sm font-medium text-[var(--text)]">
+          {friend.displayName || friend.username}
+        </span>
+        <span className="truncate text-xs text-[var(--muted)]">@{friend.username}</span>
+      </div>
+
+      <div ref={menuRef} className="relative">
+        <button
+          type="button"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          aria-label={s.actions.more}
+          aria-expanded={menuOpen}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--muted)] transition-colors duration-200 hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+        >
+          <MoreVertical size={18} strokeWidth={1.75} aria-hidden="true" />
+        </button>
+        {menuOpen ? (
+          <div
+            role="menu"
+            className="absolute right-0 top-full z-10 mt-1 flex w-44 flex-col overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] py-1 shadow-lg"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleRemove}
+              className="flex items-center gap-2 px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--surface-2)]"
+            >
+              <UserMinus size={15} strokeWidth={1.75} aria-hidden="true" />
+              {s.actions.remove}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleBlock}
+              className="flex items-center gap-2 px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--surface-2)]"
+            >
+              <UserX size={15} strokeWidth={1.75} aria-hidden="true" />
+              {s.actions.block}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleReport}
+              className="flex items-center gap-2 px-3 py-2 text-left text-sm text-[#E5484D] hover:bg-[var(--surface-2)]"
+            >
+              <Flag size={15} strokeWidth={1.75} aria-hidden="true" />
+              {s.actions.report}
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}

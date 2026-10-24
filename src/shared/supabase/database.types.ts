@@ -10,6 +10,9 @@ export type TimerMode = 'pomodoro' | 'countdown' | 'stopwatch'
 export type TimerSegment = 'focus' | 'short_break' | 'long_break' | 'countdown' | 'stopwatch'
 export type TimerStatus = 'idle' | 'running' | 'paused' | 'completed'
 export type SupportMessageStatus = 'pending' | 'processed'
+export type SupportMessageCategory = 'contact' | 'report'
+export type FriendshipStatus = 'pending' | 'accepted' | 'blocked'
+export type FriendRequestDirection = 'incoming' | 'outgoing'
 
 export interface Database {
   public: {
@@ -23,6 +26,13 @@ export interface Database {
           role: UserRole
           timezone: string
           stats_visibility: StatsVisibility
+          banned_at: string | null
+          friend_code: string
+          avatar_version: number
+          invisible_mode: boolean
+          show_live_status: boolean
+          show_total_time_score: boolean
+          participate_leaderboard: boolean
           created_at: string
           updated_at: string
         }
@@ -40,7 +50,29 @@ export interface Database {
           avatar_url?: string | null
           timezone?: string
           stats_visibility?: StatsVisibility
+          friend_code?: string
+          invisible_mode?: boolean
+          show_live_status?: boolean
+          show_total_time_score?: boolean
+          participate_leaderboard?: boolean
         }
+        Relationships: []
+      }
+      friendships: {
+        Row: {
+          id: string
+          requester_id: string
+          addressee_id: string
+          status: FriendshipStatus
+          blocked_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        // Aucune politique RLS INSERT/UPDATE/DELETE : toute mutation passe par les RPC
+        // dédiées (send_friend_request, respond_friend_request...), jamais une écriture
+        // directe côté client.
+        Insert: Record<string, never>
+        Update: Record<string, never>
         Relationships: []
       }
       user_settings: {
@@ -197,6 +229,8 @@ export interface Database {
           email: string
           body: string
           status: SupportMessageStatus
+          category: SupportMessageCategory
+          reported_user_id: string | null
           created_at: string
         }
         Insert: {
@@ -205,6 +239,8 @@ export interface Database {
           email: string
           body: string
           status?: SupportMessageStatus
+          category?: SupportMessageCategory
+          reported_user_id?: string | null
         }
         Update: {
           status?: SupportMessageStatus
@@ -297,6 +333,95 @@ export interface Database {
         Args: Record<string, never>
         Returns: undefined
       }
+      is_banned: {
+        Args: { uid?: string }
+        Returns: boolean
+      }
+      admin_ban_user: {
+        Args: { p_target_user_id: string; p_reason?: string | null }
+        Returns: undefined
+      }
+      admin_unban_user: {
+        Args: { p_target_user_id: string }
+        Returns: undefined
+      }
+      regenerate_friend_code: {
+        Args: Record<string, never>
+        Returns: string
+      }
+      send_friend_request: {
+        Args: { p_code?: string | null; p_username?: string | null }
+        Returns: Database['public']['Tables']['friendships']['Row']
+      }
+      respond_friend_request: {
+        Args: { p_friendship_id: string; p_accept: boolean }
+        Returns: undefined
+      }
+      cancel_friend_request: {
+        Args: { p_friendship_id: string }
+        Returns: undefined
+      }
+      remove_friend: {
+        Args: { p_other_user_id: string }
+        Returns: undefined
+      }
+      block_user: {
+        Args: { p_other_user_id: string }
+        Returns: undefined
+      }
+      unblock_user: {
+        Args: { p_other_user_id: string }
+        Returns: undefined
+      }
+      find_profile_preview: {
+        Args: { p_code?: string | null; p_username?: string | null }
+        Returns: FriendProfilePreviewRow[]
+      }
+      list_friends: {
+        Args: Record<string, never>
+        Returns: FriendRow[]
+      }
+      list_friend_requests: {
+        Args: Record<string, never>
+        Returns: FriendRequestRow[]
+      }
+      report_user: {
+        Args: { p_target_user_id: string; p_reason: string }
+        Returns: undefined
+      }
+      admin_remove_avatar: {
+        Args: { p_target_user_id: string }
+        Returns: undefined
+      }
     }
   }
+}
+
+export interface FriendProfilePreviewRow {
+  id: string
+  username: string
+  display_name: string | null
+  avatar_url: string | null
+  avatar_version: number
+}
+
+export interface FriendRow {
+  friendship_id: string
+  id: string
+  username: string
+  display_name: string | null
+  avatar_url: string | null
+  avatar_version: number
+  since: string
+}
+
+export interface FriendRequestRow {
+  friendship_id: string
+  direction: FriendRequestDirection
+  id: string
+  username: string
+  display_name: string | null
+  avatar_url: string | null
+  avatar_version: number
+  created_at: string
 }

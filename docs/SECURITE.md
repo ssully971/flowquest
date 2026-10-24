@@ -30,10 +30,23 @@ un utilisateur de lire ou modifier les données d'un autre.
 | UPDATE | `auth.uid() = id` — un utilisateur ne modifie que son propre profil. |
 | DELETE | Aucune politique : pas de suppression directe (la suppression de compte passe par `auth.admin.deleteUser`, qui cascade via la contrainte `on delete cascade`). |
 
-Pas de lecture inter-utilisateurs pour l'instant : les fonctionnalités sociales (amis,
-classement, §10 du cahier des charges) sont hors périmètre de cette phase. Quand elles
-arriveront, une politique SELECT plus large (ou une vue limitée à `username`/`avatar_url`)
-sera ajoutée explicitement, jamais en assouplissant celle-ci par erreur.
+**Mode Amis (LOT F1)** : la politique SELECT ci-dessus n'a **pas** changé — elle reste
+strictement `auth.uid() = id`, même entre amis. Les lectures inter-utilisateurs nécessaires
+aux fonctionnalités sociales (liste d'amis, demandes, aperçu avant ajout) passent par des
+fonctions `SECURITY DEFINER` à champs restreints (`list_friends()`, `list_friend_requests()`,
+`find_profile_preview()` — migration `0022_friend_lookup.sql`), jamais par un élargissement
+de cette politique. C'est le principe déjà appliqué à `is_username_available()` (migration
+`0012`) : jamais assouplir la politique RLS de la table elle-même pour exposer une colonne,
+toujours une fonction dédiée qui ne renvoie que ce qui est nécessaire.
+
+Nouvelles colonnes (migrations `0019`/`0020`) : `banned_at` (modération, voir plus bas),
+`friend_code` (code ami unique de 8 caractères, généré automatiquement — trigger
+`profiles_set_friend_code`), `avatar_version` (contournement du cache d'image, recalculé
+automatiquement par le trigger `profiles_bump_avatar_version`, jamais pris tel quel depuis
+la requête du client), et les 4 réglages de vie privée (`invisible_mode`,
+`show_live_status`, `show_total_time_score`, `participate_leaderboard`) — tous modifiables
+par le propriétaire via la politique `profiles_update_own` déjà existante, comme
+`username`/`display_name`/`avatar_url`.
 
 **Filet de sécurité `ensure_profile()`** (migration `0009_ensure_profile.sql`, SECURITY
 DEFINER) : si la ligne `profiles` d'un utilisateur connecté manque (compte créé avant que
@@ -59,6 +72,20 @@ donne la procédure de vérification manuelle.
   renvoie jamais que la ligne du compte connecté lui-même). **Cette garde est un confort
   de navigation, pas une barrière de sécurité** — la vraie barrière, pour toute future
   table de contenu réservée aux admins, est RLS + `is_admin()` côté base.
+
+### Modération (bannissement)
+
+- `profiles.banned_at` (migration `0019_moderation.sql`) : `null` tant que le compte n'est
+  pas banni. `public.is_banned(uid uuid default auth.uid())` est le pendant exact de
+  `is_admin()` (même forme, même `security definer`) et sert de garde dans **toute**
+  fonction ou politique du Mode Amis — un compte banni ne peut ni envoyer de demande, ni
+  apparaître dans une recherche, une liste d'amis ou un aperçu (voir `are_friends()`,
+  `send_friend_request()`, `list_friends()`, `find_profile_preview()`...).
+- `admin_ban_user(p_target_user_id, p_reason)` / `admin_unban_user(p_target_user_id)` :
+  réservées à `is_admin()`, journalisées dans `admin_log` comme toute action admin. Pas
+  d'interface admin dédiée pour l'instant (à ajouter si besoin) — ces fonctions sont
+  appelables via le SQL Editor ou `supabase.rpc(...)` depuis la console du navigateur en
+  attendant.
 
 ### `user_settings`
 
@@ -101,7 +128,44 @@ existante n'aura besoin d'être recréée quand ces fonctionnalités arriveront.
 Une seule ligne par utilisateur (`user_id` est la clé primaire) : c'est ce qui permet de
 reprendre le minuteur en cours sur un autre appareil (§6.2 du cahier des charges).
 
-### `support_messages` (accès admin)
+### `friendships` (Mode Amis, LOT F1)
+
+| Opération | Règle |
+|---|---|
+| SELECT | `auth.uid() in (requester_id, addressee_id)` — chacun voit ses propres relations. |
+| INSERT / UPDATE / DELETE | **Aucune politique.** Toute mutation passe par une fonction `SECURITY DEFINER` (`send_friend_request`, `respond_friend_request`, `cancel_friend_request`, `remove_friend`, `block_user`, `unblock_user` — migration `0021_friendships.sql`) qui vérifie `auth.uid()` et applique les règles métier (quota de 20 demandes/jour, blocage, unicité) avant d'écrire. Un bug ou une manipulation du client ne peut donc jamais créer, modifier ou supprimer une ligne directement. |
+
+Unicité de la paire quel que soit le sens : colonnes générées `user_low`/`user_high`
+(`least`/`greatest` des deux id), uniques ensemble — sert aussi de cible `ON CONFLICT` pour
+`block_user()`. `are_friends(a, b)` (fonction `security definer`, migration `0021`) est la
+brique réutilisée par toute future politique ayant besoin de savoir si deux comptes sont
+amis (statut en direct et classement — LOT F2) : elle renvoie toujours `false` si l'un des
+deux comptes est banni, ce qui suffit à garantir qu'un compte banni « n'apparaît nulle
+part » partout où elle sert de garde, sans le revérifier à chaque fois.
+
+Les lectures à champs restreints (`list_friends()`, `list_friend_requests()`,
+`find_profile_preview()` — migration `0022_friend_lookup.sql`) ne renvoient jamais un
+compte banni, ni (pour `find_profile_preview()`) un compte qui a bloqué l'appelant — ce
+dernier cas échoue avec le même message générique (« Compte introuvable ») que pour un
+compte réellement inexistant, pour ne jamais laisser deviner qu'on a été bloqué.
+
+### Avatars (Storage, bucket `avatars`, LOT F1)
+
+| Opération | Règle |
+|---|---|
+| SELECT (API Storage authentifiée : `list()`/`get()`) | Limitée à son propre dossier (`(storage.foldername(name))[1] = auth.uid()::text`) — personne ne peut lister le contenu du dossier d'un autre, ni énumérer le bucket entier. |
+| INSERT / UPDATE / DELETE | Même règle : uniquement dans son propre dossier (`{uid}/avatar.webp` ou `{uid}/avatar.jpg`). |
+| Lecture publique (URL directe `/storage/v1/object/public/avatars/...`) | **Hors RLS** : le bucket est marqué `public = true` (migration `0024_avatars_storage.sql`), Supabase sert alors l'octet brut sans passer par `storage.objects` — c'est ce qui donne la « lecture publique » demandée, indépendamment de la politique SELECT ci-dessus qui ne gouverne que l'API Storage authentifiée (list/get). |
+
+Taille maximale 100 Ko et types `image/webp`/`image/jpeg` uniquement, imposés au niveau du
+bucket (`file_size_limit`, `allowed_mime_types`) — en plus de la réduction côté navigateur
+à 256×256 visant ≤ 40 Ko avant l'envoi (`src/features/avatar/process-avatar.ts`), qui passe
+systématiquement l'image par un `<canvas>` (supprime les métadonnées EXIF, jamais
+préservées par `drawImage`+`toBlob`). `admin_remove_avatar(p_target_user_id)` (réservée à
+`is_admin()`, journalisée) déréférence `profiles.avatar_url` **et** supprime le fichier du
+bucket, pour une suppression complète plutôt qu'un lien cassé.
+
+### `support_messages` (accès admin, et signalement d'utilisateur — LOT F1)
 
 | Opération | Règle |
 |---|---|
@@ -109,6 +173,12 @@ reprendre le minuteur en cours sur un autre appareil (§6.2 du cahier des charge
 | UPDATE | `is_admin()` — réservé au changement de `status` (`pending` → `processed`) ; le texte du message n'est jamais modifié depuis le client. |
 | INSERT | Voir plus haut (`0011_support_messages.sql`) : ouverte à tous, connecté ou invité. |
 | DELETE | Aucune politique : pas de suppression depuis le client. |
+
+Le signalement d'un compte (Mode Amis, §2) réutilise cette table plutôt qu'une nouvelle
+(migration `0023_user_reports.sql` : colonnes `category` et `reported_user_id` en plus) :
+`report_user(p_target_user_id, p_reason)` est `security definer`, remplit `email` depuis le
+compte connecté (jamais saisi à la main comme pour le formulaire de contact invité), et
+limite à 10 signalements par jour par compte pour éviter de noyer la file admin.
 
 ### `quotes` et `changelog` (contenu géré par le panneau Admin)
 
@@ -162,6 +232,8 @@ production, corrigé manuellement dans le SQL Editor puis répercuté dans cette
 | `quotes` | SELECT | SELECT, INSERT, UPDATE, DELETE |
 | `changelog` | SELECT | SELECT, INSERT, UPDATE, DELETE |
 | `admin_log` | — | SELECT, INSERT |
+| `friendships` | — | SELECT (toute mutation passe par RPC) |
+| `storage.objects` (bucket `avatars`) | lecture publique hors RLS (bucket `public = true`) | list/get/upload/update/delete limités à son propre dossier |
 
 Un `ALTER DEFAULT PRIVILEGES` (toujours dans `0018_grants.sql`) fait que toute future table
 ou fonction créée par le rôle `postgres` (donc depuis l'éditeur SQL Supabase) hérite

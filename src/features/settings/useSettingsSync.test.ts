@@ -60,6 +60,7 @@ function buildAuthValue(overrides: Partial<AuthContextValue>): AuthContextValue 
     isPasswordRecovery: false,
     clearPasswordRecovery: vi.fn(),
     deleteAccount: vi.fn(),
+    updateProfile: vi.fn(),
     ...overrides,
   }
 }

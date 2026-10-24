@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.4.0',
+    date: '2026-10-24',
+    text: 'Mode Amis (1/4) : photo de profil avec recadrage, code ami et ajout par pseudo exact, liste d’amis et demandes, blocage et signalement, et un nouveau réglage « Amis et confidentialité » pour choisir ce que tes amis voient de toi.',
+  },
+  {
     version: '0.3.0',
     date: '2026-10-17',
     text: 'Réglages Horloge, Minuteur, Citations, Extras, Support et Nouveautés : format et style de l’horloge, durées et démarrage automatique du minuteur, citations avec rotation, nom affiché, mode épuré, thème aléatoire, formulaire de contact, et ce journal des versions.',
