@@ -8,6 +8,16 @@ import type { TallyIconSet } from './tally-icon-set'
 import { TIMER_DISPLAY_STYLES } from './timer-display-style'
 import type { TimerDisplayStyle } from './timer-display-style'
 
+/**
+ * Réglage « Fin de cycle » (LOT E5) : décide ce qui se passe après N sessions de focus
+ * séparées par des pauses courtes — jamais un enchaînement sans fin.
+ * - 'longBreakAfterN' : pause longue au bout de N sessions (comportement historique).
+ *   Si cycleEndUnlimited est vrai, N est sans effet : pas de pause longue automatique,
+ *   l'utilisateur termine quand il veut avec le bouton Terminer.
+ * - 'stopAfterN' : la session se termine (écran de fin) au lieu d'enchaîner une pause longue.
+ */
+export type CycleEndMode = 'longBreakAfterN' | 'stopAfterN'
+
 export interface TimerSettings {
   focusMinutes: number
   shortBreakMinutes: number
@@ -25,6 +35,10 @@ export interface TimerSettings {
   sessionGoalType: SessionGoalType
   sessionGoalCount: number
   sessionGoalMinutes: number
+  cycleEndMode: CycleEndMode
+  cycleEndUnlimited: boolean
+  confettiEnabled: boolean
+  sessionSummaryEnabled: boolean
 }
 
 export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
@@ -44,6 +58,10 @@ export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
   sessionGoalType: 'none',
   sessionGoalCount: 4,
   sessionGoalMinutes: 120,
+  cycleEndMode: 'longBreakAfterN',
+  cycleEndUnlimited: false,
+  confettiEnabled: false,
+  sessionSummaryEnabled: true,
 }
 
 export { TIMER_DISPLAY_STYLES, TALLY_ICON_SETS, SESSION_GOAL_TYPES }

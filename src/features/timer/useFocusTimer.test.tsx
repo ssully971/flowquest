@@ -29,6 +29,8 @@ function seedTimerSettings(overrides: {
   sessionGoalType?: 'none' | 'count' | 'duration'
   sessionGoalCount?: number
   sessionGoalMinutes?: number
+  cycleEndMode?: 'longBreakAfterN' | 'stopAfterN'
+  cycleEndUnlimited?: boolean
 }) {
   window.localStorage.setItem(
     STORAGE_KEY,
@@ -41,6 +43,8 @@ function seedTimerSettings(overrides: {
       sessionGoalType: 'none',
       sessionGoalCount: 4,
       sessionGoalMinutes: 120,
+      cycleEndMode: 'longBreakAfterN',
+      cycleEndUnlimited: false,
       ...overrides,
     }),
   )
@@ -279,5 +283,127 @@ describe('useFocusTimer — numéro de session cohérent entre appareils (LOT E3
     // « session 1 » sur l'un des deux appareils comme dans le bug signalé.
     expect(contextA.result.current.cycle.completedFocusCount).toBe(3)
     expect(contextB.result.current.cycle.completedFocusCount).toBe(3)
+  })
+})
+
+describe('useFocusTimer — jamais de fin de session implicite en changeant d’onglet (LOT E5)', () => {
+  it('bloque le changement d’onglet tant qu’une session tourne ou est en pause', async () => {
+    seedTimerSettings({ focusMinutes: 1 }) // assez long pour ne pas se terminer pendant le test
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+    expect(result.current.isSegmentSwitchBlocked).toBe(false)
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+    expect(result.current.isSegmentSwitchBlocked).toBe(true)
+
+    act(() => result.current.selectSegment('short_break'))
+    // Le changement est bloqué : toujours en focus, aucune nouvelle session enregistrée.
+    expect(result.current.segment).toBe('focus')
+    expect(result.current.snapshot?.status).toBe('running')
+
+    act(() => result.current.pause())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('paused'))
+    expect(result.current.isSegmentSwitchBlocked).toBe(true)
+
+    act(() => result.current.selectSegment('long_break'))
+    expect(result.current.segment).toBe('focus')
+  })
+
+  it('autorise de nouveau le changement d’onglet une fois la session réinitialisée', async () => {
+    seedTimerSettings({ focusMinutes: 1 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+    act(() => result.current.reset())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('idle'))
+
+    expect(result.current.isSegmentSwitchBlocked).toBe(false)
+    act(() => result.current.selectSegment('short_break'))
+    await waitFor(() => expect(result.current.segment).toBe('short_break'))
+  })
+})
+
+describe('useFocusTimer — réglage « Fin de cycle » (LOT E5)', () => {
+  it('mode « S’arrêter après N sessions » : la session se termine au lieu d’enchaîner une pause longue', async () => {
+    seedTimerSettings({
+      sessionsBeforeLongBreak: 2,
+      autoStartNext: true,
+      cycleEndMode: 'stopAfterN',
+    })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.segment).toBe('short_break'), { timeout: 3000 })
+    await waitFor(() => expect(result.current.segment).toBe('focus'), { timeout: 3000 })
+    await waitFor(() => expect(result.current.cycleEnded).toBe(true), { timeout: 3000 })
+
+    expect(result.current.sessionSummary?.sessionsCount).toBe(2)
+    // Jamais de pause longue imposée dans ce mode : le segment reste sur le dernier focus.
+    expect(result.current.segment).toBe('focus')
+  })
+
+  it('mode « Pause longue après N sessions » illimité : pas de pause longue automatique', async () => {
+    seedTimerSettings({
+      sessionsBeforeLongBreak: 2,
+      autoStartNext: true,
+      cycleEndMode: 'longBreakAfterN',
+      cycleEndUnlimited: true,
+    })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.segment).toBe('short_break'), { timeout: 3000 })
+    await waitFor(() => expect(result.current.segment).toBe('focus'), { timeout: 3000 })
+    await waitFor(() => expect(result.current.cycle.completedFocusCount).toBeGreaterThanOrEqual(2), {
+      timeout: 3000,
+    })
+
+    expect(result.current.segment).not.toBe('long_break')
+    expect(result.current.cycleEnded).toBe(false)
+  })
+})
+
+describe('useFocusTimer — fin de session via le bouton Terminer (LOT E6)', () => {
+  it('enregistre la session en cours (temps réel) et affiche le bilan', async () => {
+    seedTimerSettings({ focusMinutes: 1 }) // assez long pour ne pas se terminer pendant le test
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+    // Laisse s'écouler un peu de temps réel avant d'arrêter : actualSeconds est arrondi à
+    // la seconde (voir recordSession), sans quoi un arrêt quasi instantané arrondirait à 0.
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+
+    act(() => result.current.endSession())
+    await waitFor(() => expect(result.current.cycleEnded).toBe(true))
+
+    expect(result.current.sessionSummary).not.toBeNull()
+    expect(result.current.sessionSummary?.sessionsCount).toBe(1)
+    expect(result.current.sessionSummary?.focusSeconds).toBeGreaterThan(0)
+  })
+
+  it('acknowledgeSessionEnd repart sur un cycle neuf', async () => {
+    seedTimerSettings({ focusMinutes: 1 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+    act(() => result.current.endSession())
+    await waitFor(() => expect(result.current.cycleEnded).toBe(true))
+
+    act(() => result.current.acknowledgeSessionEnd())
+
+    await waitFor(() => expect(result.current.cycleEnded).toBe(false))
+    expect(result.current.sessionSummary).toBeNull()
+    expect(result.current.cycle.completedFocusCount).toBe(0)
+    expect(result.current.segment).toBe('focus')
+    expect(result.current.snapshot?.status).toBe('idle')
   })
 })

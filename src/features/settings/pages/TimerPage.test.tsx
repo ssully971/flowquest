@@ -13,7 +13,9 @@ describe('TimerPage — durées Pomodoro et démarrage automatique', () => {
     expect(screen.getByLabelText('Durée de focus')).toHaveValue(25)
     expect(screen.getByLabelText('Pause courte')).toHaveValue(5)
     expect(screen.getByLabelText('Pause longue')).toHaveValue(10)
-    expect(screen.getByLabelText('Sessions avant la pause longue')).toHaveValue(4)
+    // Le nombre de sessions avant la pause longue vit désormais dans le réglage
+    // « Fin de cycle » (LOT E5), sous le libellé « Nombre de sessions ».
+    expect(screen.getByLabelText('Nombre de sessions')).toHaveValue(4)
   })
 
   it('augmente la durée du compte à rebours de 1 min au clic sur +', async () => {

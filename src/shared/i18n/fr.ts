@@ -204,6 +204,7 @@ export const fr = {
       pause: 'Mettre en pause',
       resume: 'Reprendre',
       skip: 'Passer',
+      endSession: 'Terminer',
       pictureInPicture: 'Image dans l’image',
       pictureInPictureUnavailable: 'Image dans l’image indisponible sur ce navigateur',
     },
@@ -215,6 +216,14 @@ export const fr = {
       shortBreakDone: 'Pause courte terminée.',
       longBreakDone: 'Pause longue terminée.',
       countdownDone: 'Compte à rebours terminé.',
+    },
+    sessionEnd: {
+      title: 'Session terminée',
+      focusDuration: 'Temps de focus',
+      sessionsCount: 'Sessions',
+      pausesCount: 'Pauses',
+      tasksCompleted: 'Tâches validées',
+      acknowledge: 'Nouvelle session',
     },
   },
   home: {
@@ -490,7 +499,6 @@ export const fr = {
       focusDuration: 'Durée de focus',
       shortBreakDuration: 'Pause courte',
       longBreakDuration: 'Pause longue',
-      sessionsBeforeLongBreak: 'Sessions avant la pause longue',
       countdownDuration: 'Durée du compte à rebours',
       autoStartNext: 'Démarrage automatique du segment suivant',
       autoStartNextHint:
@@ -518,6 +526,23 @@ export const fr = {
         planLongBreakPlural: 'pauses longues',
         planTotal: 'au total',
       },
+      cycleEnd: {
+        title: 'Fin de cycle',
+        longBreakAfterN: 'Pause longue après N sessions',
+        stopAfterN: 'S’arrêter après N sessions',
+        sessionsLabel: 'Nombre de sessions',
+        unlimited: 'Illimité',
+        unlimitedHint:
+          'Pas de pause longue automatique : termine le cycle quand tu veux avec le bouton Terminer.',
+        stopAfterNHint:
+          'Une fois ce nombre de sessions atteint, la session se termine au lieu d’enchaîner une pause longue.',
+      },
+      sessionEndTitle: 'Fin de session',
+      confettiEnabled: 'Confettis de fin de session',
+      confettiEnabledHint: 'Des confettis tombent du haut de l’écran quand tu termines une session.',
+      sessionSummaryEnabled: 'Bilan de fin de session',
+      sessionSummaryEnabledHint:
+        'Affiche la durée de focus, le nombre de sessions, de pauses et de tâches validées.',
       displayStyle: 'Style d’affichage',
       displayStyles: {
         default: 'Classique',
