@@ -30,10 +30,23 @@ un utilisateur de lire ou modifier les données d'un autre.
 | UPDATE | `auth.uid() = id` — un utilisateur ne modifie que son propre profil. |
 | DELETE | Aucune politique : pas de suppression directe (la suppression de compte passe par `auth.admin.deleteUser`, qui cascade via la contrainte `on delete cascade`). |
 
-Pas de lecture inter-utilisateurs pour l'instant : les fonctionnalités sociales (amis,
-classement, §10 du cahier des charges) sont hors périmètre de cette phase. Quand elles
-arriveront, une politique SELECT plus large (ou une vue limitée à `username`/`avatar_url`)
-sera ajoutée explicitement, jamais en assouplissant celle-ci par erreur.
+**Mode Amis (LOT F1)** : la politique SELECT ci-dessus n'a **pas** changé — elle reste
+strictement `auth.uid() = id`, même entre amis. Les lectures inter-utilisateurs nécessaires
+aux fonctionnalités sociales (liste d'amis, demandes, aperçu avant ajout) passent par des
+fonctions `SECURITY DEFINER` à champs restreints (`list_friends()`, `list_friend_requests()`,
+`find_profile_preview()` — migration `0022_friend_lookup.sql`), jamais par un élargissement
+de cette politique. C'est le principe déjà appliqué à `is_username_available()` (migration
+`0012`) : jamais assouplir la politique RLS de la table elle-même pour exposer une colonne,
+toujours une fonction dédiée qui ne renvoie que ce qui est nécessaire.
+
+Nouvelles colonnes (migrations `0019`/`0020`) : `banned_at` (modération, voir plus bas),
+`friend_code` (code ami unique de 8 caractères, généré automatiquement — trigger
+`profiles_set_friend_code`), `avatar_version` (contournement du cache d'image, recalculé
+automatiquement par le trigger `profiles_bump_avatar_version`, jamais pris tel quel depuis
+la requête du client), et les 4 réglages de vie privée (`invisible_mode`,
+`show_live_status`, `show_total_time_score`, `participate_leaderboard`) — tous modifiables
+par le propriétaire via la politique `profiles_update_own` déjà existante, comme
+`username`/`display_name`/`avatar_url`.
 
 **Filet de sécurité `ensure_profile()`** (migration `0009_ensure_profile.sql`, SECURITY
 DEFINER) : si la ligne `profiles` d'un utilisateur connecté manque (compte créé avant que
@@ -59,6 +72,20 @@ donne la procédure de vérification manuelle.
   renvoie jamais que la ligne du compte connecté lui-même). **Cette garde est un confort
   de navigation, pas une barrière de sécurité** — la vraie barrière, pour toute future
   table de contenu réservée aux admins, est RLS + `is_admin()` côté base.
+
+### Modération (bannissement)
+
+- `profiles.banned_at` (migration `0019_moderation.sql`) : `null` tant que le compte n'est
+  pas banni. `public.is_banned(uid uuid default auth.uid())` est le pendant exact de
+  `is_admin()` (même forme, même `security definer`) et sert de garde dans **toute**
+  fonction ou politique du Mode Amis — un compte banni ne peut ni envoyer de demande, ni
+  apparaître dans une recherche, une liste d'amis ou un aperçu (voir `are_friends()`,
+  `send_friend_request()`, `list_friends()`, `find_profile_preview()`...).
+- `admin_ban_user(p_target_user_id, p_reason)` / `admin_unban_user(p_target_user_id)` :
+  réservées à `is_admin()`, journalisées dans `admin_log` comme toute action admin. Pas
+  d'interface admin dédiée pour l'instant (à ajouter si besoin) — ces fonctions sont
+  appelables via le SQL Editor ou `supabase.rpc(...)` depuis la console du navigateur en
+  attendant.
 
 ### `user_settings`
 
@@ -101,7 +128,159 @@ existante n'aura besoin d'être recréée quand ces fonctionnalités arriveront.
 Une seule ligne par utilisateur (`user_id` est la clé primaire) : c'est ce qui permet de
 reprendre le minuteur en cours sur un autre appareil (§6.2 du cahier des charges).
 
-### `support_messages` (accès admin)
+### `friendships` (Mode Amis, LOT F1)
+
+| Opération | Règle |
+|---|---|
+| SELECT | `auth.uid() in (requester_id, addressee_id)` — chacun voit ses propres relations. |
+| INSERT / UPDATE / DELETE | **Aucune politique.** Toute mutation passe par une fonction `SECURITY DEFINER` (`send_friend_request`, `respond_friend_request`, `cancel_friend_request`, `remove_friend`, `block_user`, `unblock_user` — migration `0021_friendships.sql`) qui vérifie `auth.uid()` et applique les règles métier (quota de 20 demandes/jour, blocage, unicité) avant d'écrire. Un bug ou une manipulation du client ne peut donc jamais créer, modifier ou supprimer une ligne directement. |
+
+Unicité de la paire quel que soit le sens : colonnes générées `user_low`/`user_high`
+(`least`/`greatest` des deux id), uniques ensemble — sert aussi de cible `ON CONFLICT` pour
+`block_user()`. `are_friends(a, b)` (fonction `security definer`, migration `0021`) est la
+brique réutilisée par toute future politique ayant besoin de savoir si deux comptes sont
+amis (statut en direct et classement — LOT F2) : elle renvoie toujours `false` si l'un des
+deux comptes est banni, ce qui suffit à garantir qu'un compte banni « n'apparaît nulle
+part » partout où elle sert de garde, sans le revérifier à chaque fois.
+
+Les lectures à champs restreints (`list_friends()`, `list_friend_requests()`,
+`find_profile_preview()` — migration `0022_friend_lookup.sql`) ne renvoient jamais un
+compte banni, ni (pour `find_profile_preview()`) un compte qui a bloqué l'appelant — ce
+dernier cas échoue avec le même message générique (« Compte introuvable ») que pour un
+compte réellement inexistant, pour ne jamais laisser deviner qu'on a été bloqué.
+
+### `live_status` (Mode Amis, LOT F2)
+
+| Opération | Règle |
+|---|---|
+| SELECT | `auth.uid() = user_id` (toujours soi-même) **ou** `are_friends(auth.uid(), user_id)` **et** le propriétaire a `show_live_status = true` et `invisible_mode = false` — appliqué côté base, pas seulement filtré côté interface. |
+| INSERT / UPDATE | `auth.uid() = user_id` — pas de règle métier complexe ici (contrairement à `friendships`), donc pas de RPC dédiée : le client écrit directement sa propre ligne (même principe que `timer_state`). |
+| DELETE | Aucune politique. |
+
+« Hors ligne » n'est **pas** une valeur stockée de `state` (`focus`/`pause`/`inactive`
+seulement) : c'est calculé à la lecture par `list_friends()`, qui compare `updated_at` à
+« il y a moins de 2 minutes ». `list_friends()` a été recréée (migration `0025`, `DROP
+FUNCTION` obligatoire pour changer la forme d'un `RETURNS TABLE`) pour joindre ce statut,
+toujours filtré par la vie privée du propriétaire — un ami dont `show_live_status` est
+désactivé ou qui est en mode invisible a `live_state`/`live_started_at` à `null` et
+`live_is_online` à `false`, jamais la vraie valeur masquée côté client seulement.
+
+Table ajoutée à la publication `supabase_realtime` (migration `0025`) : les évènements
+Realtime restent filtrés par la politique SELECT ci-dessus (RLS s'applique aussi aux
+abonnements `postgres_changes`), donc un abonné ne reçoit jamais le statut d'un compte
+qu'il n'a pas le droit de lire.
+
+### `cheers` (encouragements, Mode Amis, LOT F2)
+
+| Opération | Règle |
+|---|---|
+| SELECT | `auth.uid() in (sender_id, recipient_id)`. |
+| INSERT / UPDATE / DELETE | **Aucune politique.** Envoi via `send_cheer()` (vérifie `are_friends()`, quota 1/destinataire/10 min et 30/jour), lecture des non-lus via `list_unread_cheers()`, marquage lu via `mark_cheers_read()` — toutes `security definer`, migration `0026_cheers.sql`. |
+
+Jeu d'emojis fixe imposé par une contrainte `check` sur la colonne (`💪 🔥 👏 ❤️ ☕`), en
+plus de la vérification dans `send_cheer()` : même si la contrainte venait à être
+contournée côté fonction, la colonne refuserait quand même toute autre valeur. Le moment
+où un encouragement est *affiché* (jamais pendant que le destinataire est en focus) est une
+décision purement côté client (`useCheers`), la base ne fait qu'enregistrer et exposer les
+non-lus.
+
+### `weekly_leaderboard()` (classement hebdomadaire, Mode Amis, LOT F2)
+
+Fonction `security definer` (migration `0027_weekly_leaderboard.sql`), pas de nouvelle
+table : agrège `focus_sessions` pour l'appelant et ses amis ayant `participate_leaderboard
+= true` et `invisible_mode = false` (un utilisateur banni est systématiquement exclu).
+`p_week_offset` n'accepte que `0` (semaine en cours) ou `1` (semaine précédente) — toute
+autre valeur lève une exception. Semaine du lundi au dimanche, calculée dans le fuseau
+`America/Guadeloupe` (explicitement demandé), jamais le fuseau du serveur ni celui du
+navigateur de l'appelant.
+
+**Score de classement, distinct du score personnel** : `taux d'achèvement × (0,7 + 0,3 ×
+régularité sur les 7 jours de la semaine) × 100`. C'est une formule différente de
+`computeFocusScore()` côté client (`src/features/stats/compute-stats.ts`, utilisé par la
+page Stats — un simple produit achèvement × régularité, sans le plancher à 0,7). Cet écart
+est assumé : la formule du classement a été fournie telle quelle pour ce lot, et toucher au
+score personnel déjà en production n'était pas dans le périmètre demandé. Une unification
+éventuelle est une décision produit à trancher plus tard, pas une correction de bug.
+
+### `rooms` et `room_participants` (salons de focus ensemble, Mode Amis, LOT F3)
+
+| Opération | Règle |
+|---|---|
+| SELECT (`rooms`) | Participant du salon (`exists (select 1 from room_participants where room_id = rooms.id and user_id = auth.uid())`), quel que soit son statut — y compris une invitation pas encore acceptée (il doit voir l'hôte et la durée annoncée avant de répondre). |
+| SELECT (`room_participants`) | Participant du **même salon**, pas seulement soi-même — les participants d'un salon se voient entre eux même sans lien d'amitié direct (réunis par l'hôte, qui est ami avec chacun). Aucune nouvelle fuite : pseudo/nom/avatar sont déjà consultables par n'importe qui par pseudo exact (`find_profile_preview()`, LOT F1). |
+| INSERT / UPDATE / DELETE (les deux tables) | **Aucune politique.** Toute mutation passe par les fonctions `SECURITY DEFINER` de `0029_rooms_rpc.sql` (`create_room`, `respond_room_invite`, `start_room`, `pause_room`, `resume_room`, `end_room`, `transfer_host`, `leave_room`). |
+
+**`_room_tick(p_room_id)`**, interne (aucun `GRANT`, appelée seulement par les autres
+fonctions du même fichier) : entretien paresseux exécuté en tête de chaque fonction qui
+touche un salon existant — clôt naturellement un salon dont le temps est écoulé, marque
+« abandoned » les participants `joined` silencieux depuis plus de 2 minutes
+(`room_participants.last_seen_at`, pendant que le salon tourne ou est en pause), et
+transfère l'hôte au participant `joined` le plus ancien s'il n'est plus là (ou clôt le
+salon si plus personne n'y est). Pas de job planifié : `get_room_state()` est interrogée en
+continu tant qu'un salon est affiché, ce qui suffit à garder ce nettoyage proche du temps
+réel — voir docs/AMIS.md pour le détail produit.
+
+**`get_room_state(p_room_id)`** double comme battement de cœur : elle met à jour
+`last_seen_at` de l'appelant à chaque appel (jamais celui d'un autre), avant de renvoyer
+l'état — indépendant du statut en direct du minuteur personnel (LOT F2), qui ne reflète pas
+forcément le minuteur partagé d'un salon. Elle exclut aussi tout participant banni
+(`is_banned()`), comme `list_friends()`.
+
+**Un salon réunit au plus 6 personnes** (hôte compris) : vérifié dans `create_room()` en
+comptant les invitations valides, pas seulement côté interface. Chaque invité doit être ami
+avec l'hôte (`are_friends()`) au moment de la création — un salon ne peut pas servir à
+contourner le système d'amis.
+
+### `duo_streaks` (série partagée, Mode Amis, LOT F4)
+
+| Opération | Règle |
+|---|---|
+| SELECT | `auth.uid() in (user_low, user_high)` — chacun ne voit que ses propres paires. |
+| INSERT / UPDATE / DELETE | **Aucune politique.** Entretenue exclusivement par le trigger `bump_duo_streaks()` (`after insert or update on focus_sessions`, `security definer`, migration `0031_duo_streaks.sql`) et par le reset paresseux de `list_duo_streaks()` (migration `0032`). |
+
+Un jour compte pour la paire dès que **chacun** des deux amis a complété (`completed =
+true`) au moins une session de focus ce jour-là, dans le fuseau `America/Guadeloupe` (même
+référence que `weekly_leaderboard()`, LOT F2) — définition volontairement différente de la
+série personnelle (`src/features/stats/compute-stats.ts`), qui exige d'atteindre
+l'objectif quotidien propre à chaque compte : deux amis n'ont pas forcément le même
+objectif, « une vraie session chacun » reste le plus petit dénominateur commun. Le trigger
+ne s'exécute qu'au moment précis où une session devient complétée (jamais sur les pauses,
+jamais en boucle sur des mises à jour déjà traitées), et ne compte que des amis acceptés
+(`are_friends()`) non bannis. La remise à zéro d'une série interrompue est **paresseuse** :
+calculée et appliquée à la lecture (`list_duo_streaks()`) plutôt que par un job planifié,
+même principe que `_room_tick()` (LOT F3).
+
+### Passe de sécurité (LOT F4)
+
+Relecture systématique de toutes les migrations `0001` à `0029` contre cette page (RLS
+activée partout, chaque fonction `SECURITY DEFINER` a `search_path` fixé, chaque fonction
+non-trigger a un `GRANT` ou un `REVOKE` explicite — jamais un accès implicite via le
+comportement par défaut de PostgreSQL qui accorde `EXECUTE` à `PUBLIC` à la création d'une
+fonction). Un seul écart trouvé : `generate_unique_username()` (migration
+`0009_ensure_profile.sql`) n'avait ni `GRANT` ni `REVOKE` explicite — contrairement à
+`generate_friend_code()` (son équivalent, migration `0020`), déjà correctement révoquée.
+Risque réel limité (fonction pure, sans effet de bord, qui ne renvoie qu'un nom candidat
+non utilisé — rien que `is_username_available()` n'expose déjà volontairement), mais
+corrigé par principe (migration `0030_security_pass.sql`) : jamais d'accès qui n'a pas été
+consciemment décidé, même sans conséquence pratique.
+
+### Avatars (Storage, bucket `avatars`, LOT F1)
+
+| Opération | Règle |
+|---|---|
+| SELECT (API Storage authentifiée : `list()`/`get()`) | Limitée à son propre dossier (`(storage.foldername(name))[1] = auth.uid()::text`) — personne ne peut lister le contenu du dossier d'un autre, ni énumérer le bucket entier. |
+| INSERT / UPDATE / DELETE | Même règle : uniquement dans son propre dossier (`{uid}/avatar.webp` ou `{uid}/avatar.jpg`). |
+| Lecture publique (URL directe `/storage/v1/object/public/avatars/...`) | **Hors RLS** : le bucket est marqué `public = true` (migration `0024_avatars_storage.sql`), Supabase sert alors l'octet brut sans passer par `storage.objects` — c'est ce qui donne la « lecture publique » demandée, indépendamment de la politique SELECT ci-dessus qui ne gouverne que l'API Storage authentifiée (list/get). |
+
+Taille maximale 100 Ko et types `image/webp`/`image/jpeg` uniquement, imposés au niveau du
+bucket (`file_size_limit`, `allowed_mime_types`) — en plus de la réduction côté navigateur
+à 256×256 visant ≤ 40 Ko avant l'envoi (`src/features/avatar/process-avatar.ts`), qui passe
+systématiquement l'image par un `<canvas>` (supprime les métadonnées EXIF, jamais
+préservées par `drawImage`+`toBlob`). `admin_remove_avatar(p_target_user_id)` (réservée à
+`is_admin()`, journalisée) déréférence `profiles.avatar_url` **et** supprime le fichier du
+bucket, pour une suppression complète plutôt qu'un lien cassé.
+
+### `support_messages` (accès admin, et signalement d'utilisateur — LOT F1)
 
 | Opération | Règle |
 |---|---|
@@ -109,6 +288,12 @@ reprendre le minuteur en cours sur un autre appareil (§6.2 du cahier des charge
 | UPDATE | `is_admin()` — réservé au changement de `status` (`pending` → `processed`) ; le texte du message n'est jamais modifié depuis le client. |
 | INSERT | Voir plus haut (`0011_support_messages.sql`) : ouverte à tous, connecté ou invité. |
 | DELETE | Aucune politique : pas de suppression depuis le client. |
+
+Le signalement d'un compte (Mode Amis, §2) réutilise cette table plutôt qu'une nouvelle
+(migration `0023_user_reports.sql` : colonnes `category` et `reported_user_id` en plus) :
+`report_user(p_target_user_id, p_reason)` est `security definer`, remplit `email` depuis le
+compte connecté (jamais saisi à la main comme pour le formulaire de contact invité), et
+limite à 10 signalements par jour par compte pour éviter de noyer la file admin.
 
 ### `quotes` et `changelog` (contenu géré par le panneau Admin)
 
@@ -162,6 +347,13 @@ production, corrigé manuellement dans le SQL Editor puis répercuté dans cette
 | `quotes` | SELECT | SELECT, INSERT, UPDATE, DELETE |
 | `changelog` | SELECT | SELECT, INSERT, UPDATE, DELETE |
 | `admin_log` | — | SELECT, INSERT |
+| `friendships` | — | SELECT (toute mutation passe par RPC) |
+| `storage.objects` (bucket `avatars`) | lecture publique hors RLS (bucket `public = true`) | list/get/upload/update/delete limités à son propre dossier |
+| `live_status` | — | SELECT, INSERT, UPDATE |
+| `cheers` | — | SELECT (toute mutation passe par RPC) |
+| `rooms` | — | SELECT (toute mutation passe par RPC) |
+| `room_participants` | — | SELECT (toute mutation passe par RPC) |
+| `duo_streaks` | — | SELECT (entretenue par trigger, jamais une écriture directe) |
 
 Un `ALTER DEFAULT PRIVILEGES` (toujours dans `0018_grants.sql`) fait que toute future table
 ou fonction créée par le rôle `postgres` (donc depuis l'éditeur SQL Supabase) hérite

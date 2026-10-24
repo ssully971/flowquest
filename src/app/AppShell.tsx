@@ -1,10 +1,16 @@
-import { Flame, ListTodo, Maximize2, Minimize2, NotebookPen, Settings } from 'lucide-react'
+import { Flame, ListTodo, Maximize2, Minimize2, NotebookPen, Radio, Settings, Users } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 
 import { GuestImportPrompt } from '@/features/auth/components/GuestImportPrompt'
 import { useCurrentUserSync } from '@/features/auth/useCurrentUserSync'
+import { CheersBanner } from '@/features/friends/components/CheersBanner'
+import { FriendsPanel } from '@/features/friends/components/FriendsPanel'
+import { useCheers } from '@/features/friends/useCheers'
+import { useLiveStatusSync } from '@/features/friends/useLiveStatusSync'
 import { InstallPrompt } from '@/features/pwa/InstallPrompt'
+import { RoomScreen } from '@/features/rooms/components/RoomScreen'
+import { RoomsPanel } from '@/features/rooms/components/RoomsPanel'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
 import { blurPercentToPx } from '@/features/settings/background-display-settings'
@@ -61,6 +67,9 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isTasksOpen, setIsTasksOpen] = useState(false)
   const [isNotesOpen, setIsNotesOpen] = useState(false)
+  const [isFriendsOpen, setIsFriendsOpen] = useState(false)
+  const [isRoomsOpen, setIsRoomsOpen] = useState(false)
+  const [activeRoomId, setActiveRoomId] = useState<string | null>(null)
   const [isStreakOpen, setIsStreakOpen] = useState(false)
   const [previousMode, setPreviousMode] = useState(mode)
 
@@ -73,10 +82,14 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
       if (isTasksOpen) setIsTasksOpen(false)
       if (isNotesOpen) setIsNotesOpen(false)
       if (isStreakOpen) setIsStreakOpen(false)
+      if (isFriendsOpen) setIsFriendsOpen(false)
+      if (isRoomsOpen) setIsRoomsOpen(false)
     }
   }
 
   useCurrentUserSync()
+  useLiveStatusSync()
+  const cheers = useCheers()
   useSettingsSync({
     appearance,
     setAppearance,
@@ -208,6 +221,35 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
               <NotesPanel open={isNotesOpen} onClose={() => setIsNotesOpen(false)} />
             </div>
           ) : null}
+          {mode !== 'ambient' ? (
+            <div className="relative">
+              <IconButton
+                icon={Users}
+                label={strings.common.friends}
+                aria-expanded={isFriendsOpen}
+                onClick={() => setIsFriendsOpen((prev) => !prev)}
+              />
+              <FriendsPanel open={isFriendsOpen} onClose={() => setIsFriendsOpen(false)} />
+            </div>
+          ) : null}
+          {mode !== 'ambient' ? (
+            <div className="relative">
+              <IconButton
+                icon={Radio}
+                label={strings.common.rooms}
+                aria-expanded={isRoomsOpen}
+                onClick={() => setIsRoomsOpen((prev) => !prev)}
+              />
+              <RoomsPanel
+                open={isRoomsOpen}
+                onClose={() => setIsRoomsOpen(false)}
+                onOpenRoom={(roomId) => {
+                  setIsRoomsOpen(false)
+                  setActiveRoomId(roomId)
+                }}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -234,6 +276,10 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
 
       <GuestImportPrompt />
       <InstallPrompt />
+      <CheersBanner cheers={cheers.cheers} onDismiss={cheers.dismiss} />
+      {activeRoomId ? (
+        <RoomScreen key={activeRoomId} roomId={activeRoomId} onClose={() => setActiveRoomId(null)} />
+      ) : null}
     </div>
   )
 }

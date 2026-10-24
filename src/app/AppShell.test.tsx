@@ -80,14 +80,14 @@ describe('AppShell — Réglages et Plein écran à gauche, Tâches/Notes à dro
     expect(childLabels).toEqual(['Réglages', 'Plein écran'])
   })
 
-  it('Tâches et Bloc-notes sont dans le groupe de droite', () => {
+  it('Tâches, Bloc-notes, Amis et Salons sont dans le groupe de droite', () => {
     renderAppShell(<div>Contenu</div>)
 
     const rightGroup = screen.getByTestId('right-button-group')
     const labels = Array.from(rightGroup.querySelectorAll('[aria-label]')).map((el) =>
       el.getAttribute('aria-label'),
     )
-    expect(labels.slice(-2)).toEqual(['Tâches', 'Bloc-notes'])
+    expect(labels.slice(-4)).toEqual(['Tâches', 'Bloc-notes', 'Amis', 'Salons'])
   })
 
   it('Réglages se déplace dans le groupe de droite quand Extras le règle sur « Droite » (LOT B9)', () => {

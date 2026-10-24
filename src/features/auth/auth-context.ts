@@ -33,6 +33,20 @@ export interface AuthContextValue {
   isPasswordRecovery: boolean
   clearPasswordRecovery: () => void
   deleteAccount: () => Promise<void>
+  /** Écriture générique sur sa propre ligne profiles (avatar, vie privée — Mode Amis,
+   * LOT F1) : mêmes colonnes modifiables par la politique RLS profiles_update_own que
+   * username/display_name, juste sans message de succès dédié par champ. */
+  updateProfile: (patch: Partial<ProfileUpdatableFields>) => Promise<void>
 }
+
+export type ProfileUpdatableFields = Pick<
+  Profile,
+  | 'display_name'
+  | 'avatar_url'
+  | 'invisible_mode'
+  | 'show_live_status'
+  | 'show_total_time_score'
+  | 'participate_leaderboard'
+>
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

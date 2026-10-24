@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react'
 import { useState } from 'react'
 
+import { AvatarEditor } from '@/features/avatar/components/AvatarEditor'
 import { strings } from '@/shared/i18n'
 
 import { useAuth } from '../useAuth'
@@ -75,9 +76,13 @@ export function AccountSummary() {
   return (
     <div className="flex max-w-sm flex-col gap-6">
       <div className="flex items-center gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-lg font-semibold text-[var(--on-accent)]">
-          {profile.username.slice(0, 2).toUpperCase()}
-        </div>
+        <AvatarEditor
+          userId={profile.id}
+          username={profile.username}
+          displayName={profile.display_name}
+          avatarUrl={profile.avatar_url}
+          avatarVersion={profile.avatar_version}
+        />
         <div className="flex flex-col">
           <span className="text-sm text-[var(--panel-muted)]">
             {strings.auth.account.signedInAs}

@@ -8,6 +8,7 @@ import {
   Sparkles,
   Timer,
   User,
+  UserCog,
   X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -30,6 +31,7 @@ import { AccountPage } from './pages/AccountPage'
 import { ChangelogPage } from './pages/ChangelogPage'
 import { ClockPage } from './pages/ClockPage'
 import { ExtrasPage } from './pages/ExtrasPage'
+import { FriendsPrivacyPage } from './pages/FriendsPrivacyPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { QuotesPage } from './pages/QuotesPage'
 import { StatsPage } from './pages/StatsPage'
@@ -48,6 +50,7 @@ const NAV_ITEMS: { id: PageId; label: string; icon: LucideIcon }[] = [
   { id: 'quotes', label: strings.settings.nav.quotes, icon: Quote },
   { id: 'extras', label: strings.settings.nav.extras, icon: Sparkles },
   { id: 'account', label: strings.settings.nav.account, icon: User },
+  { id: 'friends', label: strings.settings.nav.friends, icon: UserCog },
   { id: 'support', label: strings.settings.nav.support, icon: LifeBuoy },
   { id: 'changelog', label: strings.settings.nav.changelog, icon: Megaphone },
 ]
@@ -279,6 +282,8 @@ export function SettingsPanel({
               />
             ) : activePage === 'account' ? (
               <AccountPage />
+            ) : activePage === 'friends' ? (
+              <FriendsPrivacyPage />
             ) : activePage === 'stats' ? (
               <StatsPage
                 dailyGoalMinutes={dailyGoalMinutes}

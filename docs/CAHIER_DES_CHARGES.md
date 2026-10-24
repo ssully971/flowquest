@@ -145,24 +145,80 @@ Menu : Thèmes · Horloge · Minuteur · Stats · Citations · Extras · Compte 
 - **Tendance de focus** : courbe sur la période choisie.
 - Chaque variation est comparée à la période précédente (flèche + pourcentage).
 
-## 10. Social (V2)
+## 10. Social (V2 — « Mode Amis », livré en 4 lots F1 à F4, voir `docs/AMIS.md`)
 
-### 10.1 Amis
-- Ajout par **pseudo unique + demande à accepter**, ou par **code/lien d'invitation personnel**.
-- Liste d'amis, demandes en attente, suppression, blocage.
+### 10.1 Amis ✅ (LOT F1)
+- Ajout par **pseudo exact + demande à accepter**, ou par **code ami** (8 caractères,
+  régénérable), avec aperçu avant envoi. Quota de 20 demandes/jour.
+- Liste d'amis, demandes reçues/envoyées (acceptation, refus, retrait), blocage (un compte
+  bloqué ne peut plus recontacter, message générique sans révéler le blocage).
+- Signalement d'un compte (réutilise les messages du support, catégorie dédiée).
+- Photo de profil : recadrage carré, réduction 256×256 WebP ≤ 40 Ko, avatar par défaut
+  généré (jamais de case vide).
+- Page « Amis » (onglet principal) et réglages de vie privée dédiés (« Amis et
+  confidentialité ») : mode invisible, statut en direct, temps/score visibles, participation
+  au classement — tous appliqués côté base, pas seulement côté interface.
 
-### 10.2 Classement
-- Heures de focus, **période au choix** (semaine, mois, depuis le début), **visible entre amis uniquement**.
-- Un utilisateur peut masquer ses stats (il disparaît alors du classement des autres).
+### 10.1 bis Statut en direct et encouragements ✅ (LOT F2)
+- Statut en direct (focus/pause/inactif, jamais le détail de ce qui est étudié), visible
+  des amis qui l'autorisent, avec battement de cœur et détection « hors ligne » après 2
+  minutes sans mise à jour.
+- Encouragements : cinq emojis fixes, quotas, affichés en bandeau groupé hors des sessions
+  de focus (jamais pendant, toujours à la fin ou à l'ouverture de l'app).
 
-### 10.3 Salles de groupe
-- Création d'une salle : **code court** (ex. `PX7K2`) + lien. Le créateur choisit les paramètres d'étude (durées de focus et de pause, nombre de cycles).
-- **Contrôle** : par défaut le créateur seul ; option « donner la main à tous ».
-- Départ synchronisé pour tous, liste des présents en temps réel (Supabase Realtime, présence).
-- **Règle d'abandon** : un participant qui abandonne via le bouton explicite **annule la session pour tous**. Quitter ou rafraîchir la page ne compte pas comme un abandon (la session continue).
-- Synchronisation du temps : la salle stocke `started_at` côté serveur ; chaque client corrige son horloge avec le décalage serveur.
-- Chaque participant voit le même minuteur et ses propres tâches.
-- Les sessions de groupe terminées comptent dans les stats de chacun.
+### 10.2 Classement ✅ (LOT F2)
+- Classement **hebdomadaire** (semaine en cours ou précédente — pas « semaine/mois/depuis
+  le début » comme envisagé plus haut : simplifié à la semaine seule pour ce lot, visible
+  entre amis uniquement, et toujours soi-même en plus des amis participants).
+- Un utilisateur peut désactiver sa participation (`participate_leaderboard`) : il
+  disparaît alors du classement des autres, sans affecter sa propre vue.
+- Score = taux d'achèvement × (0,7 + 0,3 × régularité) — voir `docs/AMIS.md` pour le détail
+  et l'écart assumé avec le score personnel de la page Stats.
+
+### 10.3 Salons de focus ensemble ✅ (LOT F3)
+Livré sous une forme volontairement plus restreinte que l'esquisse ci-dessus initialement
+envisagée — voir `docs/AMIS.md` pour le détail produit complet et les écarts assumés :
+- Création d'un salon par **invitation entre amis** uniquement (`are_friends()`), jamais
+  par un code court public ni un lien partageable — reste dans le périmètre du Mode Amis,
+  pas une salle ouverte à n'importe qui. Au plus 6 personnes (hôte compris).
+- Le créateur choisit uniquement la **durée d'une session de focus** (5 à 120 min) : pas
+  encore de réglage séparé pour la pause ni de nombre de cycles — **une seule session par
+  salon** dans ce lot (pas d'enchaînement automatique de pauses).
+- **Contrôle toujours réservé à l'hôte** (démarrer/pause/reprendre/terminer) : pas d'option
+  « donner la main à tous » dans ce lot.
+- **Règle d'abandon différente de l'esquisse initiale** : un abandon (silence de plus de 2
+  minutes pendant que le salon tourne) **ne annule pas la session pour tous** — l'hôte
+  absent voit simplement son rôle transféré au participant encore présent le plus ancien,
+  et la session continue pour qui reste. Jugé plus utile en pratique qu'une annulation
+  collective à chaque déconnexion ponctuelle (Wi-Fi, onglet suspendu).
+- Minuteur partagé synchronisé via `started_at`/`duration_ms` stockés côté serveur, recalculé
+  côté client (jamais accumulé localement) — même principe que prévu, réalisé via
+  Supabase/Postgres plutôt qu'un serveur dédié.
+- Liste des présents en temps réel (Supabase Realtime sur `rooms`/`room_participants`,
+  repli par interrogation).
+- **Pas encore couvert** : aucun partage de tâche entre participants (hors périmètre),
+  et les sessions de salon ne comptent pas encore dans les statistiques personnelles ni la
+  série individuelle de chacun — décision délibérément différée, voir `docs/AMIS.md`.
+
+### 10.4 Série partagée ✅ (LOT F4)
+- Une série par paire d'amis, affichée en flamme 🔥 directement sur la liste d'amis (pas
+  d'écran dédié) : un jour compte dès que les deux ont chacun complété au moins une
+  session de focus ce jour-là — voir `docs/AMIS.md`/`docs/SECURITE.md` pour la définition
+  exacte, volontairement différente de la série individuelle (objectif quotidien).
+- Entretenue côté base (trigger sur `focus_sessions`), mise à jour en temps réel entre les
+  deux comptes concernés.
+- **Pas encore couvert** : pas de rappel avant de perdre la série, et les sessions faites
+  dans un salon de focus (§10.3) n'y comptent pas encore (même limitation assumée que pour
+  les statistiques personnelles).
+
+### 10.5 Finitions (LOT F4)
+Passe de relecture sur l'ensemble du Mode Amis (F1 à F4) avant de le considérer complet :
+- Tous les écrans vérifiés pour un état vide/chargement/erreur cohérent (liste d'amis,
+  demandes, classement, mes salons, création de salon).
+- Deux écarts trouvés et corrigés : `create_room()` acceptait une liste d'invités vide
+  (un salon sans personne n'a pas de sens — désormais refusé, côté base et côté
+  interface) ; `generate_unique_username()` n'avait pas de droit d'exécution explicite
+  (voir « Passe de sécurité » dans `docs/SECURITE.md`).
 
 ## 11. Défis et succès (V3)
 
@@ -227,15 +283,20 @@ Page publique, accessible sans compte, dans l'esprit de Flocus et d'Outremed : u
 
 Toutes les tables ont `id` (uuid), `created_at`, et le **RLS activé**.
 
-- `profiles` : `id` (= auth.users.id), `username` (unique), `display_name`, `role` (`user`|`admin`), `timezone`, `stats_visibility`.
+- `profiles` : `id` (= auth.users.id), `username` (unique), `display_name`, `role` (`user`|`admin`), `timezone`, `stats_visibility`, `banned_at`, `friend_code` (unique, 8 car.), `avatar_version`, `invisible_mode`, `show_live_status`, `show_total_time_score`, `participate_leaderboard` ✅.
 - `user_settings` : `user_id`, `settings` (jsonb : thèmes par mode, horloge, minuteur, extras…).
 - `timer_state` : `user_id`, `mode`, `state`, `segment`, `started_at`, `duration`, `paused_total`, `task_id`, `updated_at`.
 - `sessions` : `user_id`, `kind` (`focus`|`short_break`|`long_break`), `started_at`, `ended_at`, `planned_seconds`, `actual_seconds`, `completed`, `task_id`, `group_session_id`.
 - `tasks` : `user_id`, `title`, `emoji`, `color`, `eta_minutes`, `parent_id`, `position`, `done`, `done_at`.
 - `notes` : `user_id`, `content`, `updated_at`.
-- `friendships` : `requester_id`, `addressee_id`, `status` (`pending`|`accepted`|`blocked`).
-- `rooms` : `code` (unique), `owner_id`, `settings`, `control_mode`, `status`, `started_at`.
-- `room_members` : `room_id`, `user_id`, `joined_at`, `left_at`, `abandoned`.
+- `friendships` ✅ : `requester_id`, `addressee_id`, `status` (`pending`|`accepted`|`blocked`), `blocked_by`, `user_low`/`user_high` (générées, unicité de la paire).
+- `live_status` ✅ : `user_id`, `state` (`focus`|`pause`|`inactive`), `started_at`, `duration_ms`, `updated_at` — publiée en Realtime.
+- `cheers` ✅ : `sender_id`, `recipient_id`, `emoji` (cinq valeurs fixes), `read_at`, `created_at`.
+- `weekly_leaderboard()` ✅ : fonction (pas de table), agrège `focus_sessions` à la demande pour soi et ses amis participants.
+- Bucket Storage `avatars` ✅ : `{uid}/avatar.webp` (ou `.jpg`), public en lecture, écriture limitée à son propre dossier.
+- `rooms` ✅ : `host_id`, `status` (`lobby`|`running`|`paused`|`ended`), `focus_minutes`, `started_at`, `duration_ms`, `elapsed_ms_at_pause`, `ended_at`.
+- `room_participants` ✅ : `room_id`, `user_id`, `role` (`host`|`member`), `status` (`invited`|`joined`|`declined`|`left`|`abandoned`), `joined_at`, `left_at`, `last_seen_at`.
+- `duo_streaks` ✅ : `user_low`, `user_high`, `current_streak`, `longest_streak`, `last_active_date`.
 - `push_subscriptions` : `user_id`, `endpoint`, `keys`, `device`.
 - `scheduled_alerts` : `user_id`, `fire_at`, `payload`, `sent`.
 - `themes`, `quotes`, `sounds`, `session_tally_styles`, `changelog` : contenu géré par l'admin.
