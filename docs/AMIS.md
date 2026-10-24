@@ -12,10 +12,10 @@ produit/vie privée.
 |---|---|---|
 | F1 | Profil, photo, amis, vie privée | ✅ Livré |
 | F2 | Statut en direct, encouragements, classement | ✅ Livré |
-| F3 | Salons de focus ensemble | À venir |
+| F3 | Salons de focus ensemble | ✅ Livré |
 | F4 | Série partagée, finitions | À venir |
 
-## Modèle de données (F1 + F2)
+## Modèle de données (F1 + F2 + F3)
 
 ### `profiles` (étendue)
 
@@ -85,6 +85,23 @@ Fonction, pas de table : agrège `focus_sessions` à la demande pour l'appelant 
 participants. Voir `docs/SECURITE.md` pour la formule de score et son écart assumé avec le
 score personnel de la page Stats.
 
+### `rooms` et `room_participants` (salon de focus ensemble, nouvelles, migration `0028`)
+
+| Table | Colonne | Rôle |
+|---|---|---|
+| `rooms` | `status` | `lobby` → `running` ⇄ `paused` → `ended`. |
+| `rooms` | `focus_minutes` | Durée choisie par l'hôte à la création (5 à 120 min). |
+| `rooms` | `started_at` / `duration_ms` | Même principe que `live_status` : le compte à rebours est toujours recalculé depuis ces deux valeurs, jamais accumulé côté client — résiste à la suspension d'onglet. |
+| `rooms` | `elapsed_ms_at_pause` | Temps déjà écoulé au moment de la pause, pour reprendre exactement là où on s'était arrêté. |
+| `room_participants` | `role` | `host` (un seul à la fois) ou `member`. |
+| `room_participants` | `status` | `invited` → `joined` (ou `declined`) → `left`/`abandoned`. |
+| `room_participants` | `last_seen_at` | Battement de cœur du salon (mis à jour par `get_room_state()`, pas lié au statut en direct personnel du LOT F2) — silence de plus de 2 minutes pendant que le salon tourne = abandon détecté. |
+
+Fonctions (`0029_rooms_rpc.sql`) : `create_room`, `respond_room_invite`, `start_room`,
+`pause_room`, `resume_room`, `end_room`, `transfer_host`, `leave_room`, `list_my_rooms`,
+`get_room_state`. Voir `docs/SECURITE.md` pour le détail des politiques et de
+l'entretien paresseux (`_room_tick`).
+
 ## Règles produit
 
 ### Amis
@@ -152,12 +169,39 @@ désactivé par défaut.
   score de la semaine, et un message adapté à mon classement. Les ex æquo partagent le même
   rang (`rank()` SQL, pas `row_number()`).
 
+### Salons de focus ensemble
+
+- Un salon réunit l'hôte et jusqu'à 5 amis invités (6 personnes au plus, hôte compris) —
+  volontairement restreint pour ce premier lot.
+- Invitation uniquement entre amis (`are_friends()`), jamais par un code ou un lien
+  public : les salons restent dans le périmètre du Mode Amis.
+- **Une seule session de focus par salon**, sans enchaînement de pauses dans ce lot : pas
+  de cycle Pomodoro complet partagé pour l'instant (voir « Pas encore couvert »).
+- **Contrôles réservés à l'hôte** : démarrer, mettre en pause, reprendre, terminer —
+  vérifié côté base (`rooms.host_id`), jamais seulement par l'interface masquant les
+  boutons.
+- **Minuteur partagé** : tous les participants voient le même compte à rebours, calculé
+  depuis `started_at`/`duration_ms` (jamais accumulé localement) — reste exact même après
+  une suspension d'onglet ou un changement d'appareil.
+- **Transfert d'hôte** : explicite à tout moment (« Nommer hôte »), ou automatique si
+  l'hôte reste silencieux plus de 2 minutes pendant que le salon tourne (voir « Gestion de
+  l'abandon » ci-dessous) — le salon ne reste jamais bloqué sans personne aux commandes.
+- **Gestion de l'abandon** : un participant `joined` dont le battement de cœur du salon
+  (`room_participants.last_seen_at`) date de plus de 2 minutes pendant que le salon tourne
+  ou est en pause est marqué « abandoned ». Si c'était l'hôte, son rôle est transféré
+  aussitôt (ou le salon est clôturé si plus personne n'y est).
+- **Fermer l'écran du salon sans le quitter** (bouton « Fermer ») reste possible : tant
+  qu'on revient avant le délai d'abandon de 2 minutes, on reste considéré présent — pas de
+  fonctionnalité de minimisation dédiée dans ce lot, ce comportement suffit.
+- Aucun détail de tâche n'est jamais partagé dans un salon, seulement les avatars, pseudos
+  et le minuteur commun.
+
 ### Comptes bannis
 
 Un compte banni (`profiles.banned_at` non nul, vérifié par `is_banned()`) :
 
 - n'apparaît dans **aucune** liste (amis, demandes, aperçu de recherche, classement,
-  statut en direct) ;
+  statut en direct, participants d'un salon) ;
 - ne peut envoyer **aucune** demande d'ami, ni aucune action du Mode Amis ;
 - reste visible de lui-même tant qu'il est connecté, mais toute action côté base échoue.
 
@@ -186,23 +230,35 @@ attendant).
   (`statusDotColor`/`statusLabel`, voir `FriendCard`).
 - `are_friends(a, b)` (SQL) : brique centrale réutilisée par toute politique RLS ou
   fonction ayant besoin de savoir si deux comptes sont amis (et ni l'un ni l'autre banni) —
-  `live_status`, `send_cheer()`, `weekly_leaderboard()` (F2), invitation en salon (F3),
-  série partagée (F4).
+  `live_status`, `send_cheer()`, `weekly_leaderboard()` (F2), `create_room()` (F3), série
+  partagée (F4).
 - `useGlobalTimerState` (`src/features/timer/useGlobalTimerState.ts`) : lecture passive et
   partagée de l'état du minuteur (focus/pause/inactif), sans instancier un nouveau
   `TimerController` — utilisée à la fois par le battement de cœur du statut en direct
   (`useLiveStatusSync`) et pour différer l'affichage des encouragements pendant le focus
   (`useCheers`).
-- `useFriendsRealtime` (`src/features/friends/useFriendsRealtime.ts`) : abonnement
-  Realtime générique avec reconnexion sur `visibilitychange` et repli par interrogation —
-  réutilisable tel quel pour les salons de focus (F3).
+- `useRealtimeSync` (`src/shared/supabase/useRealtimeSync.ts`) : brique générique extraite
+  de `useFriendsRealtime` (F2) lors du LOT F3 — reconnexion sur `visibilitychange`, repli
+  par interrogation toutes les 30 s, canal et écouteurs paramétrables. `useFriendsRealtime`
+  et `useRoomRealtime` (F3, un canal par salon filtré sur `room_id`) en sont deux fines
+  enveloppes ; toute future fonctionnalité temps réel (série partagée, F4) peut la
+  réutiliser telle quelle plutôt que de dupliquer la logique de reconnexion.
+- Le minuteur partagé d'un salon (`room-timer.ts`, F3) suit le même principe que le
+  minuteur individuel : toujours recalculé depuis `started_at`/`duration_ms`/
+  `elapsed_ms_at_pause`, jamais accumulé côté client — un tick local d'une seconde ne sert
+  qu'à rafraîchir l'affichage, jamais au calcul lui-même.
 
 ## Pas encore couvert (prévu dans les lots suivants)
 
-- Salons de focus synchronisés (F3).
 - Série partagée à deux (F4).
 - Interface admin dédiée pour bannir/débannir un compte.
 - Historique du classement au-delà de la semaine précédente.
 - Partage optionnel du détail de la tâche en cours dans le statut en direct (évoqué par le
   cahier des charges — « sauf s'il l'a choisi » — non construit : aucune case à cocher
   n'existe encore pour ça, le comportement par défaut « jamais » suffit pour l'instant).
+- Salons : enchaînement automatique de pauses après la session de focus (une seule session
+  par salon dans ce lot), retrait d'un participant par l'hôte (« kick »), minimisation du
+  salon en arrière-plan en continuant à naviguer dans l'app, et intégration du temps passé
+  en salon aux statistiques personnelles/à la série individuelle (décision produit
+  délibérément laissée de côté pour ce lot, pour ne pas coupler deux systèmes sans spec
+  explicite sur la façon de compter une session partagée).

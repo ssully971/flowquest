@@ -272,3 +272,85 @@ Uniquement des lignes `OK :`. Vérifie aussi, dans le tableau de bord Supabase (
 Replication), que `live_status` apparaît bien activée pour `supabase_realtime` — la
 migration `0025_live_status.sql` l'active par SQL, mais une vérification visuelle reste
 utile selon les droits du projet.
+
+## Salons de focus ensemble (LOT F3)
+
+À exécuter après avoir collé les migrations `0028` et `0029`. A et B doivent déjà être
+amis (voir `testFriendsAndPrivacy` ci-dessus) ; un 3e compte C, non participant du salon,
+sert à vérifier que `get_room_state()` reste bien fermé à qui n'est pas dedans.
+
+```ts
+async function testRooms() {
+  const clientA = await signIn('a@test.flowquest.dev', 'Motdepasse1')
+  const clientB = await signIn('b@test.flowquest.dev', 'Motdepasse1')
+  const clientC = await signIn('c@test.flowquest.dev', 'Motdepasse1')
+  const { data: userA } = await clientA.auth.getUser()
+  const { data: userB } = await clientB.auth.getUser()
+
+  // 1. A crée un salon et invite B.
+  const { data: roomId, error: createError } = await clientA.rpc('create_room', {
+    p_focus_minutes: 25,
+    p_friend_ids: [userB.user!.id],
+  })
+  if (createError) throw createError
+  console.log('OK : salon créé, id =', roomId)
+
+  // 2. C (non participant) ne peut PAS lire l'état du salon.
+  const { error: cOutsideError } = await clientC.rpc('get_room_state', { p_room_id: roomId })
+  console.assert(cOutsideError !== null, 'ÉCHEC : un non-participant a pu lire get_room_state() !')
+  console.log('OK : get_room_state() refuse un non-participant :', cOutsideError?.message)
+
+  // 3. B voit l'invitation (même pas encore acceptée) et l'accepte.
+  const { data: bState } = await clientB.rpc('get_room_state', { p_room_id: roomId })
+  console.assert(bState?.some((row: { participant_user_id: string }) => row.participant_user_id === userB.user!.id), 'ÉCHEC : B ne voit pas le salon avant même d’avoir répondu.')
+  const { error: acceptError } = await clientB.rpc('respond_room_invite', { p_room_id: roomId, p_accept: true })
+  if (acceptError) throw acceptError
+  console.log('OK : B voit et accepte l’invitation.')
+
+  // 4. Seul l'hôte (A) peut démarrer ; B ne peut pas.
+  const { error: bStartError } = await clientB.rpc('start_room', { p_room_id: roomId })
+  console.assert(bStartError !== null, 'ÉCHEC : B (non hôte) a pu démarrer le salon !')
+  const { error: startError } = await clientA.rpc('start_room', { p_room_id: roomId })
+  if (startError) throw startError
+  console.log('OK : seul l’hôte peut démarrer le salon.')
+
+  // 5. B voit bien le salon « running », avec un started_at renseigné.
+  const { data: bRunning } = await clientB.rpc('get_room_state', { p_room_id: roomId })
+  console.assert(bRunning?.[0]?.status === 'running' && bRunning?.[0]?.started_at, 'ÉCHEC : B ne voit pas le salon démarré.')
+  console.log('OK : le minuteur partagé est bien visible de B.')
+
+  // 6. Seul l'hôte peut mettre en pause ; B ne peut pas.
+  const { error: bPauseError } = await clientB.rpc('pause_room', { p_room_id: roomId })
+  console.assert(bPauseError !== null, 'ÉCHEC : B (non hôte) a pu mettre le salon en pause !')
+  console.log('OK : pause_room() réservée à l’hôte :', bPauseError?.message)
+
+  // 7. Transfert explicite de l'hôte vers B, puis A ne peut plus terminer le salon.
+  const { error: transferError } = await clientA.rpc('transfer_host', { p_room_id: roomId, p_new_host_id: userB.user!.id })
+  if (transferError) throw transferError
+  const { error: aEndAfterTransferError } = await clientA.rpc('end_room', { p_room_id: roomId })
+  console.assert(aEndAfterTransferError !== null, 'ÉCHEC : A a pu terminer le salon après avoir transféré son rôle !')
+  console.log('OK : transfer_host() déplace bien les droits de l’hôte.')
+
+  // 8. A quitte le salon : puisqu'il n'est déjà plus hôte, aucun transfert à refaire ; B
+  // (hôte courant) peut terminer le salon normalement.
+  const { error: leaveError } = await clientA.rpc('leave_room', { p_room_id: roomId })
+  if (leaveError) throw leaveError
+  const { error: endError } = await clientB.rpc('end_room', { p_room_id: roomId })
+  if (endError) throw endError
+  const { data: ended } = await clientB.rpc('get_room_state', { p_room_id: roomId })
+  console.assert(ended?.[0]?.status === 'ended', 'ÉCHEC : le salon n’est pas marqué terminé.')
+  console.log('OK : B (hôte courant) a bien pu terminer le salon.')
+}
+
+testRooms().then(() => console.log('Script Salons terminé.'))
+```
+
+### Résultat attendu
+
+Uniquement des lignes `OK :`. Le transfert automatique de l'hôte en cas d'abandon
+(silence de plus de 2 minutes pendant que le salon tourne, voir `_room_tick()` dans
+`0029_rooms_rpc.sql`) n'est pas couvert par ce script (délai trop long pour un test
+manuel) — à vérifier en inspectant `room_participants.last_seen_at` et `rooms.host_id`
+après avoir laissé un onglet hôte inactif plus de 2 minutes pendant une session en cours.
+Vérifie aussi, dans Database > Replication, que `rooms` et `room_participants`
+apparaissent bien activées pour `supabase_realtime`.

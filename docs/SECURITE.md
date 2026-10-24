@@ -202,6 +202,35 @@ est assumé : la formule du classement a été fournie telle quelle pour ce lot,
 score personnel déjà en production n'était pas dans le périmètre demandé. Une unification
 éventuelle est une décision produit à trancher plus tard, pas une correction de bug.
 
+### `rooms` et `room_participants` (salons de focus ensemble, Mode Amis, LOT F3)
+
+| Opération | Règle |
+|---|---|
+| SELECT (`rooms`) | Participant du salon (`exists (select 1 from room_participants where room_id = rooms.id and user_id = auth.uid())`), quel que soit son statut — y compris une invitation pas encore acceptée (il doit voir l'hôte et la durée annoncée avant de répondre). |
+| SELECT (`room_participants`) | Participant du **même salon**, pas seulement soi-même — les participants d'un salon se voient entre eux même sans lien d'amitié direct (réunis par l'hôte, qui est ami avec chacun). Aucune nouvelle fuite : pseudo/nom/avatar sont déjà consultables par n'importe qui par pseudo exact (`find_profile_preview()`, LOT F1). |
+| INSERT / UPDATE / DELETE (les deux tables) | **Aucune politique.** Toute mutation passe par les fonctions `SECURITY DEFINER` de `0029_rooms_rpc.sql` (`create_room`, `respond_room_invite`, `start_room`, `pause_room`, `resume_room`, `end_room`, `transfer_host`, `leave_room`). |
+
+**`_room_tick(p_room_id)`**, interne (aucun `GRANT`, appelée seulement par les autres
+fonctions du même fichier) : entretien paresseux exécuté en tête de chaque fonction qui
+touche un salon existant — clôt naturellement un salon dont le temps est écoulé, marque
+« abandoned » les participants `joined` silencieux depuis plus de 2 minutes
+(`room_participants.last_seen_at`, pendant que le salon tourne ou est en pause), et
+transfère l'hôte au participant `joined` le plus ancien s'il n'est plus là (ou clôt le
+salon si plus personne n'y est). Pas de job planifié : `get_room_state()` est interrogée en
+continu tant qu'un salon est affiché, ce qui suffit à garder ce nettoyage proche du temps
+réel — voir docs/AMIS.md pour le détail produit.
+
+**`get_room_state(p_room_id)`** double comme battement de cœur : elle met à jour
+`last_seen_at` de l'appelant à chaque appel (jamais celui d'un autre), avant de renvoyer
+l'état — indépendant du statut en direct du minuteur personnel (LOT F2), qui ne reflète pas
+forcément le minuteur partagé d'un salon. Elle exclut aussi tout participant banni
+(`is_banned()`), comme `list_friends()`.
+
+**Un salon réunit au plus 6 personnes** (hôte compris) : vérifié dans `create_room()` en
+comptant les invitations valides, pas seulement côté interface. Chaque invité doit être ami
+avec l'hôte (`are_friends()`) au moment de la création — un salon ne peut pas servir à
+contourner le système d'amis.
+
 ### Avatars (Storage, bucket `avatars`, LOT F1)
 
 | Opération | Règle |
@@ -289,6 +318,8 @@ production, corrigé manuellement dans le SQL Editor puis répercuté dans cette
 | `storage.objects` (bucket `avatars`) | lecture publique hors RLS (bucket `public = true`) | list/get/upload/update/delete limités à son propre dossier |
 | `live_status` | — | SELECT, INSERT, UPDATE |
 | `cheers` | — | SELECT (toute mutation passe par RPC) |
+| `rooms` | — | SELECT (toute mutation passe par RPC) |
+| `room_participants` | — | SELECT (toute mutation passe par RPC) |
 
 Un `ALTER DEFAULT PRIVILEGES` (toujours dans `0018_grants.sql`) fait que toute future table
 ou fonction créée par le rôle `postgres` (donc depuis l'éditeur SQL Supabase) hérite

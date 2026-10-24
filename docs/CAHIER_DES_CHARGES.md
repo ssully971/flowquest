@@ -175,14 +175,30 @@ Menu : Thèmes · Horloge · Minuteur · Stats · Citations · Extras · Compte 
 - Score = taux d'achèvement × (0,7 + 0,3 × régularité) — voir `docs/AMIS.md` pour le détail
   et l'écart assumé avec le score personnel de la page Stats.
 
-### 10.3 Salles de groupe
-- Création d'une salle : **code court** (ex. `PX7K2`) + lien. Le créateur choisit les paramètres d'étude (durées de focus et de pause, nombre de cycles).
-- **Contrôle** : par défaut le créateur seul ; option « donner la main à tous ».
-- Départ synchronisé pour tous, liste des présents en temps réel (Supabase Realtime, présence).
-- **Règle d'abandon** : un participant qui abandonne via le bouton explicite **annule la session pour tous**. Quitter ou rafraîchir la page ne compte pas comme un abandon (la session continue).
-- Synchronisation du temps : la salle stocke `started_at` côté serveur ; chaque client corrige son horloge avec le décalage serveur.
-- Chaque participant voit le même minuteur et ses propres tâches.
-- Les sessions de groupe terminées comptent dans les stats de chacun.
+### 10.3 Salons de focus ensemble ✅ (LOT F3)
+Livré sous une forme volontairement plus restreinte que l'esquisse ci-dessus initialement
+envisagée — voir `docs/AMIS.md` pour le détail produit complet et les écarts assumés :
+- Création d'un salon par **invitation entre amis** uniquement (`are_friends()`), jamais
+  par un code court public ni un lien partageable — reste dans le périmètre du Mode Amis,
+  pas une salle ouverte à n'importe qui. Au plus 6 personnes (hôte compris).
+- Le créateur choisit uniquement la **durée d'une session de focus** (5 à 120 min) : pas
+  encore de réglage séparé pour la pause ni de nombre de cycles — **une seule session par
+  salon** dans ce lot (pas d'enchaînement automatique de pauses).
+- **Contrôle toujours réservé à l'hôte** (démarrer/pause/reprendre/terminer) : pas d'option
+  « donner la main à tous » dans ce lot.
+- **Règle d'abandon différente de l'esquisse initiale** : un abandon (silence de plus de 2
+  minutes pendant que le salon tourne) **ne annule pas la session pour tous** — l'hôte
+  absent voit simplement son rôle transféré au participant encore présent le plus ancien,
+  et la session continue pour qui reste. Jugé plus utile en pratique qu'une annulation
+  collective à chaque déconnexion ponctuelle (Wi-Fi, onglet suspendu).
+- Minuteur partagé synchronisé via `started_at`/`duration_ms` stockés côté serveur, recalculé
+  côté client (jamais accumulé localement) — même principe que prévu, réalisé via
+  Supabase/Postgres plutôt qu'un serveur dédié.
+- Liste des présents en temps réel (Supabase Realtime sur `rooms`/`room_participants`,
+  repli par interrogation).
+- **Pas encore couvert** : aucun partage de tâche entre participants (hors périmètre),
+  et les sessions de salon ne comptent pas encore dans les statistiques personnelles ni la
+  série individuelle de chacun — décision délibérément différée, voir `docs/AMIS.md`.
 
 ## 11. Défis et succès (V3)
 
@@ -258,8 +274,8 @@ Toutes les tables ont `id` (uuid), `created_at`, et le **RLS activé**.
 - `cheers` ✅ : `sender_id`, `recipient_id`, `emoji` (cinq valeurs fixes), `read_at`, `created_at`.
 - `weekly_leaderboard()` ✅ : fonction (pas de table), agrège `focus_sessions` à la demande pour soi et ses amis participants.
 - Bucket Storage `avatars` ✅ : `{uid}/avatar.webp` (ou `.jpg`), public en lecture, écriture limitée à son propre dossier.
-- `rooms` : `code` (unique), `owner_id`, `settings`, `control_mode`, `status`, `started_at`.
-- `room_members` : `room_id`, `user_id`, `joined_at`, `left_at`, `abandoned`.
+- `rooms` ✅ : `host_id`, `status` (`lobby`|`running`|`paused`|`ended`), `focus_minutes`, `started_at`, `duration_ms`, `elapsed_ms_at_pause`, `ended_at`.
+- `room_participants` ✅ : `room_id`, `user_id`, `role` (`host`|`member`), `status` (`invited`|`joined`|`declined`|`left`|`abandoned`), `joined_at`, `left_at`, `last_seen_at`.
 - `push_subscriptions` : `user_id`, `endpoint`, `keys`, `device`.
 - `scheduled_alerts` : `user_id`, `fire_at`, `payload`, `sent`.
 - `themes`, `quotes`, `sounds`, `session_tally_styles`, `changelog` : contenu géré par l'admin.

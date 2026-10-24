@@ -15,6 +15,9 @@ export type FriendshipStatus = 'pending' | 'accepted' | 'blocked'
 export type FriendRequestDirection = 'incoming' | 'outgoing'
 export type LiveState = 'focus' | 'pause' | 'inactive'
 export type CheerEmoji = '💪' | '🔥' | '👏' | '❤️' | '☕'
+export type RoomStatus = 'lobby' | 'running' | 'paused' | 'ended'
+export type RoomParticipantRole = 'host' | 'member'
+export type RoomParticipantStatus = 'invited' | 'joined' | 'declined' | 'left' | 'abandoned'
 
 export interface Database {
   public: {
@@ -109,6 +112,41 @@ export interface Database {
         }
         // Aucune politique RLS INSERT/UPDATE/DELETE : toute mutation passe par
         // send_cheer()/mark_cheers_read().
+        Insert: Record<string, never>
+        Update: Record<string, never>
+        Relationships: []
+      }
+      rooms: {
+        Row: {
+          id: string
+          host_id: string
+          status: RoomStatus
+          focus_minutes: number
+          started_at: string | null
+          duration_ms: number | null
+          elapsed_ms_at_pause: number | null
+          created_at: string
+          updated_at: string
+          ended_at: string | null
+        }
+        // Aucune politique RLS INSERT/UPDATE/DELETE : toute mutation passe par les RPC
+        // dédiées (create_room, start_room, pause_room...), jamais une écriture directe
+        // côté client.
+        Insert: Record<string, never>
+        Update: Record<string, never>
+        Relationships: []
+      }
+      room_participants: {
+        Row: {
+          room_id: string
+          user_id: string
+          role: RoomParticipantRole
+          status: RoomParticipantStatus
+          joined_at: string | null
+          left_at: string | null
+          last_seen_at: string | null
+          created_at: string
+        }
         Insert: Record<string, never>
         Update: Record<string, never>
         Relationships: []
@@ -447,6 +485,46 @@ export interface Database {
         Args: { p_week_offset?: number }
         Returns: LeaderboardRow[]
       }
+      create_room: {
+        Args: { p_focus_minutes: number; p_friend_ids: string[] }
+        Returns: string
+      }
+      respond_room_invite: {
+        Args: { p_room_id: string; p_accept: boolean }
+        Returns: undefined
+      }
+      start_room: {
+        Args: { p_room_id: string }
+        Returns: undefined
+      }
+      pause_room: {
+        Args: { p_room_id: string }
+        Returns: undefined
+      }
+      resume_room: {
+        Args: { p_room_id: string }
+        Returns: undefined
+      }
+      end_room: {
+        Args: { p_room_id: string }
+        Returns: undefined
+      }
+      transfer_host: {
+        Args: { p_room_id: string; p_new_host_id: string }
+        Returns: undefined
+      }
+      leave_room: {
+        Args: { p_room_id: string }
+        Returns: undefined
+      }
+      list_my_rooms: {
+        Args: Record<string, never>
+        Returns: MyRoomRow[]
+      }
+      get_room_state: {
+        Args: { p_room_id: string }
+        Returns: RoomStateRow[]
+      }
     }
   }
 }
@@ -509,4 +587,36 @@ export interface FriendRequestRow {
   avatar_url: string | null
   avatar_version: number
   created_at: string
+}
+
+export interface MyRoomRow {
+  room_id: string
+  host_id: string
+  host_username: string
+  host_display_name: string | null
+  status: RoomStatus
+  focus_minutes: number
+  my_status: RoomParticipantStatus
+  participant_count: number
+  created_at: string
+}
+
+export interface RoomStateRow {
+  room_id: string
+  host_id: string
+  status: RoomStatus
+  focus_minutes: number
+  started_at: string | null
+  duration_ms: number | null
+  elapsed_ms_at_pause: number | null
+  created_at: string
+  ended_at: string | null
+  participant_user_id: string
+  participant_username: string
+  participant_display_name: string | null
+  participant_avatar_url: string | null
+  participant_avatar_version: number
+  participant_role: RoomParticipantRole
+  participant_status: RoomParticipantStatus
+  participant_is_present: boolean
 }

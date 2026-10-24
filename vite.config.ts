@@ -47,5 +47,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    // e2e/ est la suite Playwright à deux contextes des salons (LOT F3, `npm run
+    // test:e2e`) : un fichier séparé, jamais ramassé par Vitest.
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
   },
 })

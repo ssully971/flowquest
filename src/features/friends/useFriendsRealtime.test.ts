@@ -47,7 +47,7 @@ describe('useFriendsRealtime — abonnement au statut des amis, reconnexion, rep
     const { useFriendsRealtime } = await import('./useFriendsRealtime')
     renderHook(() => useFriendsRealtime(vi.fn(), true))
 
-    expect(channelMock).toHaveBeenCalledWith('live-status-friends')
+    expect(channelMock).toHaveBeenCalledWith(expect.stringMatching(/^live-status-friends-/))
     expect(channel.on).toHaveBeenCalledWith(
       'postgres_changes',
       expect.objectContaining({ event: '*', schema: 'public', table: 'live_status' }),
@@ -121,6 +121,6 @@ describe('useFriendsRealtime — abonnement au statut des amis, reconnexion, rep
     document.dispatchEvent(new Event('visibilitychange'))
 
     expect(onChange).toHaveBeenCalled()
-    expect(channelMock).toHaveBeenCalledWith('live-status-friends')
+    expect(channelMock).toHaveBeenCalledWith(expect.stringMatching(/^live-status-friends-/))
   })
 })

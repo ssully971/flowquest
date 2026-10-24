@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.6.0',
+    date: '2026-10-26',
+    text: 'Mode Amis (3/4) : salons de focus ensemble — invite jusqu’à 5 amis, minuteur partagé démarré par l’hôte, liste des présents en temps réel et transfert d’hôte automatique en cas d’absence.',
+  },
+  {
     version: '0.5.0',
     date: '2026-10-25',
     text: 'Mode Amis (2/4) : statut en direct sur la liste d’amis (en focus, en pause), encouragements avec cinq emojis, et un classement hebdomadaire entre amis avec ta position et un message d’encouragement.',
