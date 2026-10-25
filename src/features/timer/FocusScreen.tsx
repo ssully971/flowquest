@@ -10,7 +10,7 @@ import { isIOSDevice } from '@/features/pwa/platform'
 import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { useActiveTask } from '@/features/tasks/active-task-context'
 import { useTasks } from '@/features/tasks/useTasks'
-import { SegmentedControl } from '@/shared/design-system'
+import { Logo, SegmentedControl } from '@/shared/design-system'
 import { useWakeLock } from '@/shared/hooks/useWakeLock'
 import { strings } from '@/shared/i18n'
 import { useToast } from '@/shared/toast'
@@ -157,6 +157,13 @@ export function FocusScreen() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="flex min-h-full flex-col items-center justify-center gap-6 px-4 py-8 pb-24 text-center sm:gap-7 sm:pb-28">
+        {/* LOT H2, §5 : mise en page mobile épurée (logo, citation, titre, icônes de
+            mode, horloge, 2 boutons) — la tâche active, le pilier et le mode
+            Pomodoro/Compte à rebours/Chronomètre restent une fonctionnalité desktop,
+            volontairement absente de cette version mobile simplifiée (voir le
+            compte-rendu du lot pour la liste complète de ce qui est masqué). */}
+        <Logo className="h-8 w-auto sm:hidden" />
+
         <div className="w-full">
           <p
             className="text-[28px] font-semibold text-[var(--text)]"
@@ -164,7 +171,7 @@ export function FocusScreen() {
           >
             {strings.focus.question}
           </p>
-          <div className="mt-1 flex items-center justify-center gap-1.5">
+          <div className="mt-1 hidden items-center justify-center gap-1.5 sm:flex">
             <p className="text-sm text-[var(--muted)]">
               {activeTask ? activeTask.title : strings.focus.noActiveTask}
             </p>
@@ -174,12 +181,14 @@ export function FocusScreen() {
 
         {quotesSettings.showOnFocus ? <FadingQuote quote={quote} /> : null}
 
-        <SegmentedControl
-          ariaLabel={strings.focus.mode}
-          value={timer.mode}
-          onChange={timer.selectMode}
-          options={MODE_OPTIONS}
-        />
+        <div className="hidden sm:block">
+          <SegmentedControl
+            ariaLabel={strings.focus.mode}
+            value={timer.mode}
+            onChange={timer.selectMode}
+            options={MODE_OPTIONS}
+          />
+        </div>
 
         {timer.mode === 'pomodoro' && timer.cycleEnded ? (
           <SessionEndScreen
@@ -206,7 +215,9 @@ export function FocusScreen() {
                 />
 
                 {goalTarget > 0 ? (
-                  <GoalProgress completed={timer.goalProgress} target={goalTarget} />
+                  <div className="hidden sm:block">
+                    <GoalProgress completed={timer.goalProgress} target={goalTarget} />
+                  </div>
                 ) : null}
               </>
             ) : null}

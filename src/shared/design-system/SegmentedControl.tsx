@@ -99,7 +99,12 @@ export function SegmentedControl<T extends string>({
             }`}
           >
             {Icon ? <Icon size={18} strokeWidth={1.75} aria-hidden="true" /> : null}
-            {option.label}
+            {/* LOT H2, §5 : une option avec icône n'affiche son texte qu'à partir de
+                `sm:` — sur mobile, l'icône seule reste visible. `sr-only` (pas `hidden`) :
+                le texte reste lu par un lecteur d'écran même masqué visuellement, sinon
+                le bouton perdrait tout nom accessible sur mobile (l'icône est
+                aria-hidden). Une option sans icône garde son texte visible partout. */}
+            <span className={Icon ? 'sr-only sm:not-sr-only' : undefined}>{option.label}</span>
           </button>
         )
       })}

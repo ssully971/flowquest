@@ -1,4 +1,5 @@
-import { Flame, ListTodo, Maximize2, Minimize2, NotebookPen, Settings } from 'lucide-react'
+import { Flame, Home, ListTodo, Maximize2, Minimize2, Moon, NotebookPen, Settings, Timer } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 
@@ -50,10 +51,12 @@ interface AppShellProps {
   children: ReactNode
 }
 
-const MODE_OPTIONS: { value: AppMode; label: string }[] = [
-  { value: 'home', label: strings.common.modeHome },
-  { value: 'focus', label: strings.common.modeFocus },
-  { value: 'ambient', label: strings.common.modeAmbient },
+// Icônes (LOT H2, §5) : visibles seules sur mobile (texte en sr-only, voir
+// SegmentedControl), avec le texte à côté à partir de `sm:` — inchangé sur grand écran.
+const MODE_OPTIONS: { value: AppMode; label: string; icon: LucideIcon }[] = [
+  { value: 'home', label: strings.common.modeHome, icon: Home },
+  { value: 'focus', label: strings.common.modeFocus, icon: Timer },
+  { value: 'ambient', label: strings.common.modeAmbient, icon: Moon },
 ]
 
 export function AppShell({ mode, onModeChange, children }: AppShellProps) {

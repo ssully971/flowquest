@@ -7,6 +7,7 @@ import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
 import { ActivePillarProvider } from '@/features/pillars/ActivePillarProvider'
 import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
+import { ThemeProvider } from '@/shared/design-system'
 import { getDb } from '@/shared/storage/db'
 import { ToastProvider } from '@/shared/toast'
 
@@ -20,30 +21,32 @@ async function clearTimerState() {
 
 function renderFocusScreen() {
   return render(
-    <ToastProvider>
-      <AuthProvider>
-        <ActiveTaskProvider>
-          <ActivePillarProvider>
-            <TimerSettingsProvider>
-              <ClockSettingsProvider>
-                <QuotesSettingsProvider>
-                  <ExtrasSettingsProvider>
-                    <FocusScreen />
-                  </ExtrasSettingsProvider>
-                </QuotesSettingsProvider>
-              </ClockSettingsProvider>
-            </TimerSettingsProvider>
-          </ActivePillarProvider>
-        </ActiveTaskProvider>
-      </AuthProvider>
-    </ToastProvider>,
+    <ThemeProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <ActiveTaskProvider>
+            <ActivePillarProvider>
+              <TimerSettingsProvider>
+                <ClockSettingsProvider>
+                  <QuotesSettingsProvider>
+                    <ExtrasSettingsProvider>
+                      <FocusScreen />
+                    </ExtrasSettingsProvider>
+                  </QuotesSettingsProvider>
+                </ClockSettingsProvider>
+              </TimerSettingsProvider>
+            </ActivePillarProvider>
+          </ActiveTaskProvider>
+        </AuthProvider>
+      </ToastProvider>
+    </ThemeProvider>,
   )
 }
 
 describe('FocusScreen — ne chevauche jamais la barre du bas commune et ne masque jamais la question', () => {
   it('réserve un espace bas (padding) pour ne pas chevaucher la barre commune', async () => {
     renderFocusScreen()
-    const question = await screen.findByText('Sur quoi te concentres-tu ?')
+    const question = await screen.findByText('Sur quoi veux-tu te concentrer ?')
     const root = question.closest('div[class*="flex"][class*="flex-col"]')
     expect(root?.className).toContain('pb-24')
     expect(root?.className).toContain('sm:pb-28')
@@ -51,14 +54,14 @@ describe('FocusScreen — ne chevauche jamais la barre du bas commune et ne masq
 
   it('le contenu est dans un conteneur défilant (overflow-y-auto), jamais tronqué sans recours', async () => {
     renderFocusScreen()
-    const question = await screen.findByText('Sur quoi te concentres-tu ?')
+    const question = await screen.findByText('Sur quoi veux-tu te concentrer ?')
     const scrollContainer = question.closest('div[class*="flex"][class*="flex-col"]')?.parentElement
     expect(scrollContainer?.className).toContain('overflow-y-auto')
   })
 
   it('utilise min-h-full (centrage sûr) plutôt que h-full+justify-center (qui tronquerait le haut)', async () => {
     renderFocusScreen()
-    const question = await screen.findByText('Sur quoi te concentres-tu ?')
+    const question = await screen.findByText('Sur quoi veux-tu te concentrer ?')
     const root = question.closest('div[class*="flex"][class*="flex-col"]')
     expect(root?.className).toContain('min-h-full')
   })
@@ -71,7 +74,7 @@ describe('FocusScreen — citation optionnelle (masquée par défaut)', () => {
 
   it('ne montre aucune citation tant que « Afficher en mode Focus » n’est pas activé', async () => {
     renderFocusScreen()
-    await screen.findByText('Sur quoi te concentres-tu ?')
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
     expect(document.querySelector('blockquote')).toBeNull()
   })
 
@@ -86,7 +89,7 @@ describe('FocusScreen — citation optionnelle (masquée par défaut)', () => {
       }),
     )
     renderFocusScreen()
-    await screen.findByText('Sur quoi te concentres-tu ?')
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
     expect(document.querySelector('blockquote')).not.toBeNull()
   })
 })
@@ -106,7 +109,7 @@ describe('FocusScreen — la police de l’horloge suit Réglages > Horloge (LOT
       }),
     )
     renderFocusScreen()
-    await screen.findByText('Sur quoi te concentres-tu ?')
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
     const digits = await screen.findByTestId('big-digits')
     expect(digits.style.fontFamily).toContain('Georgia')
   })
@@ -120,7 +123,7 @@ describe('FocusScreen — raccourcis clavier (LOT G1)', () => {
 
   it('Espace démarre le minuteur', async () => {
     renderFocusScreen()
-    await screen.findByText('Sur quoi te concentres-tu ?')
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
 
     fireEvent.keyDown(window, { key: ' ' })
 
@@ -129,7 +132,7 @@ describe('FocusScreen — raccourcis clavier (LOT G1)', () => {
 
   it('? ouvre la fenêtre d’aide des raccourcis', async () => {
     renderFocusScreen()
-    await screen.findByText('Sur quoi te concentres-tu ?')
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
 
     fireEvent.keyDown(window, { key: '?' })
 
@@ -149,7 +152,7 @@ describe('FocusScreen — raccourcis clavier (LOT G1)', () => {
       }),
     )
     renderFocusScreen()
-    await screen.findByText('Sur quoi te concentres-tu ?')
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
 
     fireEvent.keyDown(window, { key: ' ' })
 
@@ -189,7 +192,7 @@ describe('FocusScreen — Deep Focus (LOT G2)', () => {
 
   it('aucun indicateur tant que Deep Focus est désactivé (réglage par défaut)', async () => {
     renderFocusScreen()
-    await screen.findByText('Sur quoi te concentres-tu ?')
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
 
     fireEvent.keyDown(window, { key: ' ' })
     await screen.findByRole('button', { name: 'Mettre en pause' })
@@ -200,7 +203,7 @@ describe('FocusScreen — Deep Focus (LOT G2)', () => {
   it('affiche l’indicateur pendant une session de focus quand Deep Focus est actif', async () => {
     seedDeepFocusSettings()
     renderFocusScreen()
-    await screen.findByText('Sur quoi te concentres-tu ?')
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
 
     fireEvent.keyDown(window, { key: ' ' })
     await screen.findByRole('button', { name: 'Mettre en pause' })
@@ -211,7 +214,7 @@ describe('FocusScreen — Deep Focus (LOT G2)', () => {
   it('met le minuteur en pause et propose « Reprendre » quand l’onglet passe en arrière-plan', async () => {
     seedDeepFocusSettings()
     renderFocusScreen()
-    await screen.findByText('Sur quoi te concentres-tu ?')
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
 
     fireEvent.keyDown(window, { key: ' ' })
     await screen.findByRole('button', { name: 'Mettre en pause' })

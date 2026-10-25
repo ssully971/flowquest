@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { Home } from 'lucide-react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { SegmentedControl } from './SegmentedControl'
@@ -54,5 +55,22 @@ describe('SegmentedControl', () => {
         'bg-[var(--accent)]',
       )
     }
+  })
+
+  it('masque visuellement (mais garde accessible) le texte d’une option à icône sur mobile (LOT H2, §5)', () => {
+    const iconOptions: SegmentedOption<'home' | 'focus'>[] = [
+      { value: 'home', label: 'Accueil', icon: Home },
+      { value: 'focus', label: 'Focus' },
+    ]
+    render(<SegmentedControl ariaLabel="Mode" value="home" onChange={vi.fn()} options={iconOptions} />)
+
+    // Toujours trouvable par son nom accessible (sr-only, pas disparu du DOM) — jamais de
+    // bouton sans nom accessible sur mobile malgré l'icône masquée aux lecteurs d'écran.
+    const withIcon = screen.getByRole('radio', { name: 'Accueil' })
+    expect(withIcon.querySelector('span')?.className).toContain('sr-only')
+
+    // Sans icône, le texte reste visible à toutes les tailles (comportement inchangé).
+    const withoutIcon = screen.getByRole('radio', { name: 'Focus' })
+    expect(withoutIcon.querySelector('span')?.className).not.toContain('sr-only')
   })
 })

@@ -196,7 +196,7 @@ export const fr = {
     system: 'Système',
   },
   focus: {
-    question: 'Sur quoi te concentres-tu ?',
+    question: 'Sur quoi veux-tu te concentrer ?',
     noActiveTask: 'Aucune tâche active',
     timeRemaining: 'Temps restant',
     timeElapsed: 'Temps écoulé',
@@ -222,7 +222,7 @@ export const fr = {
     },
     controls: {
       reset: 'Réinitialiser',
-      start: 'Démarrer',
+      start: 'Lancer',
       pause: 'Mettre en pause',
       resume: 'Reprendre',
       skip: 'Passer',
