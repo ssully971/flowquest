@@ -7,8 +7,11 @@ import { CLOCK_SIZE_SCALE, CLOCK_STYLE_CSS, resolveClockColor } from '@/features
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { BigDigits, GlassCard } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
+import { useToast } from '@/shared/toast'
 
+import { DeepFocusIndicator } from './components/DeepFocusIndicator'
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp'
+import { useDeepFocus } from './useDeepFocus'
 import { formatCountdown } from './format'
 import { useFocusTimer } from './useFocusTimer'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
@@ -27,6 +30,7 @@ export function AmbientScreen() {
   const { settings: timerSettings } = useTimerSettings()
   const [isSoundsOpen, setIsSoundsOpen] = useState(false)
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
+  const { showToast } = useToast()
 
   const handlePrimary = () => {
     const status = timer.snapshot?.status
@@ -45,6 +49,26 @@ export function AmbientScreen() {
     },
     timerSettings.keyboardShortcutsEnabled,
   )
+
+  // Deep Focus (LOT G2) : mêmes conditions que sur l'écran Focus (voir son commentaire
+  // pour le choix de garder `enabled` indépendant du statut running/paused).
+  const isDeepFocusEligible =
+    timerSettings.deepFocusEnabled && timer.mode === 'pomodoro' && timer.segment === 'focus'
+  const isDeepFocusActive = isDeepFocusEligible && timer.snapshot?.status === 'running'
+
+  useDeepFocus({
+    enabled: isDeepFocusEligible,
+    graceMs: timerSettings.deepFocusGraceSeconds * 1000,
+    isRunning: () => timer.snapshot?.status === 'running',
+    onPause: (hiddenAt) => timer.pause(hiddenAt),
+    onPausedWhileAway: () => {
+      showToast({
+        type: 'info',
+        message: strings.focus.deepFocus.pausedToastMessage,
+        action: { label: strings.focus.deepFocus.resumeAction, onClick: timer.resume },
+      })
+    },
+  })
 
   if (!timer.isReady || !timer.snapshot) {
     return <div className="h-full" />
@@ -110,6 +134,8 @@ export function AmbientScreen() {
             {...sounds}
           />
         </div>
+
+        {isDeepFocusActive ? <DeepFocusIndicator /> : null}
       </div>
 
       <KeyboardShortcutsHelp open={isShortcutsHelpOpen} onClose={() => setIsShortcutsHelpOpen(false)} />

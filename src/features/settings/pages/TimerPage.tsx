@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { KeyboardShortcutsHelp } from '@/features/timer/components/KeyboardShortcutsHelp'
 import {
   COUNTDOWN_MINUTES_RANGE,
+  DEEP_FOCUS_GRACE_SECONDS_RANGE,
   FOCUS_MINUTES_RANGE,
   LONG_BREAK_MINUTES_RANGE,
   SHORT_BREAK_MINUTES_RANGE,
@@ -121,6 +122,26 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
         >
           {strings.focus.shortcuts.openHelp}
         </button>
+      </div>
+
+      <div className="flex max-w-md flex-col gap-2">
+        <SettingsToggleRow
+          label={s.deepFocusEnabled}
+          hint={s.deepFocusEnabledHint}
+          checked={settings.deepFocusEnabled}
+          onToggle={() => onChange({ ...settings, deepFocusEnabled: !settings.deepFocusEnabled })}
+        />
+        {settings.deepFocusEnabled ? (
+          <NumericStepper
+            label={s.deepFocusGraceSeconds}
+            value={settings.deepFocusGraceSeconds}
+            min={DEEP_FOCUS_GRACE_SECONDS_RANGE.min}
+            max={DEEP_FOCUS_GRACE_SECONDS_RANGE.max}
+            step={DEEP_FOCUS_GRACE_SECONDS_RANGE.step}
+            unit="s"
+            onChange={(deepFocusGraceSeconds) => onChange({ ...settings, deepFocusGraceSeconds })}
+          />
+        ) : null}
       </div>
 
       <SessionGoalSettings settings={settings} onChange={onChange} />

@@ -452,3 +452,39 @@ describe('useFocusTimer — startedAt exposé pour la citation par phase (LOT G1
     expect(result.current.startedAt).toBeNull()
   })
 })
+
+describe('useFocusTimer — pause() accepte un horodatage explicite (LOT G2, Deep Focus)', () => {
+  it('gèle le temps écoulé à l’horodatage donné, pas à l’instant réel de l’appel', async () => {
+    // Durée longue (1h) pour que l'écart entre l'horodatage demandé et l'exécution réelle
+    // reste négligeable devant la durée totale, et que rien ne se termine pendant le test.
+    seedTimerSettings({ focusMinutes: 60 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+
+    // Scénario « quitter 40 s puis revenir » : l'onglet se cache à t0, Deep Focus déclenche
+    // pause(t0) — mais l'exécution réelle (ce code) ne tourne qu'au retour, bien après t0.
+    const hiddenAt = Date.now() - 40_000
+    act(() => result.current.pause(hiddenAt))
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('paused'))
+
+    // Le temps de focus compté s'arrête à hiddenAt, jamais aux 40 s qui se sont écoulées
+    // en vrai avant que ce test n'exécute l'assertion.
+    expect(result.current.snapshot?.elapsedMs).toBeLessThan(1000)
+  })
+
+  it('sans horodatage, se comporte comme avant (Date.now() implicite)', async () => {
+    seedTimerSettings({ focusMinutes: 60 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+
+    act(() => result.current.pause())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('paused'))
+    expect(result.current.snapshot?.elapsedMs).toBeLessThan(1000)
+  })
+})

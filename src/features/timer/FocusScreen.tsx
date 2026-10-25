@@ -12,8 +12,10 @@ import { useTasks } from '@/features/tasks/useTasks'
 import { SegmentedControl } from '@/shared/design-system'
 import { useWakeLock } from '@/shared/hooks/useWakeLock'
 import { strings } from '@/shared/i18n'
+import { useToast } from '@/shared/toast'
 
 import type { SegmentKind, TimerMode } from './engine/timer-engine'
+import { DeepFocusIndicator } from './components/DeepFocusIndicator'
 import { FadingQuote } from './components/FadingQuote'
 import { GoalProgress } from './components/GoalProgress'
 import { GoalReachedPanel } from './components/GoalReachedPanel'
@@ -23,6 +25,7 @@ import { SessionEndScreen } from './components/SessionEndScreen'
 import { SessionTally } from './components/SessionTally'
 import { TimerControls } from './components/TimerControls'
 import { TimerFace } from './components/TimerFace'
+import { useDeepFocus } from './useDeepFocus'
 import { getDurationMsForMode } from './durations'
 import { formatCountdown, formatElapsed } from './format'
 import { fireSessionEndConfetti } from './session-end-confetti'
@@ -68,8 +71,31 @@ export function FocusScreen() {
   const phaseKey = timer.startedAt !== null ? `${timer.segment}:${timer.startedAt}` : null
   const quote = usePhaseQuote(quotesSettings.category, quotePool, phaseKey)
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
+  const { showToast } = useToast()
   useWakeLock(extrasSettings.preventSleep && timer.snapshot?.status === 'running')
   const activeTask = tasks.find((task) => task.id === activeTaskId) ?? null
+
+  // Deep Focus (LOT G2) : jamais sur le chronomètre libre — seulement une phase de FOCUS
+  // du Pomodoro. Volontairement indépendant du statut running/paused (voir
+  // useDeepFocus.ts) : sinon la pause déclenchée par ce hook désinstallerait son propre
+  // écouteur avant que le toast de reprise n'ait pu se déclencher au retour.
+  const isDeepFocusEligible =
+    timerSettings.deepFocusEnabled && timer.mode === 'pomodoro' && timer.segment === 'focus'
+  const isDeepFocusActive = isDeepFocusEligible && timer.snapshot?.status === 'running'
+
+  useDeepFocus({
+    enabled: isDeepFocusEligible,
+    graceMs: timerSettings.deepFocusGraceSeconds * 1000,
+    isRunning: () => timer.snapshot?.status === 'running',
+    onPause: (hiddenAt) => timer.pause(hiddenAt),
+    onPausedWhileAway: () => {
+      showToast({
+        type: 'info',
+        message: strings.focus.deepFocus.pausedToastMessage,
+        action: { label: strings.focus.deepFocus.resumeAction, onClick: timer.resume },
+      })
+    },
+  })
 
   useEffect(() => {
     if (timer.cycleEnded && timerSettings.confettiEnabled) fireSessionEndConfetti()
@@ -197,6 +223,8 @@ export function FocusScreen() {
                     styleCss={CLOCK_STYLE_CSS[clockSettings.style]}
                   />
                 </div>
+
+                {isDeepFocusActive ? <DeepFocusIndicator /> : null}
 
                 <TimerControls
                   status={snapshot.status}

@@ -115,6 +115,25 @@ clavier » dans Réglages > Minuteur (activé par défaut, synchronisé par comp
 bouton permanent ajouté à l'écran : l'aide s'ouvre par « ? » ou par un lien dans ce même
 réglage.
 
+### 6.6 Deep Focus ✅ (LOT G2)
+Réglage « Deep Focus » dans Réglages > Minuteur (**désactivé par défaut**, synchronisé
+par compte) : met en pause une session de focus (Pomodoro, phase focus uniquement —
+jamais une pause, jamais le chronomètre libre, jamais un salon de groupe) si l'onglet
+passe en arrière-plan plus longtemps qu'un délai de grâce réglable (5 s par défaut, 0 à
+60 s).
+
+- Détection via `visibilitychange` (`document.visibilityState === 'hidden'`). La pause
+  est **rétroactive à l'instant précis où l'onglet a été quitté** (horodatage capturé à
+  ce moment, pas à l'instant du retour) — le moteur à timestamps du minuteur l'utilise
+  tel quel pour geler le temps écoulé.
+- Double chemin de résolution pour rester juste même quand iOS gèle l'exécution JS en
+  arrière-plan (le `setTimeout` normal peut ne jamais s'exécuter) : un recalcul a lieu
+  aussi au retour (`visible`), à partir de l'horodatage réel du départ.
+- Au retour, un **toast discret** (jamais de boîte de dialogue navigateur) : « Ton
+  minuteur a été mis en pause. Reprends quand tu veux. » avec un bouton Reprendre.
+- Pendant qu'elle est active, un **petit indicateur discret** (icône de cadenas) apparaît
+  près du minuteur — seul signe visible du mode, aucun bouton permanent ajouté à l'écran.
+
 ## 7. Réglages (panneau gauche)
 
 Menu : Thèmes · Horloge · Minuteur · Stats · Citations · Extras · Compte · Support · Nouveautés.

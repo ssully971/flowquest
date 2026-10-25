@@ -64,7 +64,7 @@ export interface UseFocusTimerResult {
   selectMode: (mode: TimerMode) => void
   selectSegment: (segment: SegmentKind) => void
   start: () => void
-  pause: () => void
+  pause: (at?: number) => void
   resume: () => void
   reset: () => void
   skip: () => void
@@ -348,9 +348,17 @@ export function useFocusTimer(): UseFocusTimerResult {
     void controller?.start().then(refresh)
   }, [controller, refresh])
 
-  const pause = useCallback(() => {
-    void controller?.pause().then(refresh)
-  }, [controller, refresh])
+  /** `at` : horodatage explicite de la pause (LOT G2, Deep Focus) — le moteur à
+   * timestamps l'utilise tel quel pour geler le temps écoulé à cet instant précis,
+   * jamais à l'instant réel où cette fonction s'exécute (retour d'onglet, parfois bien
+   * plus tard sur iOS qui gèle l'exécution JS en arrière-plan). Par défaut `Date.now()`,
+   * comme avant, pour tout appelant qui ne passe rien (bouton Pause normal). */
+  const pause = useCallback(
+    (at?: number) => {
+      void controller?.pause(at).then(refresh)
+    },
+    [controller, refresh],
+  )
 
   const resume = useCallback(() => {
     void controller?.resume().then(refresh)

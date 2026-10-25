@@ -1,6 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
@@ -134,5 +134,66 @@ describe('AmbientScreen — raccourcis clavier (LOT G1)', () => {
     fireEvent.keyDown(window, { key: '?' })
 
     expect(await screen.findByRole('dialog', { name: 'Raccourcis clavier' })).toBeInTheDocument()
+  })
+})
+
+function setVisibility(state: 'visible' | 'hidden') {
+  Object.defineProperty(document, 'visibilityState', { value: state, configurable: true })
+  fireEvent(document, new Event('visibilitychange'))
+}
+
+function seedDeepFocusSettings() {
+  window.localStorage.setItem(
+    'flowquest.timerSettings',
+    JSON.stringify({
+      focusMinutes: 25,
+      shortBreakMinutes: 5,
+      longBreakMinutes: 10,
+      sessionsBeforeLongBreak: 4,
+      autoStartNext: false,
+      deepFocusEnabled: true,
+      deepFocusGraceSeconds: 0,
+    }),
+  )
+}
+
+describe('AmbientScreen — Deep Focus (LOT G2)', () => {
+  beforeEach(async () => {
+    window.localStorage.clear()
+    await clearTimerState()
+  })
+
+  afterEach(() => {
+    setVisibility('visible')
+  })
+
+  it('aucun indicateur tant que Deep Focus est désactivé (réglage par défaut)', async () => {
+    renderAmbientScreen()
+    await screen.findByTestId('big-digits')
+
+    fireEvent.keyDown(window, { key: ' ' })
+    await screen.findByRole('button', { name: 'Mettre en pause' })
+
+    expect(screen.queryByText('Deep Focus actif')).not.toBeInTheDocument()
+  })
+
+  it('affiche l’indicateur et propose « Reprendre » quand l’onglet passe en arrière-plan', async () => {
+    seedDeepFocusSettings()
+    renderAmbientScreen()
+    await screen.findByTestId('big-digits')
+
+    fireEvent.keyDown(window, { key: ' ' })
+    await screen.findByRole('button', { name: 'Mettre en pause' })
+
+    expect(await screen.findByText('Deep Focus actif')).toBeInTheDocument()
+
+    setVisibility('hidden')
+    setVisibility('visible')
+
+    const toastMessage = await screen.findByText(
+      'Ton minuteur a été mis en pause. Reprends quand tu veux.',
+    )
+    const toastContainer = toastMessage.closest('[role="status"]') as HTMLElement
+    expect(within(toastContainer).getByRole('button', { name: 'Reprendre' })).toBeInTheDocument()
   })
 })

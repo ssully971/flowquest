@@ -42,6 +42,13 @@ export interface TimerSettings {
   /** Raccourcis clavier du minuteur (LOT G1) : activés par défaut, désactivables pour qui
    * préfère n'avoir aucune touche agissant sur le minuteur (ex. clavier partagé). */
   keyboardShortcutsEnabled: boolean
+  /** Deep Focus (LOT G2) : désactivé par défaut — met en pause une session de focus
+   * (Pomodoro uniquement, jamais une pause ni le chronomètre libre) dès que l'onglet
+   * passe en arrière-plan plus longtemps que deepFocusGraceSeconds. */
+  deepFocusEnabled: boolean
+  /** Délai de grâce (secondes) avant qu'un changement d'onglet ne déclenche la pause —
+   * pardonne un passage accidentel court. */
+  deepFocusGraceSeconds: number
 }
 
 export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
@@ -66,6 +73,8 @@ export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
   confettiEnabled: false,
   sessionSummaryEnabled: true,
   keyboardShortcutsEnabled: true,
+  deepFocusEnabled: false,
+  deepFocusGraceSeconds: 5,
 }
 
 export { TIMER_DISPLAY_STYLES, TALLY_ICON_SETS, SESSION_GOAL_TYPES }
@@ -81,6 +90,8 @@ export const COUNTDOWN_MINUTES_RANGE = { min: 1, max: 180, step: 1 }
 // Objectif de session (lot 4) : en nombre de sessions, ou en durée totale de focus visée.
 export const SESSION_GOAL_COUNT_RANGE = { min: 1, max: 12, step: 1 }
 export const SESSION_GOAL_MINUTES_RANGE = { min: 30, max: 480, step: 15 }
+// Délai de grâce Deep Focus (lot G2) : de 0 (immédiat) à 1 min, par pas de 5 s.
+export const DEEP_FOCUS_GRACE_SECONDS_RANGE = { min: 0, max: 60, step: 5 }
 
 export function toDurationsMs(settings: TimerSettings): PomodoroDurationsMs {
   return {

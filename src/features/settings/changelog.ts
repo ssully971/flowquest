@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.9.0',
+    date: '2026-10-29',
+    text: 'Deep Focus (option désactivée par défaut dans Réglages > Minuteur) : si tu quittes l’onglet pendant une session de focus, ton minuteur se met en pause pile à cet instant, avec un petit indicateur pendant qu’il est actif et un toast « Reprendre » à ton retour.',
+  },
+  {
     version: '0.8.0',
     date: '2026-10-28',
     text: 'Raccourcis clavier dans Focus et Ambiant (Espace, N, R, M, ? pour l’aide) et des citations qui changent à chaque nouvelle phase sur l’écran Focus, avec un léger fondu.',

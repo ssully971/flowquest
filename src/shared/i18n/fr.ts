@@ -238,6 +238,11 @@ export const fr = {
       tasksCompleted: 'Tâches validées',
       acknowledge: 'Nouvelle session',
     },
+    deepFocus: {
+      indicatorLabel: 'Deep Focus actif',
+      pausedToastMessage: 'Ton minuteur a été mis en pause. Reprends quand tu veux.',
+      resumeAction: 'Reprendre',
+    },
     shortcuts: {
       title: 'Raccourcis clavier',
       closeLabel: 'Fermer',
@@ -697,6 +702,10 @@ export const fr = {
       keyboardShortcutsEnabled: 'Raccourcis clavier',
       keyboardShortcutsEnabledHint:
         'Espace pour lancer/pause, N pour passer à la phase suivante, R pour réinitialiser, M pour couper les sons d’ambiance, ? pour l’aide.',
+      deepFocusEnabled: 'Deep Focus',
+      deepFocusEnabledHint:
+        'Met ta session de focus en pause si tu quittes l’onglet trop longtemps — jamais pendant une pause ni le chronomètre libre.',
+      deepFocusGraceSeconds: 'Délai de grâce avant la pause',
       decrease: 'Diminuer',
       increase: 'Augmenter',
       invalidValue: 'Valeur invalide : nombre entier attendu.',
