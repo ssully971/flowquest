@@ -3,7 +3,9 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
+import { DEFAULT_EXTRAS_SETTINGS } from '@/features/settings/extras-settings'
 import { getDb } from '@/shared/storage/db'
+import { ToastProvider } from '@/shared/toast'
 
 import { ActiveTaskProvider } from '../ActiveTaskProvider'
 import { TasksPanel } from './TasksPanel'
@@ -15,16 +17,18 @@ vi.mock('canvas-confetti', () => ({ default: vi.fn() }))
 function renderPanel(open = true) {
   const onClose = () => {}
   return render(
-    <ExtrasSettingsProvider>
-      <ActiveTaskProvider>
-        <div>
-          <button type="button">Déclencheur</button>
-          <div className="relative">
-            <TasksPanel open={open} onClose={onClose} />
+    <ToastProvider>
+      <ExtrasSettingsProvider>
+        <ActiveTaskProvider>
+          <div>
+            <button type="button">Déclencheur</button>
+            <div className="relative">
+              <TasksPanel open={open} onClose={onClose} />
+            </div>
           </div>
-        </div>
-      </ActiveTaskProvider>
-    </ExtrasSettingsProvider>,
+        </ActiveTaskProvider>
+      </ExtrasSettingsProvider>
+    </ToastProvider>,
   )
 }
 
@@ -33,7 +37,17 @@ beforeEach(async () => {
   const db = await getDb()
   const keys = await db.getAllKeys('tasks')
   await Promise.all(keys.map((key) => db.delete('tasks', key)))
+  // Réglage par défaut (LOT H1, §5) : confirmation activée — chaque test qui supprime
+  // une tâche sans tester explicitement l'annulation doit pouvoir confirmer.
+  vi.spyOn(window, 'confirm').mockReturnValue(true)
 })
+
+function disableDeleteConfirmation() {
+  window.localStorage.setItem(
+    'flowquest.extrasSettings',
+    JSON.stringify({ ...DEFAULT_EXTRAS_SETTINGS, confirmTaskDeletion: false }),
+  )
+}
 
 describe('TasksPanel', () => {
   it("affiche l'état vide quand il n'y a aucune tâche", async () => {
@@ -58,7 +72,7 @@ describe('TasksPanel', () => {
     ).toBeInTheDocument()
   })
 
-  it('supprime une tâche', async () => {
+  it('supprime une tâche après confirmation (LOT H1, §5, réglage activé par défaut)', async () => {
     const user = userEvent.setup()
     renderPanel()
 
@@ -67,9 +81,44 @@ describe('TasksPanel', () => {
     await screen.findByText('À retirer')
 
     await user.click(screen.getByRole('button', { name: 'Supprimer la tâche' }))
+    expect(window.confirm).toHaveBeenCalledWith('Supprimer cette tâche ?')
     await waitFor(() => {
       expect(screen.queryByText('À retirer')).not.toBeInTheDocument()
     })
+  })
+
+  it('ne supprime rien si on refuse la confirmation (LOT H1, §5)', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const user = userEvent.setup()
+    renderPanel()
+
+    await user.type(screen.getByPlaceholderText('Nouvelle tâche…'), 'À garder')
+    await user.click(screen.getByRole('button', { name: 'Ajouter' }))
+    await screen.findByText('À garder')
+
+    await user.click(screen.getByRole('button', { name: 'Supprimer la tâche' }))
+    expect(screen.getByText('À garder')).toBeInTheDocument()
+  })
+
+  it('supprime immédiatement sans confirmer quand le réglage est désactivé, avec un toast « Annuler » (LOT H1, §5)', async () => {
+    disableDeleteConfirmation()
+    const user = userEvent.setup()
+    renderPanel()
+
+    await user.type(screen.getByPlaceholderText('Nouvelle tâche…'), 'Suppression rapide')
+    await user.click(screen.getByRole('button', { name: 'Ajouter' }))
+    await screen.findByText('Suppression rapide')
+
+    await user.click(screen.getByRole('button', { name: 'Supprimer la tâche' }))
+    expect(window.confirm).not.toHaveBeenCalled()
+    await waitFor(() => {
+      expect(screen.queryByText('Suppression rapide')).not.toBeInTheDocument()
+    })
+
+    expect(await screen.findByText('Tâche supprimée')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Annuler' }))
+
+    expect(await screen.findByText('Suppression rapide')).toBeInTheDocument()
   })
 
   it('déclenche les confettis en cochant la dernière tâche restante (§8)', async () => {

@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ToastProvider } from '@/shared/toast'
 
 import { AuthGate } from './AuthGate'
+import { AuthGateRequestProvider } from './AuthGateRequestProvider'
+import { useAuthGateRequest } from './useAuthGateRequest'
 
 const useAuthMock = vi.fn()
 
@@ -114,5 +116,46 @@ describe('AuthGate — fenêtre plein écran de connexion (LOT A)', () => {
     await user.click(screen.getByRole('button', { name: 'Retour' }))
 
     expect(screen.getByRole('button', { name: 'Créer un compte' })).toBeInTheDocument()
+  })
+})
+
+function RequestSignInButton() {
+  const { requestSignIn } = useAuthGateRequest()
+  return (
+    <button type="button" onClick={requestSignIn}>
+      Déclencher depuis un écran social
+    </button>
+  )
+}
+
+describe('AuthGate — réouverture depuis un écran social (LOT H1, §3)', () => {
+  it('useAuthGateRequest() rouvre directement le formulaire de connexion après « continuer sans compte »', async () => {
+    useAuthMock.mockReturnValue(baseAuth())
+    const user = userEvent.setup()
+    render(
+      <ToastProvider>
+        <AuthGateRequestProvider>
+          <AuthGate>
+            <p>Contenu de l’app</p>
+          </AuthGate>
+          <RequestSignInButton />
+        </AuthGateRequestProvider>
+      </ToastProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Continuer sans compte' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Déclencher depuis un écran social' }))
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByLabelText('E-mail')).toBeInTheDocument()
+  })
+
+  it('sans AuthGateRequestProvider, requestSignIn() ne fait rien (pas d’erreur)', () => {
+    useAuthMock.mockReturnValue(baseAuth())
+    renderGate()
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 })

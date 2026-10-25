@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 
+import { SignInPrompt } from '@/features/auth/components/SignInPrompt'
 import { useAuth } from '@/features/auth/useAuth'
 import { FloatingPanel } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
@@ -56,8 +57,10 @@ export function FriendsPanel({ open, onClose }: FriendsPanelProps) {
         panelSizeClassName="w-[24rem]"
         windowSizeClassName="w-full max-w-[36rem] max-h-[85vh]"
       >
-        {!isSupabaseConfigured || status !== 'authenticated' ? (
+        {!isSupabaseConfigured ? (
           <p className="max-w-sm text-sm text-[var(--muted)]">{s.signInRequired}</p>
+        ) : status !== 'authenticated' ? (
+          <SignInPrompt message={s.signInRequired} ctaLabel={s.signInCta} />
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
             <div

@@ -162,7 +162,7 @@ Menu : Thèmes · Horloge · Minuteur · Stats · Citations · Extras · Compte 
   reste la référence pour l'Accueil — sur Focus, le rythme naturel est celui des phases.
 
 ### 7.6 Extras
-- Nom affiché sur le tableau de bord ; désactiver les thèmes animés (appareils lents) ; mode épuré ; empêcher la veille ; onglet des réglages ouvert par défaut ; **randomiseur de thème** à chaque chargement.
+- Nom affiché sur le tableau de bord ; désactiver les thèmes animés (appareils lents) ; mode épuré ; empêcher la veille ; onglet des réglages ouvert par défaut ; **randomiseur de thème** à chaque chargement ; **confirmer avant de supprimer une tâche** (activé par défaut — LOT H1, voir §10.6).
 
 ### 7.7 Compte
 - Création de compte / connexion (e-mail + Google), pseudo, prénom, e-mail, mot de passe, suppression du compte, export des données, déconnexion.
@@ -311,6 +311,30 @@ Passe de relecture sur l'ensemble du Mode Amis (F1 à F4) avant de le considére
   (un salon sans personne n'a pas de sens — désormais refusé, côté base et côté
   interface) ; `generate_unique_username()` n'avait pas de droit d'exécution explicite
   (voir « Passe de sécurité » dans `docs/SECURITE.md`).
+
+### 10.6 Corrections et temps réel (LOT H1)
+- **Bug corrigé** : `get_room_state()` renvoyait « column reference "room_id" is
+  ambiguous » (collision entre les colonnes de sortie de la fonction et les colonnes
+  internes de `room_participants` dans son `UPDATE`). Même défaut trouvé et corrigé dans
+  `list_duo_streaks()` à l'audit ; `weekly_leaderboard()` durci par précaution (ordre
+  positionnel plutôt que par alias). Migration dédiée (`0035_fix_ambiguous_columns.sql`),
+  anciennes migrations non modifiées.
+- **Temps réel des demandes d'amis, encouragements et invitations de salon**
+  (`0036_social_realtime.sql`, publication `supabase_realtime`) : toast discret dès
+  qu'une nouvelle entrée apparaît, détectée par différence avec le dernier état connu —
+  repli par interrogation 30 s et reconnexion au retour d'onglet déjà fournis par
+  l'infrastructure temps réel existante (voir §10.3).
+- **État clair quand on n'est pas connecté** sur les écrans sociaux (panneau Amis,
+  panneau Salons, Réglages > Amis et confidentialité) : icône, message, bouton
+  « Se connecter » qui rouvre l'écran de connexion existant — remplace un écran
+  auparavant vide.
+- **Durée d'un salon (§10.3)** : le curseur affiche désormais sa valeur en direct, avec
+  un champ saisissable au clavier en plus des 4 préréglages rapides (15/25/45/60 min).
+- **Suppression d'une tâche (§8)** : confirmation avant suppression, réglage
+  « Confirmer avant de supprimer une tâche » dans Extras (activé par défaut) ;
+  désactivé, la suppression est immédiate avec un toast « Annuler » (5 s).
+- **Harmonisation** : tous les champs numériques de Réglages > Minuteur utilisent le même
+  stepper compact (−/valeur/+, largeur alignée sur les autres lignes du panneau).
 
 ## 11. Défis et succès (V3)
 

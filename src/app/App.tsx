@@ -1,5 +1,6 @@
 import { AdminGate } from '@/features/admin/AdminGate'
 import { AuthGate } from '@/features/auth/AuthGate'
+import { AuthGateRequestProvider } from '@/features/auth/AuthGateRequestProvider'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { DiagnosticPage } from '@/features/diagnostic/DiagnosticPage'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
@@ -42,17 +43,19 @@ export function App() {
                           ) : isAdminRoute ? (
                             <AdminGate />
                           ) : (
-                            <AuthGate>
-                              <AppShell mode={mode} onModeChange={setMode}>
-                                {mode === 'home' ? (
-                                  <HomeScreen />
-                                ) : mode === 'focus' ? (
-                                  <FocusScreen />
-                                ) : (
-                                  <AmbientScreen />
-                                )}
-                              </AppShell>
-                            </AuthGate>
+                            <AuthGateRequestProvider>
+                              <AuthGate>
+                                <AppShell mode={mode} onModeChange={setMode}>
+                                  {mode === 'home' ? (
+                                    <HomeScreen />
+                                  ) : mode === 'focus' ? (
+                                    <FocusScreen />
+                                  ) : (
+                                    <AmbientScreen />
+                                  )}
+                                </AppShell>
+                              </AuthGate>
+                            </AuthGateRequestProvider>
                           )}
                         </CustomBackgroundProvider>
                       </BackgroundDisplaySettingsProvider>

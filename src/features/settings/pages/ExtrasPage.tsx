@@ -74,6 +74,13 @@ export function ExtrasPage({ settings, onChange }: ExtrasPageProps) {
         onToggle={() => onChange({ ...settings, showStreak: !settings.showStreak })}
       />
 
+      <SettingsToggleRow
+        label={s.confirmTaskDeletion}
+        hint={s.confirmTaskDeletionHint}
+        checked={settings.confirmTaskDeletion}
+        onToggle={() => onChange({ ...settings, confirmTaskDeletion: !settings.confirmTaskDeletion })}
+      />
+
       <div>
         <p className="mb-2 text-sm font-medium text-[var(--panel-muted)]">{s.settingsPanelSide}</p>
         <SegmentedControl<SettingsPanelSide>

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { FloatingPanel } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
+import { useToast } from '@/shared/toast'
 
 import { useActiveTask } from '../active-task-context'
 import { fireTaskListConfetti } from '../confetti'
@@ -24,11 +25,13 @@ export function TasksPanel({ open, onClose }: TasksPanelProps) {
     toggleDone,
     renameTask,
     removeTask,
+    restoreTasks,
     reorderTasks,
     updateTaskDetails,
   } = useTasks()
   const { activeTaskId, setActiveTaskId } = useActiveTask()
   const { settings: extrasSettings } = useExtrasSettings()
+  const { showToast } = useToast()
   const [newTitle, setNewTitle] = useState('')
   const panelRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -59,9 +62,24 @@ export function TasksPanel({ open, onClose }: TasksPanelProps) {
     setNewTitle('')
   }
 
+  // Confirmation avant suppression (LOT H1, §5), réglage « confirmer avant de supprimer
+  // une tâche » (activé par défaut). Désactivé : suppression immédiate, avec 5 s pour
+  // annuler via le toast (restoreTasks remet exactement les mêmes enregistrements, la
+  // ou les sous-tâches comprises, plutôt que d'en recréer avec de nouveaux id).
   const handleRemove = (id: string) => {
+    if (extrasSettings.confirmTaskDeletion && !window.confirm(strings.tasks.confirmDelete)) return
+
+    const removed = tasks.filter((task) => task.id === id || task.parentId === id)
     void removeTask(id)
     if (activeTaskId === id) setActiveTaskId(null)
+
+    if (!extrasSettings.confirmTaskDeletion) {
+      showToast({
+        type: 'info',
+        message: strings.tasks.deletedToast,
+        action: { label: strings.tasks.undo, onClick: () => void restoreTasks(removed) },
+      })
+    }
   }
 
   return (
