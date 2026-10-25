@@ -39,6 +39,9 @@ export interface TimerSettings {
   cycleEndUnlimited: boolean
   confettiEnabled: boolean
   sessionSummaryEnabled: boolean
+  /** Raccourcis clavier du minuteur (LOT G1) : activés par défaut, désactivables pour qui
+   * préfère n'avoir aucune touche agissant sur le minuteur (ex. clavier partagé). */
+  keyboardShortcutsEnabled: boolean
 }
 
 export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
@@ -62,6 +65,7 @@ export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
   cycleEndUnlimited: false,
   confettiEnabled: false,
   sessionSummaryEnabled: true,
+  keyboardShortcutsEnabled: true,
 }
 
 export { TIMER_DISPLAY_STYLES, TALLY_ICON_SETS, SESSION_GOAL_TYPES }

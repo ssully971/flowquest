@@ -1,13 +1,19 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
+import { getDb } from '@/shared/storage/db'
 import { ToastProvider } from '@/shared/toast'
 
 import { AmbientScreen } from './AmbientScreen'
 import { TimerSettingsProvider } from './TimerSettingsProvider'
+
+async function clearTimerState() {
+  const db = await getDb()
+  await db.delete('timerState', 'current')
+}
 
 vi.mock('@/shared/supabase/client', () => ({ isSupabaseConfigured: false, supabase: null }))
 
@@ -91,5 +97,42 @@ describe('AmbientScreen — minuteur compact en carte Liquid Glass, reste de l�
 
     const digits = await screen.findByTestId('big-digits')
     expect(digits.style.fontFamily).toContain('Georgia')
+  })
+})
+
+describe('AmbientScreen — raccourcis clavier (LOT G1)', () => {
+  beforeEach(async () => {
+    window.localStorage.clear()
+    await clearTimerState()
+  })
+
+  it('Espace démarre le minuteur', async () => {
+    renderAmbientScreen()
+    await screen.findByTestId('big-digits')
+
+    fireEvent.keyDown(window, { key: ' ' })
+
+    expect(await screen.findByRole('button', { name: 'Mettre en pause' })).toBeInTheDocument()
+  })
+
+  it('M coupe/rétablit les sons d’ambiance', async () => {
+    renderAmbientScreen()
+    await screen.findByTestId('big-digits')
+
+    // Pas d'assertion directe sur l'état audio (useAmbientSounds n'est pas mocké ici) :
+    // vérifie seulement que la touche ne lève aucune erreur et n'affecte pas le reste de
+    // l'écran — le comportement du gain maître est déjà couvert par
+    // useAmbientSounds.test.ts.
+    expect(() => fireEvent.keyDown(window, { key: 'm' })).not.toThrow()
+    expect(screen.getByTestId('big-digits')).toBeInTheDocument()
+  })
+
+  it('? ouvre la fenêtre d’aide des raccourcis', async () => {
+    renderAmbientScreen()
+    await screen.findByTestId('big-digits')
+
+    fireEvent.keyDown(window, { key: '?' })
+
+    expect(await screen.findByRole('dialog', { name: 'Raccourcis clavier' })).toBeInTheDocument()
   })
 })

@@ -238,6 +238,25 @@ export const fr = {
       tasksCompleted: 'Tâches validées',
       acknowledge: 'Nouvelle session',
     },
+    shortcuts: {
+      title: 'Raccourcis clavier',
+      closeLabel: 'Fermer',
+      openHelp: 'Afficher les raccourcis clavier',
+      items: {
+        primary: 'Lancer, mettre en pause ou reprendre',
+        next: 'Passer à la phase suivante',
+        reset: 'Réinitialiser la phase en cours',
+        mute: 'Couper ou rétablir les sons d’ambiance',
+        help: 'Afficher cette aide',
+      },
+      keys: {
+        primary: 'Espace',
+        next: 'N / →',
+        reset: 'R',
+        mute: 'M',
+        help: '?',
+      },
+    },
   },
   home: {
     greeting: {
@@ -675,6 +694,9 @@ export const fr = {
         'À la fin d’un segment, le suivant démarre seul, sans attendre que tu appuies sur Démarrer.',
       showTaskInPip: 'Afficher la tâche dans l’Image dans l’image',
       showTaskInPipHint: 'Le nom de la tâche active apparaît dans la fenêtre flottante.',
+      keyboardShortcutsEnabled: 'Raccourcis clavier',
+      keyboardShortcutsEnabledHint:
+        'Espace pour lancer/pause, N pour passer à la phase suivante, R pour réinitialiser, M pour couper les sons d’ambiance, ? pour l’aide.',
       decrease: 'Diminuer',
       increase: 'Augmenter',
       invalidValue: 'Valeur invalide : nombre entier attendu.',

@@ -70,4 +70,25 @@ describe('TimerPage — durées Pomodoro et démarrage automatique', () => {
     await user.click(toggle)
     expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_TIMER_SETTINGS, showTaskInPip: false })
   })
+
+  it('bascule les raccourcis clavier (LOT G1)', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<TimerPage settings={DEFAULT_TIMER_SETTINGS} onChange={onChange} />)
+
+    const toggle = screen.getByRole('switch', { name: 'Raccourcis clavier' })
+    expect(toggle).toHaveAttribute('aria-checked', 'true')
+
+    await user.click(toggle)
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_TIMER_SETTINGS, keyboardShortcutsEnabled: false })
+  })
+
+  it('le lien « Afficher les raccourcis clavier » ouvre l’aide (LOT G1)', async () => {
+    const user = userEvent.setup()
+    render(<TimerPage settings={DEFAULT_TIMER_SETTINGS} onChange={vi.fn()} />)
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Afficher les raccourcis clavier' }))
+    expect(screen.getByRole('dialog', { name: 'Raccourcis clavier' })).toBeInTheDocument()
+  })
 })

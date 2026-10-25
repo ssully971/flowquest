@@ -1,3 +1,6 @@
+import { useState } from 'react'
+
+import { KeyboardShortcutsHelp } from '@/features/timer/components/KeyboardShortcutsHelp'
 import {
   COUNTDOWN_MINUTES_RANGE,
   FOCUS_MINUTES_RANGE,
@@ -22,6 +25,7 @@ interface TimerPageProps {
 
 export function TimerPage({ settings, onChange }: TimerPageProps) {
   const s = strings.settings.timer
+  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
 
   return (
     <div className="flex flex-col gap-6">
@@ -101,6 +105,24 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
         onToggle={() => onChange({ ...settings, showTaskInPip: !settings.showTaskInPip })}
       />
 
+      <div className="flex max-w-md flex-col gap-2">
+        <SettingsToggleRow
+          label={s.keyboardShortcutsEnabled}
+          hint={s.keyboardShortcutsEnabledHint}
+          checked={settings.keyboardShortcutsEnabled}
+          onToggle={() =>
+            onChange({ ...settings, keyboardShortcutsEnabled: !settings.keyboardShortcutsEnabled })
+          }
+        />
+        <button
+          type="button"
+          onClick={() => setIsShortcutsHelpOpen(true)}
+          className="self-start text-xs font-medium text-[var(--accent)] underline-offset-2 hover:underline"
+        >
+          {strings.focus.shortcuts.openHelp}
+        </button>
+      </div>
+
       <SessionGoalSettings settings={settings} onChange={onChange} />
 
       <CycleEndSettings settings={settings} onChange={onChange} />
@@ -126,6 +148,8 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
       </div>
 
       <AlertSoundSettings settings={settings} onChange={onChange} />
+
+      <KeyboardShortcutsHelp open={isShortcutsHelpOpen} onClose={() => setIsShortcutsHelpOpen(false)} />
     </div>
   )
 }

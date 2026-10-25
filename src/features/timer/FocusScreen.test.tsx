@@ -1,15 +1,21 @@
-import { render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
 import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
 import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
+import { getDb } from '@/shared/storage/db'
 import { ToastProvider } from '@/shared/toast'
 
 import { FocusScreen } from './FocusScreen'
 import { TimerSettingsProvider } from './TimerSettingsProvider'
+
+async function clearTimerState() {
+  const db = await getDb()
+  await db.delete('timerState', 'current')
+}
 
 function renderFocusScreen() {
   return render(
@@ -100,5 +106,50 @@ describe('FocusScreen — la police de l’horloge suit Réglages > Horloge (LOT
     await screen.findByText('Sur quoi te concentres-tu ?')
     const digits = await screen.findByTestId('big-digits')
     expect(digits.style.fontFamily).toContain('Georgia')
+  })
+})
+
+describe('FocusScreen — raccourcis clavier (LOT G1)', () => {
+  beforeEach(async () => {
+    window.localStorage.clear()
+    await clearTimerState()
+  })
+
+  it('Espace démarre le minuteur', async () => {
+    renderFocusScreen()
+    await screen.findByText('Sur quoi te concentres-tu ?')
+
+    fireEvent.keyDown(window, { key: ' ' })
+
+    expect(await screen.findByRole('button', { name: 'Mettre en pause' })).toBeInTheDocument()
+  })
+
+  it('? ouvre la fenêtre d’aide des raccourcis', async () => {
+    renderFocusScreen()
+    await screen.findByText('Sur quoi te concentres-tu ?')
+
+    fireEvent.keyDown(window, { key: '?' })
+
+    expect(await screen.findByRole('dialog', { name: 'Raccourcis clavier' })).toBeInTheDocument()
+  })
+
+  it('n’agit pas quand le réglage « Raccourcis clavier » est désactivé', async () => {
+    window.localStorage.setItem(
+      'flowquest.timerSettings',
+      JSON.stringify({
+        focusMinutes: 25,
+        shortBreakMinutes: 5,
+        longBreakMinutes: 10,
+        sessionsBeforeLongBreak: 4,
+        autoStartNext: false,
+        keyboardShortcutsEnabled: false,
+      }),
+    )
+    renderFocusScreen()
+    await screen.findByText('Sur quoi te concentres-tu ?')
+
+    fireEvent.keyDown(window, { key: ' ' })
+
+    expect(screen.queryByRole('button', { name: 'Mettre en pause' })).not.toBeInTheDocument()
   })
 })

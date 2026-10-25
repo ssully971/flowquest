@@ -1,22 +1,23 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { CLOCK_SIZE_SCALE, CLOCK_STYLE_CSS, resolveClockColor } from '@/features/home/clock-settings'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
-import { useQuote } from '@/features/home/useQuote'
+import { useQuotePool } from '@/features/home/useQuotePool'
 import { isIOSDevice } from '@/features/pwa/platform'
 import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { useActiveTask } from '@/features/tasks/active-task-context'
 import { useTasks } from '@/features/tasks/useTasks'
 import { SegmentedControl } from '@/shared/design-system'
-import { useCurrentTime } from '@/shared/hooks/useCurrentTime'
 import { useWakeLock } from '@/shared/hooks/useWakeLock'
 import { strings } from '@/shared/i18n'
 
 import type { SegmentKind, TimerMode } from './engine/timer-engine'
+import { FadingQuote } from './components/FadingQuote'
 import { GoalProgress } from './components/GoalProgress'
 import { GoalReachedPanel } from './components/GoalReachedPanel'
+import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp'
 import { SegmentTabs } from './components/SegmentTabs'
 import { SessionEndScreen } from './components/SessionEndScreen'
 import { SessionTally } from './components/SessionTally'
@@ -29,7 +30,9 @@ import { getGoalFocusSessions } from './session-goal'
 import { toDurationsMs } from './timer-settings'
 import { useTimerSettings } from './timer-settings-context'
 import { useFocusTimer } from './useFocusTimer'
+import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import { useLiveTabTitle } from './useLiveTabTitle'
+import { usePhaseQuote } from './usePhaseQuote'
 import { usePictureInPicture } from './usePictureInPicture'
 
 const MODE_OPTIONS: { value: TimerMode; label: string }[] = [
@@ -61,8 +64,10 @@ export function FocusScreen() {
   const { settings: clockSettings } = useClockSettings()
   const { settings: quotesSettings } = useQuotesSettings()
   const { settings: extrasSettings } = useExtrasSettings()
-  const now = useCurrentTime(60_000)
-  const quote = useQuote(now)
+  const quotePool = useQuotePool()
+  const phaseKey = timer.startedAt !== null ? `${timer.segment}:${timer.startedAt}` : null
+  const quote = usePhaseQuote(quotesSettings.category, quotePool, phaseKey)
+  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
   useWakeLock(extrasSettings.preventSleep && timer.snapshot?.status === 'running')
   const activeTask = tasks.find((task) => task.id === activeTaskId) ?? null
 
@@ -80,6 +85,23 @@ export function FocusScreen() {
     timeLabel: displayLabel,
     taskLabel: timerSettings.showTaskInPip ? activeTask?.title : null,
   })
+
+  const handlePrimary = () => {
+    const status = timer.snapshot?.status
+    if (status === 'running') timer.pause()
+    else if (status === 'paused') timer.resume()
+    else timer.start()
+  }
+
+  useKeyboardShortcuts(
+    {
+      onPrimary: handlePrimary,
+      onNext: timer.skip,
+      onReset: timer.reset,
+      onOpenHelp: () => setIsShortcutsHelpOpen(true),
+    },
+    timerSettings.keyboardShortcutsEnabled,
+  )
 
   if (!timer.isReady || !timer.snapshot) {
     return <div className="h-full" />
@@ -105,12 +127,6 @@ export function FocusScreen() {
         })
       : 0
 
-  const handlePrimary = () => {
-    if (snapshot.status === 'running') timer.pause()
-    else if (snapshot.status === 'paused') timer.resume()
-    else timer.start()
-  }
-
   return (
     <div className="h-full overflow-y-auto">
       <div className="flex min-h-full flex-col items-center justify-center gap-6 px-4 py-8 pb-24 text-center sm:gap-7 sm:pb-28">
@@ -126,12 +142,7 @@ export function FocusScreen() {
           </p>
         </div>
 
-        {quotesSettings.showOnFocus ? (
-          <figure className="max-w-sm">
-            <blockquote className="text-sm italic text-[var(--muted)]">“{quote.text}”</blockquote>
-            <figcaption className="mt-1 text-xs text-[var(--muted)]">{quote.author}</figcaption>
-          </figure>
-        ) : null}
+        {quotesSettings.showOnFocus ? <FadingQuote quote={quote} /> : null}
 
         <SegmentedControl
           ariaLabel={strings.focus.mode}
@@ -233,6 +244,8 @@ export function FocusScreen() {
             pip.pipWindow.document.body,
           )
         : null}
+
+      <KeyboardShortcutsHelp open={isShortcutsHelpOpen} onClose={() => setIsShortcutsHelpOpen(false)} />
     </div>
   )
 }

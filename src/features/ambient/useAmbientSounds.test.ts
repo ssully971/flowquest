@@ -184,4 +184,36 @@ describe('useAmbientSounds — moteur des sons d’ambiance, Web Audio API sans 
 
     expect(lastContext?.createBufferSource).not.toHaveBeenCalled()
   })
+
+  it('couper/rétablir (LOT G1, raccourci M) passe par le gain maître, sans toucher activeIds', async () => {
+    const { result } = renderHook(() => useAmbientSounds())
+
+    act(() => result.current.toggle('rain'))
+    await waitFor(() => expect(lastContext?.createGain).toHaveBeenCalled())
+    // Deux GainNode créés pour le premier son : le gain propre au son, puis le gain
+    // maître (créé paresseusement au moment de la connexion).
+    const masterGain = lastContext!.createGain.mock.results[1]!.value as { gain: { value: number } }
+
+    expect(result.current.muted).toBe(false)
+    act(() => result.current.toggleMute())
+    expect(result.current.muted).toBe(true)
+    expect(masterGain.gain.value).toBe(0)
+    expect(result.current.activeIds).toEqual(['rain'])
+
+    act(() => result.current.toggleMute())
+    expect(result.current.muted).toBe(false)
+    expect(masterGain.gain.value).toBe(1)
+    expect(result.current.activeIds).toEqual(['rain'])
+  })
+
+  it('un nouveau son démarré pendant la coupure reste silencieux jusqu’au rétablissement', async () => {
+    const { result } = renderHook(() => useAmbientSounds())
+
+    act(() => result.current.toggleMute())
+    act(() => result.current.toggle('rain'))
+    await waitFor(() => expect(lastContext?.createGain).toHaveBeenCalled())
+
+    const masterGain = lastContext!.createGain.mock.results[1]!.value as { gain: { value: number } }
+    expect(masterGain.gain.value).toBe(0)
+  })
 })

@@ -97,6 +97,24 @@ Via Document Picture-in-Picture (Chrome/Edge ordinateur) ou, à défaut, une fen
 - Alerte de fin : choix du son + volume (+ « Aucune alerte »). Sons fournis par Sullivan, libres de droits.
 - **Compteurs de sessions** : points, cœurs, étoiles, tomates, éclairs, diplôme, flocons, bonhomme de neige… tous gratuits. Liste extensible depuis l'admin.
 
+### 6.5 Raccourcis clavier ✅ (LOT G1)
+Un seul écouteur `keydown` (hook `useKeyboardShortcuts`), monté dans Focus et Ambiant
+(jamais une nouvelle instance du moteur) :
+- **Espace** : lancer / mettre en pause / reprendre (`preventDefault` ciblé — ni
+  défilement de page, ni double activation d'un bouton qui a le focus).
+- **N ou →** : passer à la phase suivante.
+- **R** : réinitialiser la phase en cours.
+- **M** : couper/rétablir les sons d'ambiance (gain maître Web Audio — n'a d'effet que
+  sur l'écran Ambiant, seul endroit où des sons jouent).
+- **?** : ouvre une petite fenêtre d'aide listant les raccourcis.
+
+Inactifs dans un champ de saisie (input/textarea/select/contenteditable), pendant qu'une
+fenêtre modale est ouverte (détecté génériquement via `role="dialog"`), avec un
+modificateur (Ctrl/Cmd/Alt), ou en auto-répétition (`event.repeat`). Réglage « Raccourcis
+clavier » dans Réglages > Minuteur (activé par défaut, synchronisé par compte) — aucun
+bouton permanent ajouté à l'écran : l'aide s'ouvre par « ? » ou par un lien dans ce même
+réglage.
+
 ## 7. Réglages (panneau gauche)
 
 Menu : Thèmes · Horloge · Minuteur · Stats · Citations · Extras · Compte · Support · Nouveautés.
@@ -117,6 +135,12 @@ Menu : Thèmes · Horloge · Minuteur · Stats · Citations · Extras · Compte 
 
 ### 7.5 Citations
 - Catégorie au choix ; afficher en mode Focus ; afficher en Home. Les citations sont gérées par l'admin.
+- **Rythme sur Focus ✅ (LOT G1)** : citation aléatoire au chargement, puis une nouvelle à
+  chaque début de phase (démarrage réel d'une session ou d'une pause — pas en changeant
+  simplement d'onglet de segment sans démarrer, ni en mettant en pause/reprenant), jamais
+  deux fois de suite la même. Fondu d'opacité ~300 ms (coupé si `prefers-reduced-motion`).
+  Indépendant du réglage « rotation » (quotidienne / à chaque chargement) ci-dessus, qui
+  reste la référence pour l'Accueil — sur Focus, le rythme naturel est celui des phases.
 
 ### 7.6 Extras
 - Nom affiché sur le tableau de bord ; désactiver les thèmes animés (appareils lents) ; mode épuré ; empêcher la veille ; onglet des réglages ouvert par défaut ; **randomiseur de thème** à chaque chargement.

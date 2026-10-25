@@ -35,6 +35,12 @@ export interface UseFocusTimerResult {
   isReady: boolean
   mode: TimerMode
   segment: SegmentKind
+  /** Horodatage de départ de la phase en cours (`null` tant qu'elle n'a pas démarré) —
+   * fixe pendant toute la phase, y compris pause/reprise (seul `advanceToNext`/un
+   * changement de segment le remet à zéro) : sert de clé de « début de phase » stable
+   * pour la citation du LOT G1 (usePhaseQuote), sans dépendre de `snapshot`, qui ne
+   * l'expose pas. */
+  startedAt: number | null
   cycle: PomodoroCycleState
   snapshot: TimerSnapshot | null
   /** Nombre de sessions de focus complétées depuis le dernier passage en mode pomodoro
@@ -368,6 +374,7 @@ export function useFocusTimer(): UseFocusTimerResult {
     isReady,
     mode: controller?.getState().mode ?? 'pomodoro',
     segment: controller?.getState().segment ?? cycle.segment,
+    startedAt: controller?.getState().startedAt ?? null,
     cycle,
     snapshot,
     goalProgress,

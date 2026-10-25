@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.8.0',
+    date: '2026-10-28',
+    text: 'Raccourcis clavier dans Focus et Ambiant (Espace, N, R, M, ? pour l’aide) et des citations qui changent à chaque nouvelle phase sur l’écran Focus, avec un léger fondu.',
+  },
+  {
     version: '0.7.0',
     date: '2026-10-27',
     text: 'Mode Amis (4/4) : série partagée avec chaque ami (une flamme sur la liste quand vous avez chacun complété une session le même jour) et une dernière passe de finitions sur tout le Mode Amis.',

@@ -407,3 +407,48 @@ describe('useFocusTimer — fin de session via le bouton Terminer (LOT E6)', () 
     expect(result.current.snapshot?.status).toBe('idle')
   })
 })
+
+describe('useFocusTimer — startedAt exposé pour la citation par phase (LOT G1)', () => {
+  it('null tant que la phase n’a pas démarré, fixé une fois start() appelé', async () => {
+    seedTimerSettings({ focusMinutes: 1 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    expect(result.current.startedAt).toBeNull()
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+    expect(result.current.startedAt).not.toBeNull()
+  })
+
+  it('reste identique à travers une pause puis une reprise', async () => {
+    seedTimerSettings({ focusMinutes: 1 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+    const startedAt = result.current.startedAt
+
+    act(() => result.current.pause())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('paused'))
+    expect(result.current.startedAt).toBe(startedAt)
+
+    act(() => result.current.resume())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+    expect(result.current.startedAt).toBe(startedAt)
+  })
+
+  it('redevient null après un reset', async () => {
+    seedTimerSettings({ focusMinutes: 1 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.startedAt).not.toBeNull())
+
+    act(() => result.current.reset())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('idle'))
+    expect(result.current.startedAt).toBeNull()
+  })
+})
