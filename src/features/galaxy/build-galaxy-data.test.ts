@@ -167,3 +167,69 @@ describe('buildGalaxyData — plafond et regroupement (LOT G4)', () => {
     expect(lines).toHaveLength(0)
   })
 })
+
+describe('buildGalaxyData — disposition en spirale, un bras par pilier (lot 4, §3)', () => {
+  it('éloigne du centre à mesure que les sessions d’un même pilier avancent dans le temps', () => {
+    const pillars = [pillar({ id: 'p1' })]
+    const sessions = [
+      session({ id: 'oldest', startedAt: BASE - 2 * DAY, pillarId: 'p1' }),
+      session({ id: 'middle', startedAt: BASE - DAY, pillarId: 'p1' }),
+      session({ id: 'newest', startedAt: BASE, pillarId: 'p1' }),
+    ]
+    const { stars } = buildGalaxyData(sessions, pillars)
+    const distanceFromCenter = (s: (typeof stars)[number]) => Math.hypot(s.x - 0.5, s.y - 0.5)
+    const oldest = stars.find((s) => s.id === 'oldest')!
+    const middle = stars.find((s) => s.id === 'middle')!
+    const newest = stars.find((s) => s.id === 'newest')!
+    expect(distanceFromCenter(oldest)).toBeLessThan(distanceFromCenter(middle))
+    expect(distanceFromCenter(middle)).toBeLessThan(distanceFromCenter(newest))
+  })
+
+  it('deux piliers différents occupent des bras distincts (angles différents)', () => {
+    const pillars = [pillar({ id: 'p1' }), pillar({ id: 'p2' })]
+    const sessions = [
+      session({ id: 's1', startedAt: BASE, pillarId: 'p1' }),
+      session({ id: 's2', startedAt: BASE, pillarId: 'p2' }),
+    ]
+    const { stars } = buildGalaxyData(sessions, pillars)
+    const s1 = stars.find((s) => s.id === 's1')!
+    const s2 = stars.find((s) => s.id === 's2')!
+    const angleOf = (s: typeof s1) => Math.atan2(s.y - 0.5, s.x - 0.5)
+    expect(angleOf(s1)).not.toBeCloseTo(angleOf(s2), 2)
+  })
+
+  it('les sessions sans pilier forment leur propre bras, distinct de celui d’un vrai pilier', () => {
+    const pillars = [pillar({ id: 'p1' })]
+    const sessions = [
+      session({ id: 'with-pillar', startedAt: BASE, pillarId: 'p1' }),
+      session({ id: 'without-pillar', startedAt: BASE, pillarId: null }),
+    ]
+    const { stars } = buildGalaxyData(sessions, pillars)
+    const withPillar = stars.find((s) => s.id === 'with-pillar')!
+    const withoutPillar = stars.find((s) => s.id === 'without-pillar')!
+    const angleOf = (s: typeof withPillar) => Math.atan2(s.y - 0.5, s.x - 0.5)
+    expect(angleOf(withPillar)).not.toBeCloseTo(angleOf(withoutPillar), 2)
+  })
+
+  it('expose le pillarId résolu (null si sans pilier ou pilier supprimé)', () => {
+    const sessions = [
+      session({ id: 's1', startedAt: BASE, pillarId: null }),
+      session({ id: 's2', startedAt: BASE, pillarId: 'gone' }),
+    ]
+    const { stars } = buildGalaxyData(sessions, [])
+    expect(stars.find((s) => s.id === 's1')?.pillarId).toBeNull()
+    expect(stars.find((s) => s.id === 's2')?.pillarId).toBeNull()
+  })
+
+  it('rendu identique à deux constructions indépendantes avec les mêmes données (même ouverture)', () => {
+    const pillars = [pillar({ id: 'p1' }), pillar({ id: 'p2' })]
+    const sessions = [
+      session({ id: 's1', startedAt: BASE, pillarId: 'p1' }),
+      session({ id: 's2', startedAt: BASE - DAY, pillarId: 'p2' }),
+      session({ id: 's3', startedAt: BASE - 2 * DAY, pillarId: null }),
+    ]
+    const first = buildGalaxyData(sessions, pillars)
+    const second = buildGalaxyData(sessions, pillars)
+    expect(first.stars).toEqual(second.stars)
+  })
+})

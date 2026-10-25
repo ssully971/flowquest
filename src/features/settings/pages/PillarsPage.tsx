@@ -2,11 +2,14 @@ import { Archive, ArchiveRestore } from 'lucide-react'
 import type { FormEvent } from 'react'
 import { useRef, useState } from 'react'
 
+import { GalaxyView } from '@/features/galaxy/components/GalaxyView'
 import { levelProgressForXp } from '@/features/pillars/pillar-xp'
 import { PILLAR_COLORS } from '@/features/pillars/pillar-colors'
 import { MAX_ACTIVE_PILLARS, usePillars } from '@/features/pillars/usePillars'
 import type { PillarRecord } from '@/shared/storage/db'
 import { strings } from '@/shared/i18n'
+
+import { BalanceCard } from './stats/BalanceCard'
 
 function PillarRow({
   pillar,
@@ -212,6 +215,16 @@ export function PillarsPage() {
           ))}
         </div>
       ) : null}
+
+      {/* Radar et galaxie (lot 4, §2) : déplacés de l'onglet Statistiques général vers la
+          section Piliers, sous le radar — les deux visualisations concernent les piliers
+          spécifiquement, pas les statistiques générales (tâches/temps de focus). */}
+      <BalanceCard activePillars={activePillars} />
+
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-medium text-[var(--panel-muted)]">{s.galaxyTitle}</p>
+        <GalaxyView />
+      </div>
     </div>
   )
 }

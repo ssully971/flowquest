@@ -26,7 +26,7 @@ describe('BalanceCard — carte « Équilibre » (LOT G3)', () => {
       />,
     )
     expect(
-      screen.getByText('Ajoute au moins 3 piliers actifs dans Réglages > Piliers pour voir ton équilibre.'),
+      screen.getByText('Ajoute au moins 3 piliers actifs pour voir ton équilibre.'),
     ).toBeInTheDocument()
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })

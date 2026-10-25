@@ -1,8 +1,6 @@
 import { Minus, Plus } from 'lucide-react'
 import { useState } from 'react'
 
-import { GalaxyView } from '@/features/galaxy/components/GalaxyView'
-import { usePillars } from '@/features/pillars/usePillars'
 import { getTrendWindowDays } from '@/features/stats/compute-stats'
 import type { StatsPeriod } from '@/features/stats/compute-stats'
 import {
@@ -15,10 +13,8 @@ import { useDashboardStats } from '@/features/stats/useDashboardStats'
 import { useFocusScore } from '@/features/stats/useFocusScore'
 import { usePeriodStats } from '@/features/stats/usePeriodStats'
 import { formatFocusDuration } from '@/features/stats/format'
-import { SegmentedControl } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
-import { BalanceCard } from './stats/BalanceCard'
 import { CalendarSection } from './stats/CalendarSection'
 import { FocusTrend } from './stats/FocusTrend'
 import { PeriodStatCards } from './stats/PeriodStatCards'
@@ -30,13 +26,9 @@ interface StatsPageProps {
   onDailyGoalChange: (minutes: number) => void
 }
 
-type StatsView = 'overview' | 'galaxy'
-
 export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProps) {
   const stats = useDashboardStats(dailyGoalMinutes)
-  const { activePillars } = usePillars()
   const [period, setPeriod] = useState<StatsPeriod>('week')
-  const [view, setView] = useState<StatsView>('overview')
   const periodStats = usePeriodStats(period)
   const focusScore = useFocusScore(period)
   const trendDays = useDailyFocusHistory(getTrendWindowDays(period), dailyGoalMinutes)
@@ -61,114 +53,96 @@ export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProp
         {s.title}
       </h2>
 
-      <SegmentedControl
-        ariaLabel={s.tabsLabel}
-        value={view}
-        onChange={setView}
-        options={[
-          { value: 'overview', label: s.tabOverview },
-          { value: 'galaxy', label: s.tabGalaxy },
-        ]}
-      />
+      <div className="flex max-w-md flex-col gap-1 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] px-5 py-4">
+        <span className="text-xs text-[var(--panel-muted)]">{s.dailyGoal}</span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            aria-label={s.decreaseGoal}
+            disabled={dailyGoalMinutes <= MIN_DAILY_GOAL_MINUTES}
+            onClick={() => onDailyGoalChange(dailyGoalMinutes - DAILY_GOAL_STEP_MINUTES)}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--panel-line)] text-[var(--panel-text)] transition-colors duration-200 hover:bg-[var(--panel-line)] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Minus size={16} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+          <div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--panel-line)]">
+            <div
+              className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300"
+              style={{
+                width: `${Math.min(100, ((stats?.todayFocusSeconds ?? 0) / (dailyGoalMinutes * 60)) * 100)}%`,
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            aria-label={s.increaseGoal}
+            disabled={dailyGoalMinutes >= MAX_DAILY_GOAL_MINUTES}
+            onClick={() => onDailyGoalChange(dailyGoalMinutes + DAILY_GOAL_STEP_MINUTES)}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--panel-line)] text-[var(--panel-text)] transition-colors duration-200 hover:bg-[var(--panel-line)] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Plus size={16} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+          <span className="flex shrink-0 items-center gap-1 text-sm text-[var(--panel-text)]">
+            {formatFocusDuration(stats?.todayFocusSeconds ?? 0)} /
+            <input
+              type="number"
+              inputMode="numeric"
+              aria-label={s.dailyGoal}
+              aria-invalid={goalDraft.error ? 'true' : undefined}
+              min={MIN_DAILY_GOAL_MINUTES}
+              max={MAX_DAILY_GOAL_MINUTES}
+              step={DAILY_GOAL_STEP_MINUTES}
+              value={goalDraft.draft}
+              onChange={(event) => goalDraft.onDraftChange(event.target.value)}
+              onBlur={goalDraft.onCommit}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  event.currentTarget.blur()
+                }
+              }}
+              className="w-12 rounded-lg border border-transparent bg-transparent text-center text-sm text-[var(--panel-text)] outline-none transition-colors duration-200 [appearance:textfield] focus:border-[var(--panel-line)] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+            min
+          </span>
+        </div>
+        {goalDraft.error ? (
+          <p role="alert" className="text-xs text-[#E5484D]">
+            {goalDraft.error}
+          </p>
+        ) : null}
+        <p className="text-xs text-[var(--panel-muted)]">{s.dailyGoalHint}</p>
+      </div>
 
-      {view === 'galaxy' ? (
-        <GalaxyView />
+      {!hasAnyData ? (
+        <p className="max-w-sm text-sm text-[var(--panel-muted)]">{s.empty}</p>
       ) : (
         <>
-          <div className="flex max-w-md flex-col gap-1 rounded-2xl border border-[var(--panel-line)] bg-[var(--panel-surface-2)] px-5 py-4">
-            <span className="text-xs text-[var(--panel-muted)]">{s.dailyGoal}</span>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                aria-label={s.decreaseGoal}
-                disabled={dailyGoalMinutes <= MIN_DAILY_GOAL_MINUTES}
-                onClick={() => onDailyGoalChange(dailyGoalMinutes - DAILY_GOAL_STEP_MINUTES)}
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--panel-line)] text-[var(--panel-text)] transition-colors duration-200 hover:bg-[var(--panel-line)] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <Minus size={16} strokeWidth={1.75} aria-hidden="true" />
-              </button>
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--panel-line)]">
-                <div
-                  className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300"
-                  style={{
-                    width: `${Math.min(100, ((stats?.todayFocusSeconds ?? 0) / (dailyGoalMinutes * 60)) * 100)}%`,
-                  }}
-                />
-              </div>
-              <button
-                type="button"
-                aria-label={s.increaseGoal}
-                disabled={dailyGoalMinutes >= MAX_DAILY_GOAL_MINUTES}
-                onClick={() => onDailyGoalChange(dailyGoalMinutes + DAILY_GOAL_STEP_MINUTES)}
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--panel-line)] text-[var(--panel-text)] transition-colors duration-200 hover:bg-[var(--panel-line)] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <Plus size={16} strokeWidth={1.75} aria-hidden="true" />
-              </button>
-              <span className="flex shrink-0 items-center gap-1 text-sm text-[var(--panel-text)]">
-                {formatFocusDuration(stats?.todayFocusSeconds ?? 0)} /
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  aria-label={s.dailyGoal}
-                  aria-invalid={goalDraft.error ? 'true' : undefined}
-                  min={MIN_DAILY_GOAL_MINUTES}
-                  max={MAX_DAILY_GOAL_MINUTES}
-                  step={DAILY_GOAL_STEP_MINUTES}
-                  value={goalDraft.draft}
-                  onChange={(event) => goalDraft.onDraftChange(event.target.value)}
-                  onBlur={goalDraft.onCommit}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault()
-                      event.currentTarget.blur()
-                    }
-                  }}
-                  className="w-12 rounded-lg border border-transparent bg-transparent text-center text-sm text-[var(--panel-text)] outline-none transition-colors duration-200 [appearance:textfield] focus:border-[var(--panel-line)] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                />
-                min
-              </span>
-            </div>
-            {goalDraft.error ? (
-              <p role="alert" className="text-xs text-[#E5484D]">
-                {goalDraft.error}
-              </p>
-            ) : null}
-            <p className="text-xs text-[var(--panel-muted)]">{s.dailyGoalHint}</p>
+          <div className="grid max-w-md grid-cols-2 gap-3">
+            <StatCard
+              label={s.currentStreak}
+              value={`${stats.currentStreakDays} ${stats.currentStreakDays === 1 ? s.day : s.days}`}
+              tone="currentStreak"
+            />
+            <StatCard
+              label={s.longestStreak}
+              value={`${stats.longestStreakDays} ${stats.longestStreakDays === 1 ? s.day : s.days}`}
+              tone="longestStreak"
+            />
           </div>
 
-          {!hasAnyData ? (
-            <p className="max-w-sm text-sm text-[var(--panel-muted)]">{s.empty}</p>
-          ) : (
-            <>
-              <div className="grid max-w-md grid-cols-2 gap-3">
-                <StatCard
-                  label={s.currentStreak}
-                  value={`${stats.currentStreakDays} ${stats.currentStreakDays === 1 ? s.day : s.days}`}
-                  tone="currentStreak"
-                />
-                <StatCard
-                  label={s.longestStreak}
-                  value={`${stats.longestStreakDays} ${stats.longestStreakDays === 1 ? s.day : s.days}`}
-                  tone="longestStreak"
-                />
-              </div>
-
-              <PeriodStatCards
-                period={period}
-                onPeriodChange={setPeriod}
-                stats={periodStats}
-                focusScore={focusScore}
-              />
-
-              <BalanceCard activePillars={activePillars} />
-            </>
-          )}
-
-          <CalendarSection dailyGoalMinutes={dailyGoalMinutes} />
-
-          {trendDays ? <FocusTrend days={trendDays} dailyGoalMinutes={dailyGoalMinutes} /> : null}
+          <PeriodStatCards
+            period={period}
+            onPeriodChange={setPeriod}
+            stats={periodStats}
+            focusScore={focusScore}
+          />
         </>
       )}
+
+      <CalendarSection dailyGoalMinutes={dailyGoalMinutes} />
+
+      {trendDays ? <FocusTrend days={trendDays} dailyGoalMinutes={dailyGoalMinutes} /> : null}
     </div>
   )
 }

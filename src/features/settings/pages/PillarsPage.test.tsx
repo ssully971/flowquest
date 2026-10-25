@@ -42,38 +42,38 @@ describe('PillarsPage — Réglages > Piliers (LOT G3)', () => {
 
   it('affiche le pilier par défaut « Général »', async () => {
     render(<PillarsPage />)
-    expect(await screen.findByText('Général')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Général' })).toBeInTheDocument()
   })
 
   it('ajoute un nouveau pilier via le formulaire', async () => {
     const user = userEvent.setup()
     render(<PillarsPage />)
-    await screen.findByText('Général')
+    await screen.findByRole('button', { name: 'Général' })
 
     await user.type(screen.getByPlaceholderText('Nouveau pilier…'), 'Sport')
     await user.click(screen.getByRole('button', { name: 'Ajouter' }))
 
-    expect(await screen.findByText('Sport')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Sport' })).toBeInTheDocument()
   })
 
   it('renomme un pilier en cliquant sur son nom', async () => {
     const user = userEvent.setup()
     render(<PillarsPage />)
-    await screen.findByText('Général')
+    await screen.findByRole('button', { name: 'Général' })
 
-    await user.click(screen.getByText('Général'))
+    await user.click(screen.getByRole('button', { name: 'Général' }))
     const input = screen.getByLabelText('Nom du pilier')
     await user.clear(input)
     await user.type(input, 'Travail{Enter}')
 
-    expect(await screen.findByText('Travail')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Travail' })).toBeInTheDocument()
     expect(screen.queryByText('Général')).not.toBeInTheDocument()
   })
 
   it('archive puis désarchive un pilier', async () => {
     const user = userEvent.setup()
     render(<PillarsPage />)
-    await screen.findByText('Général')
+    await screen.findByRole('button', { name: 'Général' })
 
     await user.click(screen.getByRole('button', { name: 'Archiver' }))
     expect(await screen.findByText('Archivés')).toBeInTheDocument()
@@ -87,7 +87,7 @@ describe('PillarsPage — Réglages > Piliers (LOT G3)', () => {
     await seedPillars(8)
     render(<PillarsPage />)
 
-    expect(await screen.findByText('Pilier 7')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Pilier 7' })).toBeInTheDocument()
     expect(screen.queryByPlaceholderText('Nouveau pilier…')).not.toBeInTheDocument()
     expect(
       screen.getByText('Maximum 8 piliers actifs — archive-en un pour en créer un nouveau.'),

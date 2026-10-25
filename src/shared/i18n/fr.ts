@@ -718,16 +718,6 @@ export const fr = {
       tasks: 'tâches',
       vsPreviousPeriod: 'vs période précédente',
       noChange: 'stable vs période précédente',
-      tabsLabel: 'Vue',
-      tabOverview: 'Aperçu',
-      tabGalaxy: 'Galaxie',
-      balance: {
-        title: 'Équilibre',
-        needMorePillars:
-          'Ajoute au moins 3 piliers actifs dans Réglages > Piliers pour voir ton équilibre.',
-        chartLabel: 'Graphique radar de l’équilibre entre tes piliers',
-        level: 'Niv.',
-      },
     },
     pillars: {
       title: 'Piliers',
@@ -743,6 +733,13 @@ export const fr = {
       unarchive: 'Désarchiver',
       archivedSection: 'Archivés',
       archivedHint: 'Un pilier archivé disparaît du sélecteur mais garde son XP.',
+      galaxyTitle: 'Galaxie',
+      balance: {
+        title: 'Équilibre',
+        needMorePillars: 'Ajoute au moins 3 piliers actifs pour voir ton équilibre.',
+        chartLabel: 'Graphique radar de l’équilibre entre tes piliers',
+        level: 'Niv.',
+      },
     },
     galaxy: {
       chartLabel: 'Galaxie de tes sessions de focus',

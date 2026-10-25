@@ -26,22 +26,9 @@ function mulberry32(seed: number): () => number {
   }
 }
 
-export interface UnitPosition {
-  /** Dans [0, 1). */
-  x: number
-  /** Dans [0, 1). */
-  y: number
-}
-
-/** Position déterministe et stable pour une clé donnée (id de session, ou clé de
- * regroupement pour les étoiles agrégées au-delà du plafond). */
-export function deterministicPosition(key: string): UnitPosition {
-  const next = mulberry32(fnv1a(key))
-  return { x: next(), y: next() }
-}
-
-/** Décimale déterministe supplémentaire dans [0, 1) — utilisée par exemple pour varier
- * légèrement la phase du scintillement d'une étoile sans dépendre de Math.random(). */
+/** Décimale déterministe dans [0, 1) — utilisée pour varier légèrement la phase du
+ * scintillement d'une étoile, ou le léger décalage de position de la spirale
+ * (galaxy-layout.ts), sans jamais dépendre de Math.random(). */
 export function deterministicUnit(key: string): number {
   const next = mulberry32(fnv1a(key))
   return next()

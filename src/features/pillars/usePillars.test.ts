@@ -70,6 +70,21 @@ describe('usePillars — bootstrap du pilier par défaut (LOT G3)', () => {
     expect(result.current.pillars).toHaveLength(1)
     expect(result.current.activePillars).toHaveLength(0)
   })
+
+  it('deux instances montées en même temps (PillarsPage + GalaxyView, lot 4 §2) ne créent qu’un seul « Général »', async () => {
+    const { usePillars } = await import('./usePillars')
+    const first = renderHook(() => usePillars())
+    const second = renderHook(() => usePillars())
+
+    await waitFor(() => expect(first.result.current.activePillars).toHaveLength(1))
+    await waitFor(() => expect(second.result.current.activePillars).toHaveLength(1))
+    // Laisse le temps à un éventuel second bootstrap concurrent de (mal) s'exécuter.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    })
+    expect(first.result.current.activePillars).toHaveLength(1)
+    expect(first.result.current.activePillars[0].id).toBe(second.result.current.activePillars[0].id)
+  })
 })
 
 describe('usePillars — CRUD', () => {

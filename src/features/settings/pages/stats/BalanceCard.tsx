@@ -34,7 +34,7 @@ function polygonPoints(count: number, fraction: number): string {
  * géométrique, on affiche un message clair à la place.
  */
 export function BalanceCard({ activePillars }: BalanceCardProps) {
-  const s = strings.settings.stats.balance
+  const s = strings.settings.pillars.balance
 
   if (activePillars.length < 3) {
     return (
