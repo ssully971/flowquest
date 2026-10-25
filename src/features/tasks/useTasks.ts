@@ -23,6 +23,10 @@ export interface UseTasksResult {
   toggleDone: (id: string) => Promise<boolean>
   renameTask: (id: string, title: string) => Promise<void>
   removeTask: (id: string) => Promise<void>
+  /** Annulation d'une suppression (LOT H1, §5, réglage « confirmer avant de supprimer »
+   * désactivé) : remet exactement les mêmes enregistrements (même id, sous-tâches
+   * comprises), plutôt que de recréer des tâches avec de nouveaux id via addTask. */
+  restoreTasks: (records: TaskRecord[]) => Promise<void>
   reorderTasks: (orderedIds: string[]) => Promise<void>
   updateTaskDetails: (id: string, update: TaskDetailsUpdate) => Promise<void>
 }
@@ -131,6 +135,13 @@ export function useTasks(): UseTasksResult {
     notifyTasksChanged()
   }, [])
 
+  const restoreTasks = useCallback(async (records: TaskRecord[]) => {
+    if (records.length === 0) return
+    await repo.putMany(records)
+    records.forEach(pushIfAuthenticated)
+    notifyTasksChanged()
+  }, [])
+
   const reorderTasks = useCallback(async (orderedIds: string[]) => {
     const current = await repo.listAll()
     const byId = new Map(current.map((task) => [task.id, task]))
@@ -152,6 +163,7 @@ export function useTasks(): UseTasksResult {
     toggleDone,
     renameTask,
     removeTask,
+    restoreTasks,
     reorderTasks,
     updateTaskDetails,
   }

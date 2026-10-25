@@ -12,7 +12,11 @@ import { HOST, MEMBER, createFakeBackend, signInAs } from './fixtures/fake-supab
  * Pas de vrai canal Realtime dans cet environnement (pas de projet Supabase en ligne) :
  * les rafraîchissements sont déclenchés explicitement (fermer/rouvrir le salon) plutôt
  * que d'attendre le repli par interrogation de 30 s — voir docs/AMIS.md pour ce qui n'a
- * pas pu être vérifié en conditions réelles.
+ * pas pu être vérifié en conditions réelles. Ce même déclenchement explicite sert aussi à
+ * vérifier le toast d'invitation en temps réel (LOT H1, §2) à l'étape 2 : la logique de
+ * détection par diff et d'affichage est identique à celle qu'un vrai événement
+ * postgres_changes déclencherait, seul le déclencheur (ouverture du panneau plutôt que
+ * push serveur) diffère dans cet environnement de test.
  */
 test('deux navigateurs voient le même salon se synchroniser', async ({ browser }) => {
   const backend = createFakeBackend()
@@ -43,8 +47,13 @@ test('deux navigateurs voient le même salon se synchroniser', async ({ browser 
 
   await expect(hostPage.getByRole('button', { name: 'Démarrer' })).toBeVisible()
 
-  // 2. Le membre voit l'invitation dans SON navigateur et l'accepte.
+  // 2. Le membre voit l'invitation dans SON navigateur et l'accepte. La notification
+  // temps réel (LOT H1, §2) se déclenche ici : ouvrir le panneau rafraîchit la liste des
+  // salons (voir le commentaire dans RoomsPanel) et le nouvel item détecté par diff
+  // déclenche le toast — pas de vrai canal Realtime dans cet environnement (voir
+  // l'en-tête de ce fichier), mais la logique de détection et d'affichage est la même.
   await memberPage.getByLabel('Salons', { exact: true }).click()
+  await expect(memberPage.getByText('Hôte t’invite à un salon de focus.')).toBeVisible()
   await expect(memberPage.getByText(/t’invite dans un salon/)).toBeVisible()
   await memberPage.getByRole('button', { name: 'Accepter' }).click()
   await expect(memberPage.getByText('En attente du démarrage par l’hôte.')).toBeVisible()
@@ -56,7 +65,10 @@ test('deux navigateurs voient le même salon se synchroniser', async ({ browser 
   // 4. Le membre, en rouvrant le salon, voit bien le compte à rebours démarré — preuve
   // que l'état vient du même serveur partagé, pas d'un état local à chaque navigateur —
   // et n'a aucun contrôle hôte (gating vérifié aussi côté interface, en plus de la RPC).
-  await memberPage.getByRole('button', { name: 'Fermer' }).click()
+  // `exact: true` : sans lui, ce nom nu est ambigu avec le bouton « Fermer la
+  // notification » du toast d'invitation (LOT H1, temps réel) encore affiché quelques
+  // secondes après l'avoir reçue.
+  await memberPage.getByRole('button', { name: 'Fermer', exact: true }).click()
   await memberPage.getByLabel('Salons', { exact: true }).click()
   await memberPage.getByRole('button', { name: 'Rejoindre' }).click()
   await expect(memberPage.getByText('En attente du démarrage par l’hôte.')).toHaveCount(0)
@@ -69,7 +81,8 @@ test('deux navigateurs voient le même salon se synchroniser', async ({ browser 
 
   // 6. Le membre, en rouvrant à son tour, voit qu'il est désormais hôte et peut
   // contrôler le salon — le transfert a bien traversé les deux navigateurs.
-  await memberPage.getByRole('button', { name: 'Fermer' }).click()
+  // `exact: true` : même ambiguïté qu'à l'étape 4 avec le toast d'invitation.
+  await memberPage.getByRole('button', { name: 'Fermer', exact: true }).click()
   await memberPage.getByLabel('Salons', { exact: true }).click()
   await memberPage.getByRole('button', { name: 'Rejoindre' }).click()
   await expect(memberPage.getByRole('button', { name: 'Mettre en pause' })).toBeVisible()
@@ -81,7 +94,8 @@ test('deux navigateurs voient le même salon se synchroniser', async ({ browser 
   // 8. Un salon terminé disparaît de « Mes salons » (list_my_rooms() exclut `status =
   // 'ended'`) : l'ancien hôte, en rouvrant le panneau, ne voit plus ce salon du tout —
   // plutôt qu'un bouton « Rejoindre » vers un salon qui ne tourne plus.
-  await hostPage.getByRole('button', { name: 'Fermer' }).click()
+  // `exact: true` : même ambiguïté qu'à l'étape 4 avec le toast d'invitation.
+  await hostPage.getByRole('button', { name: 'Fermer', exact: true }).click()
   await hostPage.getByLabel('Salons', { exact: true }).click()
   await hostPage.getByRole('tab', { name: 'Mes salons' }).click()
   await expect(hostPage.getByText(/t’invite dans un salon/)).toHaveCount(0)

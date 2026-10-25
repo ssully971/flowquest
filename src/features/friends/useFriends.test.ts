@@ -133,3 +133,45 @@ describe('useFriends — chargement et actions (LOT F1)', () => {
     expect(respondFriendRequestMock).toHaveBeenCalledWith('r1', true)
   })
 })
+
+describe('useFriends — nouvelles demandes en temps réel (LOT H1)', () => {
+  it('ne montre aucun toast au tout premier chargement', async () => {
+    const { useFriends } = await import('./useFriends')
+    const { result } = renderHook(() => useFriends())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    expect(showToastMock).not.toHaveBeenCalled()
+  })
+
+  it('montre un toast quand une nouvelle demande entrante apparaît entre deux rafraîchissements', async () => {
+    const { useFriends } = await import('./useFriends')
+    const { result } = renderHook(() => useFriends())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    const newIncoming = { ...INCOMING_REQUEST, friendshipId: 'r3', username: 'nouveau_demandeur' }
+    listFriendRequestsMock.mockResolvedValue([INCOMING_REQUEST, OUTGOING_REQUEST, newIncoming])
+
+    await act(async () => {
+      await result.current.refresh()
+    })
+
+    expect(showToastMock).toHaveBeenCalledWith({
+      type: 'info',
+      message: 'nouveau_demandeur t’a envoyé une demande d’ami.',
+    })
+    // La demande déjà connue au premier chargement ne redéclenche pas de toast.
+    expect(showToastMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('ne montre aucun toast si la liste de demandes entrantes ne change pas', async () => {
+    const { useFriends } = await import('./useFriends')
+    const { result } = renderHook(() => useFriends())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    await act(async () => {
+      await result.current.refresh()
+    })
+
+    expect(showToastMock).not.toHaveBeenCalled()
+  })
+})

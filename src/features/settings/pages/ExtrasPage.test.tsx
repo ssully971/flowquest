@@ -58,6 +58,16 @@ describe('ExtrasPage — nom affiché, thèmes animés, mode épuré, veille, ra
     expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_EXTRAS_SETTINGS, showStreak: false })
   })
 
+  it('bascule la confirmation avant suppression d’une tâche (LOT H1, §5)', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<ExtrasPage settings={DEFAULT_EXTRAS_SETTINGS} onChange={onChange} />)
+
+    expect(DEFAULT_EXTRAS_SETTINGS.confirmTaskDeletion).toBe(true)
+    await user.click(screen.getByRole('switch', { name: 'Confirmer avant de supprimer une tâche' }))
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_EXTRAS_SETTINGS, confirmTaskDeletion: false })
+  })
+
   it('change le côté du panneau de réglages (LOT B9)', async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()

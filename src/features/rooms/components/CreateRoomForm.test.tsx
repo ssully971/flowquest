@@ -56,6 +56,46 @@ describe('CreateRoomForm — LOT F3', () => {
     expect(onCreated).toHaveBeenCalledWith('new-room')
   })
 
+  it('affiche la durée choisie en direct et la met à jour avec les préréglages (LOT H1, §4)', async () => {
+    const user = userEvent.setup()
+    render(<CreateRoomForm friends={[FRIEND('u1', 'ami1')]} onCreate={vi.fn()} onCreated={vi.fn()} />)
+
+    expect(screen.getAllByText('25 min').length).toBeGreaterThan(0)
+
+    await user.click(screen.getByRole('button', { name: '45 min' }))
+    expect(screen.getAllByText('45 min').length).toBeGreaterThan(0)
+  })
+
+  it('un champ saisissable permet d’entrer une durée exacte (LOT H1, §4)', async () => {
+    const user = userEvent.setup()
+    const onCreate = vi.fn().mockResolvedValue('new-room')
+    render(<CreateRoomForm friends={[FRIEND('u1', 'ami1')]} onCreate={onCreate} onCreated={vi.fn()} />)
+
+    const field = screen.getByLabelText('Durée exacte, en minutes')
+    await user.clear(field)
+    await user.type(field, '50')
+    await user.tab()
+
+    expect(screen.getByText('50 min')).toBeInTheDocument()
+
+    await user.click(screen.getByText('ami1'))
+    await user.click(screen.getByRole('button', { name: 'Créer le salon' }))
+    expect(onCreate).toHaveBeenCalledWith(50, ['u1'])
+  })
+
+  it('ajuste une durée saisie hors bornes, avec un message explicite (LOT H1, §4)', async () => {
+    const user = userEvent.setup()
+    render(<CreateRoomForm friends={[FRIEND('u1', 'ami1')]} onCreate={vi.fn()} onCreated={vi.fn()} />)
+
+    const field = screen.getByLabelText('Durée exacte, en minutes')
+    await user.clear(field)
+    await user.type(field, '500')
+    await user.tab()
+
+    expect(field).toHaveValue(120)
+    expect(screen.getByRole('alert')).toHaveTextContent('Ajustée entre 5 et 120.')
+  })
+
   it('plafonne les invitations à 5 amis', async () => {
     const user = userEvent.setup()
     const friends = Array.from({ length: 6 }, (_, i) => FRIEND(`u${i}`, `ami${i}`))

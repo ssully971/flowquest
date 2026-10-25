@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useAuth } from '@/features/auth/useAuth'
 import { useToast } from '@/shared/toast'
@@ -21,6 +21,7 @@ import {
 } from './friends-repository'
 import type { Friend, FriendProfilePreview, FriendRequest } from './types'
 import { useFriendsRealtime } from './useFriendsRealtime'
+import { useFriendshipsRealtime } from './useFriendshipsRealtime'
 
 function errorMessage(err: unknown): string {
   return err instanceof FriendsError ? err.message : 'Une erreur est survenue. Réessaie.'
@@ -39,6 +40,11 @@ export function useFriends() {
   const [requests, setRequests] = useState<FriendRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  // Dernier jeu de demandes entrantes connu (LOT H1) : permet de détecter une nouvelle
+  // demande arrivée entre deux rafraîchissements (déclenchés par Realtime ou non — peu
+  // importe la cause, toute demande entrante absente la dernière fois mérite un toast).
+  // `null` tant qu'aucun chargement n'a abouti : jamais de toast au tout premier chargement.
+  const previousIncomingIdsRef = useRef<Set<string> | null>(null)
 
   // Non async : seuls les .then()/.catch()/.finally() appellent setState, jamais le corps
   // synchrone de la fonction elle-même (une fonction async appelée depuis un effet
@@ -50,6 +56,20 @@ export function useFriends() {
         setFriends(nextFriends)
         setRequests(nextRequests)
         setLoadError(null)
+
+        const incoming = nextRequests.filter((request) => request.direction === 'incoming')
+        const incomingIds = new Set(incoming.map((request) => request.friendshipId))
+        if (previousIncomingIdsRef.current) {
+          const previous = previousIncomingIdsRef.current
+          for (const request of incoming) {
+            if (previous.has(request.friendshipId)) continue
+            showToast({
+              type: 'info',
+              message: `${request.displayName ?? request.username} t’a envoyé une demande d’ami.`,
+            })
+          }
+        }
+        previousIncomingIdsRef.current = incomingIds
       })
       .catch((err: unknown) => {
         setLoadError(errorMessage(err))
@@ -57,7 +77,7 @@ export function useFriends() {
       .finally(() => {
         setIsLoading(false)
       })
-  }, [])
+  }, [showToast])
 
   useEffect(() => {
     if (status !== 'authenticated') return
@@ -68,6 +88,9 @@ export function useFriends() {
   // Realtime arrive sur live_status — voir useFriendsRealtime pour la reconnexion et le
   // repli par interrogation (règles transversales du Mode Amis).
   useFriendsRealtime(refresh, status === 'authenticated')
+  // Nouvelles demandes (reçues ou envoyées) en temps réel (LOT H1), plus de rechargement
+  // manuel nécessaire pour les voir apparaître.
+  useFriendshipsRealtime(refresh, status === 'authenticated')
 
   const withFeedback = useCallback(
     async (action: () => Promise<void>, successMessage?: string) => {

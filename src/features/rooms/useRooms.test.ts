@@ -111,3 +111,44 @@ describe('useRooms — mes salons (LOT F3)', () => {
     expect(listMyRoomsMock).toHaveBeenCalled()
   })
 })
+
+describe('useRooms — nouvelles invitations en temps réel (LOT H1)', () => {
+  it('ne montre aucun toast au tout premier chargement, même avec une invitation déjà en attente', async () => {
+    const { useRooms } = await import('./useRooms')
+    const { result } = renderHook(() => useRooms())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    expect(showToastMock).not.toHaveBeenCalled()
+  })
+
+  it('montre un toast quand une nouvelle invitation apparaît entre deux rafraîchissements', async () => {
+    const { useRooms } = await import('./useRooms')
+    const { result } = renderHook(() => useRooms())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    const newInvite = { ...MY_ROOM, roomId: 'r2', hostUsername: 'autre_hote', hostDisplayName: 'Autre Hôte' }
+    listMyRoomsMock.mockResolvedValue([MY_ROOM, newInvite])
+
+    await act(async () => {
+      await result.current.refresh()
+    })
+
+    expect(showToastMock).toHaveBeenCalledWith({
+      type: 'info',
+      message: 'Autre Hôte t’invite à un salon de focus.',
+    })
+    expect(showToastMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('ne montre aucun toast si la même invitation persiste', async () => {
+    const { useRooms } = await import('./useRooms')
+    const { result } = renderHook(() => useRooms())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    await act(async () => {
+      await result.current.refresh()
+    })
+
+    expect(showToastMock).not.toHaveBeenCalled()
+  })
+})

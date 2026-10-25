@@ -6,12 +6,17 @@ import { useGlobalTimerState } from '@/features/timer/useGlobalTimerState'
 
 import { listUnreadCheers, markCheersRead } from './friends-repository'
 import type { UnreadCheer } from './types'
+import { useCheersRealtime } from './useCheersRealtime'
 
 /**
- * Encouragements reçus (Mode Amis, LOT F2, §2) : récupérés à l'ouverture de l'app et à
+ * Encouragements reçus (Mode Amis, LOT F2, §2) : récupérés à l'ouverture de l'app, à
  * chaque fin de session (onSessionRecorded, déjà utilisé par les stats — réutilisé ici
- * plutôt qu'un nouveau mécanisme), mais affichés seulement quand on n'est pas en focus
- * (useGlobalTimerState) — jamais de bandeau qui interrompt une session en cours.
+ * plutôt qu'un nouveau mécanisme), et désormais en temps réel (useCheersRealtime, LOT H1 —
+ * jusqu'ici un encouragement reçu pendant que l'app était déjà ouverte n'apparaissait
+ * qu'au prochain rechargement). Affiché seulement quand on n'est pas en focus
+ * (useGlobalTimerState) — jamais de bandeau qui interrompt une session en cours. Le
+ * bandeau regroupé (CheersBanner) EST la notification discrète demandée pour les
+ * encouragements : pas de toast en plus, qui ferait doublon (voir son propre commentaire).
  */
 export function useCheers() {
   const { status } = useAuth()
@@ -35,6 +40,8 @@ export function useCheers() {
     if (status !== 'authenticated') return
     return onSessionRecorded(refresh)
   }, [status, refresh])
+
+  useCheersRealtime(refresh, status === 'authenticated')
 
   const dismiss = useCallback(() => {
     setPending([])

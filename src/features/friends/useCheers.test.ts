@@ -23,6 +23,10 @@ vi.mock('./friends-repository', () => ({
   listUnreadCheers: (...args: unknown[]) => listUnreadCheersMock(...args),
   markCheersRead: (...args: unknown[]) => markCheersReadMock(...args),
 }))
+const useCheersRealtimeMock = vi.fn()
+vi.mock('./useCheersRealtime', () => ({
+  useCheersRealtime: (...args: unknown[]) => useCheersRealtimeMock(...args),
+}))
 
 const CHEER = {
   id: 'c1',
@@ -37,6 +41,7 @@ beforeEach(() => {
   useGlobalTimerStateMock.mockReturnValue({ liveState: 'inactive', startedAt: null, durationMs: null })
   listUnreadCheersMock.mockReset().mockResolvedValue([])
   markCheersReadMock.mockReset().mockResolvedValue(undefined)
+  useCheersRealtimeMock.mockReset()
 })
 
 describe('useCheers — bandeau d’encouragements différé pendant le focus (LOT F2)', () => {
@@ -92,5 +97,20 @@ describe('useCheers — bandeau d’encouragements différé pendant le focus (L
 
     expect(result.current.cheers).toEqual([])
     expect(markCheersReadMock).toHaveBeenCalled()
+  })
+
+  it('s’abonne au temps réel (LOT H1), activé seulement une fois connecté', async () => {
+    const { useCheers } = await import('./useCheers')
+    renderHook(() => useCheers())
+
+    await waitFor(() => expect(useCheersRealtimeMock).toHaveBeenCalledWith(expect.any(Function), true))
+  })
+
+  it('n’active pas le temps réel en mode invité', async () => {
+    useAuthMock.mockReturnValue({ status: 'guest' })
+    const { useCheers } = await import('./useCheers')
+    renderHook(() => useCheers())
+
+    await waitFor(() => expect(useCheersRealtimeMock).toHaveBeenCalledWith(expect.any(Function), false))
   })
 })

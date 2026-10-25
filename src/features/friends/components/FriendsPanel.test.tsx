@@ -7,8 +7,12 @@ import { FriendsPanel } from './FriendsPanel'
 const useAuthMock = vi.fn()
 const useFriendsMock = vi.fn()
 const useDuoStreaksMock = vi.fn()
+const requestSignInMock = vi.fn()
 
 vi.mock('@/features/auth/useAuth', () => ({ useAuth: () => useAuthMock() }))
+vi.mock('@/features/auth/useAuthGateRequest', () => ({
+  useAuthGateRequest: () => ({ signInRequested: false, requestSignIn: requestSignInMock, clearSignInRequest: vi.fn() }),
+}))
 vi.mock('../useFriends', () => ({ useFriends: () => useFriendsMock() }))
 vi.mock('../useDuoStreaks', () => ({ useDuoStreaks: () => useDuoStreaksMock() }))
 
@@ -65,6 +69,7 @@ beforeEach(() => {
   })
   useFriendsMock.mockReturnValue(baseFriendsState())
   useDuoStreaksMock.mockReturnValue({ streaks: [], isLoading: false, loadError: null, refresh: vi.fn() })
+  requestSignInMock.mockReset()
 })
 
 describe('FriendsPanel — onglet principal Amis (LOT F1)', () => {
@@ -77,6 +82,15 @@ describe('FriendsPanel — onglet principal Amis (LOT F1)', () => {
     useAuthMock.mockReturnValue({ status: 'guest', isSupabaseConfigured: true, profile: null })
     render(<FriendsPanel open onClose={vi.fn()} />)
     expect(screen.getByText(/Connecte-toi/)).toBeInTheDocument()
+  })
+
+  it('« Se connecter » (LOT H1, §3) rouvre l’écran de connexion existant', async () => {
+    useAuthMock.mockReturnValue({ status: 'guest', isSupabaseConfigured: true, profile: null })
+    const user = userEvent.setup()
+    render(<FriendsPanel open onClose={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Se connecter' }))
+    expect(requestSignInMock).toHaveBeenCalled()
   })
 
   it('affiche la liste d’amis par défaut, avec le badge de demandes reçues', () => {

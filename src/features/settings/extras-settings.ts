@@ -16,6 +16,7 @@ export interface ExtrasSettings {
   settingsPanelSide: SettingsPanelSide
   tasksDisplayMode: PanelDisplayMode
   notesDisplayMode: PanelDisplayMode
+  confirmTaskDeletion: boolean
 }
 
 export const DEFAULT_EXTRAS_SETTINGS: ExtrasSettings = {
@@ -29,4 +30,5 @@ export const DEFAULT_EXTRAS_SETTINGS: ExtrasSettings = {
   settingsPanelSide: 'left',
   tasksDisplayMode: 'panel',
   notesDisplayMode: 'panel',
+  confirmTaskDeletion: true,
 }

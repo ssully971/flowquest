@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.12.0',
+    date: '2026-11-01',
+    text: 'Corrections et temps réel : le bug des salons (« room_id » ambigu) est corrigé, les demandes d’amis, encouragements et invitations de salon arrivent désormais en direct (toast discret), Amis et Salons expliquent clairement comment se connecter quand tu es invité·e, la durée d’un salon affiche sa valeur en direct avec un champ saisissable, et la suppression d’une tâche demande confirmation (réglable dans Extras, avec un « Annuler » de 5 s si tu la désactives).',
+  },
+  {
     version: '0.11.0',
     date: '2026-10-31',
     text: 'Galaxie de nœuds : un nouvel onglet dans Stats où chaque session de focus devient une étoile, reliée à celles du même jour, colorée par pilier — avec info-bulle au survol et filtres par période et par pilier.',

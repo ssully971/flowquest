@@ -1,10 +1,11 @@
 import { ArrowLeft } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { GlassCard } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
+import { useAuthGateRequest } from './useAuthGateRequest'
 import { ForgotPasswordForm } from './components/ForgotPasswordForm'
 import { SignInForm } from './components/SignInForm'
 import { SignUpForm } from './components/SignUpForm'
@@ -35,11 +36,26 @@ interface AuthGateProps {
  */
 export function AuthGate({ children }: AuthGateProps) {
   const { status, isSupabaseConfigured } = useAuth()
+  const { signInRequested, clearSignInRequest } = useAuthGateRequest()
   const [dismissed, setDismissed] = useState(readDismissed)
   const [view, setView] = useState<GateView>('choice')
+  const [handledSignInRequest, setHandledSignInRequest] = useState(signInRequested)
   const s = strings.auth.gate
 
-  const shouldShow = isSupabaseConfigured && status === 'guest' && !dismissed
+  // `signInRequested` (LOT H1, §3) rouvre la fenêtre directement sur le formulaire de
+  // connexion même si elle a déjà été fermée (« continuer en invité ») plus tôt. Ajusté
+  // pendant le rendu plutôt que dans un effet (pas de rendu supplémentaire en cascade) :
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  if (signInRequested !== handledSignInRequest) {
+    setHandledSignInRequest(signInRequested)
+    if (signInRequested) setView('signIn')
+  }
+
+  const shouldShow = isSupabaseConfigured && status === 'guest' && (!dismissed || signInRequested)
+
+  useEffect(() => {
+    if (status === 'authenticated' && signInRequested) clearSignInRequest()
+  }, [status, signInRequested, clearSignInRequest])
 
   const handleContinueAsGuest = () => {
     try {
@@ -49,6 +65,8 @@ export function AuthGate({ children }: AuthGateProps) {
       // prochain rendu, sans conséquence grave (toujours fermable à nouveau).
     }
     setDismissed(true)
+    clearSignInRequest()
+    setView('choice')
   }
 
   return (

@@ -7,8 +7,12 @@ import { RoomsPanel } from './RoomsPanel'
 const useAuthMock = vi.fn()
 const useFriendsMock = vi.fn()
 const useRoomsMock = vi.fn()
+const requestSignInMock = vi.fn()
 
 vi.mock('@/features/auth/useAuth', () => ({ useAuth: () => useAuthMock() }))
+vi.mock('@/features/auth/useAuthGateRequest', () => ({
+  useAuthGateRequest: () => ({ signInRequested: false, requestSignIn: requestSignInMock, clearSignInRequest: vi.fn() }),
+}))
 vi.mock('@/features/friends/useFriends', () => ({ useFriends: () => useFriendsMock() }))
 vi.mock('../useRooms', () => ({ useRooms: () => useRoomsMock() }))
 
@@ -40,6 +44,7 @@ beforeEach(() => {
   useAuthMock.mockReturnValue({ status: 'authenticated', isSupabaseConfigured: true })
   useFriendsMock.mockReturnValue({ friends: [] })
   useRoomsMock.mockReturnValue(baseRoomsState())
+  requestSignInMock.mockReset()
 })
 
 describe('RoomsPanel — LOT F3', () => {
@@ -52,6 +57,15 @@ describe('RoomsPanel — LOT F3', () => {
     useAuthMock.mockReturnValue({ status: 'guest', isSupabaseConfigured: true })
     render(<RoomsPanel open onClose={vi.fn()} onOpenRoom={vi.fn()} />)
     expect(screen.getByText(/Connecte-toi/)).toBeInTheDocument()
+  })
+
+  it('« Se connecter » (LOT H1, §3) rouvre l’écran de connexion existant', async () => {
+    useAuthMock.mockReturnValue({ status: 'guest', isSupabaseConfigured: true })
+    const user = userEvent.setup()
+    render(<RoomsPanel open onClose={vi.fn()} onOpenRoom={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Se connecter' }))
+    expect(requestSignInMock).toHaveBeenCalled()
   })
 
   it('affiche mes salons par défaut', () => {

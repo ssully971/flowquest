@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import type { KeyboardEvent } from 'react'
 
 import { Avatar } from '@/features/avatar/components/Avatar'
 import type { Friend } from '@/features/friends/types'
+import { useEditableNumber } from '@/features/settings/pages/useEditableNumber'
 import { strings } from '@/shared/i18n'
 
 import { ROOM_MAX_INVITEES, ROOM_MAX_FOCUS_MINUTES, ROOM_MIN_FOCUS_MINUTES } from '../types'
@@ -20,6 +22,19 @@ export function CreateRoomForm({ friends, friendsLoading, onCreate, onCreated }:
   const [focusMinutes, setFocusMinutes] = useState(25)
   const [selected, setSelected] = useState<string[]>([])
   const [isCreating, setIsCreating] = useState(false)
+  const { draft, error, onDraftChange, onCommit } = useEditableNumber(
+    focusMinutes,
+    ROOM_MIN_FOCUS_MINUTES,
+    ROOM_MAX_FOCUS_MINUTES,
+    setFocusMinutes,
+  )
+
+  const handleFieldKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      event.currentTarget.blur()
+    }
+  }
 
   const toggleFriend = (id: string) => {
     setSelected((prev) => {
@@ -41,7 +56,12 @@ export function CreateRoomForm({ friends, friendsLoading, onCreate, onCreated }:
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-[var(--text)]">{s.durationLabel}</span>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium text-[var(--text)]">{s.durationLabel}</span>
+          <span aria-live="polite" className="text-sm font-semibold text-[var(--text)]">
+            {focusMinutes} {s.minutesUnit}
+          </span>
+        </div>
         <div className="inline-flex w-fit flex-wrap items-center gap-1 rounded-full border border-[var(--line)] p-1">
           {DURATION_PRESETS.map((minutes) => (
             <button
@@ -66,6 +86,28 @@ export function CreateRoomForm({ friends, friendsLoading, onCreate, onCreated }:
           onChange={(event) => setFocusMinutes(Number(event.target.value))}
           className="w-full accent-[var(--accent)]"
         />
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            aria-label={s.durationFieldLabel}
+            aria-invalid={error ? 'true' : undefined}
+            min={ROOM_MIN_FOCUS_MINUTES}
+            max={ROOM_MAX_FOCUS_MINUTES}
+            step={5}
+            value={draft}
+            onChange={(event) => onDraftChange(event.target.value)}
+            onBlur={onCommit}
+            onKeyDown={handleFieldKeyDown}
+            className="h-9 w-16 rounded-lg border border-[var(--line)] bg-transparent px-2 text-center text-sm text-[var(--text)] outline-none transition-colors duration-200 [appearance:textfield] focus:border-[var(--accent)] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+          <span className="text-xs text-[var(--muted)]">{s.minutesUnit}</span>
+        </div>
+        {error ? (
+          <p role="alert" className="text-xs text-[#E5484D]">
+            {error}
+          </p>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-2">

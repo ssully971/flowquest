@@ -1,3 +1,4 @@
+import { SignInPrompt } from '@/features/auth/components/SignInPrompt'
 import { useAuth } from '@/features/auth/useAuth'
 import { SettingsToggleRow } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
@@ -10,7 +11,12 @@ import { strings } from '@/shared/i18n'
  */
 export function FriendsPrivacyPage() {
   const s = strings.settings.friendsPrivacy
-  const { profile, updateProfile } = useAuth()
+  const { status, profile, updateProfile } = useAuth()
+
+  // Avant (LOT H1, §3) : cet écran n'affichait rien du tout en mode invité.
+  if (status !== 'authenticated') {
+    return <SignInPrompt message={s.signInRequired} ctaLabel={s.signInCta} />
+  }
 
   if (!profile) return null
 
