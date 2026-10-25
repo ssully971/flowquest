@@ -23,9 +23,10 @@ export function contrastRatio(hexA: string, hexB: string): number {
   return (lighter + 0.05) / (darker + 0.05)
 }
 
-// Seuil AA pour texte large (§1.4.3 WCAG) : l'horloge est toujours affichée en très
-// grande taille, jamais en texte courant.
-export const CLOCK_CONTRAST_WARNING_THRESHOLD = 3
+// Seuil requis par le lot 3 bis, §5 (plus strict que le minimum AA texte large de 3:1,
+// §1.4.3 WCAG) : 4,5:1, le seuil AA texte normal, pour une marge plus confortable vu la
+// variété de fonds sur lesquels l'horloge peut s'afficher.
+export const CLOCK_CONTRAST_WARNING_THRESHOLD = 4.5
 
 // Doit rester synchronisé avec --surface dans src/shared/design-system/tokens.css.
 const THEME_SURFACE_HEX: Record<'light' | 'dark', string> = {

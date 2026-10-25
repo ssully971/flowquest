@@ -641,13 +641,20 @@ export const fr = {
         urban: 'Urbain',
         interior: 'Intérieur',
         animated: 'Animé',
+        minimal: 'Minimal',
       },
       emptyCategory: 'Aucun fond dans cette catégorie pour l’instant.',
+      seeAll: 'Tout voir',
+      editingFor: 'Pour :',
+      editingForDark: 'Sombre',
+      editingForLight: 'Clair',
+      sameForBothThemes: 'Utiliser le même fond pour les deux thèmes',
       blur: 'Flou du fond',
       blurHint: 'S’applique uniquement au fond, jamais au texte ni aux commandes.',
       customBackground: {
         title: 'Fond personnel',
-        description: 'Envoie ta propre image. Redimensionnée automatiquement, elle ne quitte jamais cet appareil.',
+        description:
+          'Envoie ta propre image. Redimensionnée automatiquement, elle ne quitte jamais cet appareil.',
         upload: 'Choisir une image',
         uploading: 'Traitement…',
         replace: 'Remplacer',
@@ -716,7 +723,8 @@ export const fr = {
       tabGalaxy: 'Galaxie',
       balance: {
         title: 'Équilibre',
-        needMorePillars: 'Ajoute au moins 3 piliers actifs dans Réglages > Piliers pour voir ton équilibre.',
+        needMorePillars:
+          'Ajoute au moins 3 piliers actifs dans Réglages > Piliers pour voir ton équilibre.',
         chartLabel: 'Graphique radar de l’équilibre entre tes piliers',
         level: 'Niv.',
       },
@@ -739,7 +747,8 @@ export const fr = {
     galaxy: {
       chartLabel: 'Galaxie de tes sessions de focus',
       loading: 'Chargement…',
-      empty: 'Ta galaxie est encore vide — termine ta première session de focus pour voir apparaître ta première étoile.',
+      empty:
+        'Ta galaxie est encore vide — termine ta première session de focus pour voir apparaître ta première étoile.',
       noPillar: 'Sans pilier',
       sessionsGrouped: 'sessions regroupées',
       period: 'Période',
@@ -804,7 +813,8 @@ export const fr = {
       },
       sessionEndTitle: 'Fin de session',
       confettiEnabled: 'Confettis de fin de session',
-      confettiEnabledHint: 'Des confettis tombent du haut de l’écran quand tu termines une session.',
+      confettiEnabledHint:
+        'Des confettis tombent du haut de l’écran quand tu termines une session.',
       sessionSummaryEnabled: 'Bilan de fin de session',
       sessionSummaryEnabledHint:
         'Affiche la durée de focus, le nombre de sessions, de pauses et de tâches validées.',
@@ -853,11 +863,13 @@ export const fr = {
       invisibleModeHint:
         'Aucun statut en direct, absent des classements — tu vois quand même tes amis.',
       showLiveStatus: 'Montrer mon statut en direct',
-      showLiveStatusHint: 'Visible de tes amis uniquement (jamais de ce que tu étudies, sauf si tu le choisis).',
+      showLiveStatusHint:
+        'Visible de tes amis uniquement (jamais de ce que tu étudies, sauf si tu le choisis).',
       showTotalTimeScore: 'Montrer mon temps total et mon score',
       showTotalTimeScoreHint: 'Visible de tes amis uniquement, sur ta fiche.',
       participateLeaderboard: 'Participer au classement entre amis',
-      participateLeaderboardHint: 'Apparaît dans le classement hebdomadaire de tes amis qui y participent aussi.',
+      participateLeaderboardHint:
+        'Apparaît dans le classement hebdomadaire de tes amis qui y participent aussi.',
     },
     clock: {
       title: 'Horloge',

@@ -14,6 +14,7 @@ import { HorizonBackground } from './HorizonBackground'
 import { PHOTO_BACKGROUNDS } from './photo-backgrounds'
 import { RespirationBackground } from './RespirationBackground'
 import { SilhouettesBackground } from './SilhouettesBackground'
+import { PureBlackBackground, PureWhiteBackground } from './SolidBackground'
 import { StriesBackground } from './StriesBackground'
 import { SummitsBackground } from './SummitsBackground'
 import { TapisBackground } from './TapisBackground'
@@ -48,10 +49,23 @@ export type BackgroundId =
   | 'photo-confettis'
   | 'photo-cretes'
   | 'photo-desert'
+  | 'photo-nebuleuse'
+  | 'photo-velours'
+  | 'photo-eclipse'
+  | 'photo-spectre'
+  | 'photo-prisme'
+  | 'photo-agate'
+  | 'photo-brouillard'
+  | 'photo-pirogue'
+  | 'photo-pourpre'
+  | 'photo-envol'
+  | 'photo-foyer'
+  | 'pure-black'
+  | 'pure-white'
   | 'custom'
 
 export type BackgroundCategory =
-  'gradients' | 'abstract' | 'scenic' | 'nature' | 'urban' | 'interior' | 'animated'
+  'gradients' | 'abstract' | 'scenic' | 'nature' | 'urban' | 'interior' | 'animated' | 'minimal'
 
 export interface BackgroundDefinition {
   id: BackgroundId
@@ -93,6 +107,20 @@ export const BACKGROUNDS: BackgroundDefinition[] = [
   },
   { id: 'derive', label: 'Dérive', category: 'animated', Component: DeriveBackground },
   ...PHOTO_BACKGROUNDS,
+  {
+    id: 'pure-black',
+    label: 'Noir pur',
+    category: 'minimal',
+    suggestedTheme: 'dark',
+    Component: PureBlackBackground,
+  },
+  {
+    id: 'pure-white',
+    label: 'Blanc pur',
+    category: 'minimal',
+    suggestedTheme: 'light',
+    Component: PureWhiteBackground,
+  },
   // Fond personnel (lot 3) : jamais affiché dans la grille de la bibliothèque (exclu
   // explicitement par id dans ThemesPage, pas par catégorie), seulement sélectionnable une
   // fois une image envoyée, depuis sa propre section « Fond personnel ».

@@ -62,7 +62,8 @@ const MODE_OPTIONS: { value: AppMode; label: string; icon: LucideIcon }[] = [
 
 export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const fullscreen = useFullscreen()
-  const { selection, setBackground } = useBackgroundSettings()
+  const { selections, resolve, setBackground, setLinked, setBackgroundBoth, replaceSelection } =
+    useBackgroundSettings()
   const { settings: backgroundDisplaySettings, setSettings: setBackgroundDisplaySettings } =
     useBackgroundDisplaySettings()
   const { appearance, setAppearance } = useTheme()
@@ -111,8 +112,8 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   useSettingsSync({
     appearance,
     setAppearance,
-    backgrounds: selection,
-    setBackground,
+    backgrounds: selections,
+    setBackgroundSelection: replaceSelection,
     backgroundDisplaySettings,
     setBackgroundDisplaySettings,
     activeTaskId,
@@ -147,13 +148,13 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
       ? BACKGROUNDS.filter((bg) => bg.category !== 'animated')
       : BACKGROUNDS
     const randomId = () => pool[Math.floor(Math.random() * pool.length)].id
-    setBackground('home', randomId())
-    setBackground('focus', randomId())
-    setBackground('ambient', randomId())
+    setBackgroundBoth('home', randomId())
+    setBackgroundBoth('focus', randomId())
+    setBackgroundBoth('ambient', randomId())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const CurrentBackground = getBackgroundDefinition(selection[mode]).Component
+  const CurrentBackground = getBackgroundDefinition(resolve(mode)).Component
   const blurPx = blurPercentToPx(backgroundDisplaySettings.blurPercent)
   const settingsButton = (
     <span className="relative inline-flex">
@@ -301,8 +302,9 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
         }}
         mode={mode}
         onModeChange={onModeChange}
-        backgroundSelection={selection}
+        backgroundSelections={selections}
         onBackgroundSelect={setBackground}
+        onBackgroundLinkedChange={setLinked}
         backgroundDisplaySettings={backgroundDisplaySettings}
         onBackgroundDisplaySettingsChange={setBackgroundDisplaySettings}
         dailyGoalMinutes={dailyGoalMinutes}

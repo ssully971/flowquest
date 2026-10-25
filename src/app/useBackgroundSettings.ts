@@ -1,68 +1,134 @@
 import { useCallback, useState } from 'react'
 
-import { BACKGROUND_IDS, useResolvedTheme } from '@/shared/design-system'
+import { useResolvedTheme } from '@/shared/design-system'
 import type { BackgroundId } from '@/shared/design-system'
 
+import { normalizeBackgroundModeSelection } from './background-selection'
+import type { BackgroundModeSelection, BackgroundSelections } from './background-selection'
 import type { AppMode } from './useAppMode'
 
 const STORAGE_KEY = 'flowquest.backgrounds'
 
 /**
- * Défauts pour un nouveau visiteur (aucune entrée dans flowquest.backgrounds) : Aurore en
- * thème sombre, Lueur en thème clair (dégradé photo proche du violet de marque existant,
- * cohérent avec --bg en thème clair). Ambiant garde son propre défaut (lot 3, paysage),
- * inchangé par ce choix. Un choix déjà fait (même égal à l'ancien défaut « Horizon ») n'est
+ * Défauts pour un nouveau visiteur (aucune entrée dans flowquest.backgrounds) : Aurore pour
+ * le thème sombre, Lueur pour le thème clair (lot 3 bis, §3). Ambiant garde un seul fond
+ * pour les deux thèmes (`linked: true`), inchangé par ce choix. Un choix déjà fait n'est
  * jamais modifié : readStored() ne retombe sur ces valeurs que si la clé est absente.
  */
-function getThemeDefaults(resolvedTheme: 'dark' | 'light'): Record<AppMode, BackgroundId> {
-  const base: BackgroundId = resolvedTheme === 'dark' ? 'photo-aurore' : 'photo-lueur'
-  return { home: base, focus: base, ambient: 'photo-fjord' }
+const DEFAULTS: BackgroundSelections = {
+  home: { dark: 'photo-aurore', light: 'photo-lueur', linked: false },
+  focus: { dark: 'photo-aurore', light: 'photo-lueur', linked: false },
+  ambient: { dark: 'photo-fjord', light: 'photo-fjord', linked: true },
 }
 
-function isBackgroundId(value: unknown): value is BackgroundId {
-  return typeof value === 'string' && (BACKGROUND_IDS as string[]).includes(value)
-}
-
-function readStored(defaults: Record<AppMode, BackgroundId>): Record<AppMode, BackgroundId> {
-  if (typeof window === 'undefined') return defaults
+function readStored(): BackgroundSelections {
+  if (typeof window === 'undefined') return DEFAULTS
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return defaults
+    if (!raw) return DEFAULTS
     const parsed: unknown = JSON.parse(raw)
-    if (typeof parsed !== 'object' || parsed === null) return defaults
+    if (typeof parsed !== 'object' || parsed === null) return DEFAULTS
     const record = parsed as Record<string, unknown>
     return {
-      home: isBackgroundId(record.home) ? record.home : defaults.home,
-      focus: isBackgroundId(record.focus) ? record.focus : defaults.focus,
-      ambient: isBackgroundId(record.ambient) ? record.ambient : defaults.ambient,
+      home: normalizeBackgroundModeSelection(record.home, DEFAULTS.home),
+      focus: normalizeBackgroundModeSelection(record.focus, DEFAULTS.focus),
+      ambient: normalizeBackgroundModeSelection(record.ambient, DEFAULTS.ambient),
     }
   } catch {
-    return defaults
+    return DEFAULTS
+  }
+}
+
+function persist(selections: BackgroundSelections) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(selections))
+  } catch {
+    // Stockage indisponible (navigation privée) : le choix ne survit pas au rechargement.
   }
 }
 
 export interface UseBackgroundSettingsResult {
-  selection: Record<AppMode, BackgroundId>
-  setBackground: (mode: AppMode, id: BackgroundId) => void
+  selections: BackgroundSelections
+  resolvedTheme: 'dark' | 'light'
+  /** Fond effectivement affiché pour ce mode, selon le thème actif. */
+  resolve: (mode: AppMode) => BackgroundId
+  setBackground: (mode: AppMode, theme: 'dark' | 'light', id: BackgroundId) => void
+  setLinked: (mode: AppMode, linked: boolean) => void
+  /** Même fond pour les deux thèmes d'un coup (ex. bouton « thème au hasard »). */
+  setBackgroundBoth: (mode: AppMode, id: BackgroundId) => void
+  /** Remplace tout le choix d'un mode d'un coup (ex. réception d'un réglage synchronisé). */
+  replaceSelection: (mode: AppMode, selection: BackgroundModeSelection) => void
 }
 
 export function useBackgroundSettings(): UseBackgroundSettingsResult {
   const resolvedTheme = useResolvedTheme()
-  const [selection, setSelection] = useState<Record<AppMode, BackgroundId>>(() =>
-    readStored(getThemeDefaults(resolvedTheme)),
+  const [selections, setSelections] = useState<BackgroundSelections>(readStored)
+
+  const update = useCallback(
+    (updater: (prev: BackgroundSelections) => BackgroundSelections) => {
+      setSelections((prev) => {
+        const next = updater(prev)
+        persist(next)
+        return next
+      })
+    },
+    [],
   )
 
-  const setBackground = useCallback((mode: AppMode, id: BackgroundId) => {
-    setSelection((prev) => {
-      const next = { ...prev, [mode]: id }
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch {
-        // Stockage indisponible (navigation privée) : le choix ne survit pas au rechargement.
-      }
-      return next
-    })
-  }, [])
+  const setBackground = useCallback(
+    (mode: AppMode, theme: 'dark' | 'light', id: BackgroundId) => {
+      update((prev) => {
+        const current = prev[mode]
+        const next: BackgroundModeSelection = current.linked
+          ? { ...current, dark: id, light: id }
+          : { ...current, [theme]: id }
+        return { ...prev, [mode]: next }
+      })
+    },
+    [update],
+  )
 
-  return { selection, setBackground }
+  const setLinked = useCallback(
+    (mode: AppMode, linked: boolean) => {
+      update((prev) => {
+        const current = prev[mode]
+        // En activant le lien, le fond du thème actif gagne : l'autre s'aligne dessus
+        // plutôt que de garder une valeur désormais invisible mais toujours « réglée ».
+        const aligned = linked
+          ? { dark: current[resolvedTheme], light: current[resolvedTheme] }
+          : {}
+        return { ...prev, [mode]: { ...current, ...aligned, linked } }
+      })
+    },
+    [update, resolvedTheme],
+  )
+
+  const setBackgroundBoth = useCallback(
+    (mode: AppMode, id: BackgroundId) => {
+      update((prev) => ({ ...prev, [mode]: { dark: id, light: id, linked: true } }))
+    },
+    [update],
+  )
+
+  const replaceSelection = useCallback(
+    (mode: AppMode, selection: BackgroundModeSelection) => {
+      update((prev) => ({ ...prev, [mode]: selection }))
+    },
+    [update],
+  )
+
+  const resolve = useCallback(
+    (mode: AppMode) => selections[mode][resolvedTheme],
+    [selections, resolvedTheme],
+  )
+
+  return {
+    selections,
+    resolvedTheme,
+    resolve,
+    setBackground,
+    setLinked,
+    setBackgroundBoth,
+    replaceSelection,
+  }
 }

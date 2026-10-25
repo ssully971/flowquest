@@ -25,9 +25,9 @@ describe('IndexedDbSettingsRepository — persistance locale des réglages', () 
     const settings = {
       appearance: 'dark' as const,
       backgrounds: {
-        home: 'aubergine' as const,
-        focus: 'brume' as const,
-        ambient: 'horizon' as const,
+        home: { dark: 'aubergine' as const, light: 'brume' as const, linked: false },
+        focus: { dark: 'brume' as const, light: 'brume' as const, linked: true },
+        ambient: { dark: 'horizon' as const, light: 'horizon' as const, linked: true },
       },
       backgroundDisplaySettings: DEFAULT_BACKGROUND_DISPLAY_SETTINGS,
       activeTaskId: null,

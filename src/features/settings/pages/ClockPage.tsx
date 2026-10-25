@@ -1,7 +1,7 @@
 import { isLowContrast } from '@/features/home/clock-color-contrast'
 import {
   CLOCK_COLOR_AUTO,
-  CLOCK_COLORS,
+  CLOCK_COLORS_BY_THEME,
   CLOCK_SIZE_SCALE,
   CLOCK_STYLES,
   CLOCK_STYLE_CSS,
@@ -24,6 +24,9 @@ export function ClockPage({ settings, onChange }: ClockPageProps) {
   const resolvedTheme = useResolvedTheme()
   const showContrastWarning =
     settings.color !== CLOCK_COLOR_AUTO && isLowContrast(settings.color, resolvedTheme)
+  // La palette proposée change avec le thème (lot 3 bis, §5) : des tons doux en sombre, des
+  // tons profonds en clair, plutôt qu'une seule liste de couleurs vives pour les deux.
+  const paletteColors = CLOCK_COLORS_BY_THEME[resolvedTheme]
 
   return (
     <div className="flex flex-col gap-6">
@@ -110,7 +113,7 @@ export function ClockPage({ settings, onChange }: ClockPageProps) {
               outlineOffset: 2,
             }}
           />
-          {CLOCK_COLORS.map((color) => (
+          {paletteColors.map((color) => (
             <button
               key={color}
               type="button"

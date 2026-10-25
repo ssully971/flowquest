@@ -348,24 +348,74 @@ Passe de relecture sur l'ensemble du Mode Amis (F1 à F4) avant de le considére
   Réglages > Horloge). Réglage « Taille des icônes » (Petite par défaut, Moyenne,
   Grande, synchronisé par compte) appliqué au bouton à icône générique utilisé dans toute
   l'interface (barre du bas, contrôles du minuteur) — traits plus fins par défaut.
-- **Modes du minuteur en icônes** : sur l'écran Focus, les onglets Focus/Pause
-  courte/Pause longue sont trois icônes (cible, tasse, lune). Le nom n'apparaît sous
-  l'icône que pour le mode actif, ou au survol/appui prolongé.
+- **Modes de l'app en icônes** (retour après feu vert) : c'est le sélecteur
+  Accueil/Focus/Ambiant de la barre du bas qui porte des icônes (Home/Timer/Moon), pas les
+  onglets Focus/Pause courte/Pause longue de l'écran Focus — remis au texte d'origine
+  (légèrement réduit, `text-xs`). Le nom du mode n'apparaît sous son icône que pour le
+  mode actif. Taille pilotée par le même réglage « Taille des icônes » que les boutons
+  génériques, sur tous les types d'appareil (pas seulement mobile).
 - **Survol discret** (souris uniquement, `@media (hover: hover)`, Tailwind v4) : curseur
   pointer et infobulle (nom de l'icône, après 400 ms) sur les boutons à icône — jamais
   d'effet resté « collé » sur un appareil tactile.
-- **Mobile, écran Focus** : mise en page épurée façon Flocus — logo, citation, titre
-  « Sur quoi veux-tu te concentrer ? », icônes de mode, horloge, 2 boutons (Lancer,
-  Réinitialiser). Tâche active, pilier, sélecteur Pomodoro/Compte à rebours/Chronomètre et
-  objectif masqués sur mobile (desktop inchangé, rien de supprimé) ; Passer/Terminer/Image
-  dans l'image restent masqués tant que rien n'a démarré, révélés dès que la session est
-  en cours. Le sélecteur de mode de la barre du bas (Accueil/Focus/Ambiant) passe en
-  icônes avec pastille active sur mobile (texte en sr-only, visible à partir de `sm:`).
+- **Mobile, écran Accueil et écran Focus** : un seul bouton « Menu » (icône hamburger)
+  regroupe Réglages et Plein écran derrière un petit menu ancré, sur les deux écrans —
+  trop chargés sinon. Série, sélecteur de mode, Tâches et Notes restent directement dans
+  la barre (leur panneau ancré se serait mal positionné hors de leur propre bouton).
+  Écran Focus : logo + citation épinglés en haut (comme l'Accueil, plus aérés qu'au milieu
+  d'un bloc centré), titre « Sur quoi veux-tu te concentrer ? », horloge, 2 boutons
+  (Lancer, Réinitialiser). Tâche active, pilier, sélecteur Pomodoro/Compte à
+  rebours/Chronomètre et objectif masqués sur mobile (desktop inchangé, rien de supprimé) ;
+  Passer/Terminer/Image dans l'image restent masqués tant que rien n'a démarré, révélés dès
+  que la session est en cours.
 - **Pas encore couvert** : la barre du bas reste deux groupes de boutons séparés plutôt
   qu'un seul bandeau unifié comme sur les captures de référence — jugé trop risqué à
   refondre entièrement dans ce lot ; Réglages, Tâches, Notes et Statistiques restent des
   panneaux complets (non concernés par la règle « écran de travail », réservée à
   Accueil/Focus/Ambiant).
+
+### 10.8 Fonds d'écran, couleurs et Deep Focus (LOT H3)
+- **Nouvelles photos** (11 fichiers triés et convertis) : `public/backgrounds/scenic/`
+  (Brouillard, Pirogue, Pourpre, Envol), `public/backgrounds/interior/` (Foyer),
+  `public/backgrounds/abstract/` (Nébuleuse, Velours, Éclipse, Spectre, Prisme, Agate —
+  dégradés de couleur façon prisme). Chaque fichier : WebP ≤ 1920 px de large, qualité
+  ~80, vignette WebP 480 px dans un sous-dossier `thumbs/`. Le bokeh de 10 Mo (sapin de
+  Noël, catégorie Intérieur) tombe à moins de 100 Ko une fois converti. Originaux
+  supprimés de la racine du dépôt une fois le registre mis à jour
+  (`src/shared/design-system/backgrounds/photo-backgrounds.tsx`).
+- **Bibliothèque de fonds repensée** (`ThemesPage`, façon Flocus) : puces de catégorie
+  en haut (dont une nouvelle catégorie « Minimal ») ; en vue « Tous », une rangée par
+  catégorie avec au plus 4 vignettes visibles (défilement horizontal, nom sous chacune,
+  contour `--accent` sur la sélection) et un bouton « Tout voir (N) » qui bascule sur la
+  grille complète de cette catégorie (même mécanisme que cliquer sa puce). Vignettes
+  photo en chargement différé (`loading="lazy"`, déjà en place depuis le lot 3).
+- **Un fond par thème** (`useBackgroundSettings`, `background-selection.ts`) : chaque
+  mode (Accueil/Focus/Ambiant) a désormais un fond pour le thème sombre et un pour le
+  thème clair (`{ dark, light, linked }`), qui change automatiquement avec le thème actif.
+  Dans la bibliothèque, un sélecteur « Pour : Sombre / Clair » choisit quel thème on
+  modifie, et une case « Utiliser le même fond pour les deux thèmes » (activée par défaut
+  pour Ambiant, désactivée pour Accueil/Focus) garde les deux slots alignés quand elle est
+  cochée. Défauts : Aurore (sombre) et Lueur (clair) pour Accueil/Focus, Fjord (les deux)
+  pour Ambiant. Synchronisé par compte comme le reste des réglages (même mécanisme
+  générique `AppSettings`/`user_settings`, pas de nouvelle table) ; un ancien choix
+  (format à une seule valeur par mode, avant ce lot) est migré automatiquement vers les
+  deux thèmes à la première lecture, jamais perdu.
+- **Fonds « Minimal »** : Noir pur (#000, OLED) et Blanc pur (#FFF) ajoutés à la
+  bibliothèque, rendus en CSS pur (`SolidBackground.tsx`), pas en photo.
+- **Couleur de l'horloge par thème** (`clock-settings.ts`) : la palette proposée dans
+  Réglages > Horloge change avec le thème actif — en sombre, des tons doux et désaturés
+  (blanc cassé, lavande, rose poudré, vert d'eau, sable) ; en clair, des tons profonds
+  (encre, indigo, bordeaux, vert forêt, brun). Chaque couleur vérifiée à au moins 4,5:1 de
+  contraste contre la teinte de base du thème (`clock-color-contrast.ts`, seuil relevé de
+  3:1 à 4,5:1) ; l'avertissement discret existant (§7.2) s'applique désormais à ce seuil.
+- **Mode Deep Focus, mise en page** (`DeepFocusSession.tsx`) : une fois une session de
+  focus démarrée avec Deep Focus actif (jamais avant que Lancer soit pressé), l'écran
+  Focus devient entièrement un fond noir pur + horloge blanche (thème sombre) ou fond
+  blanc pur + horloge noire (thème clair) — rien d'autre (pas de citation, pas de barre du
+  bas, pas de fond d'écran), juste le temps, un bouton pause/reprise et un bouton
+  terminer. Les deux boutons s'estompent après 3 s d'inactivité et reviennent au moindre
+  geste (pointeur ou clavier). Reste affiché pendant une pause (manuelle ou déclenchée par
+  le comportement de pause à la sortie de l'onglet, §9), pas pendant l'écran de fin de
+  session ni le palier d'objectif atteint. Retour normal dès la fin de la session.
 
 ## 11. Défis et succès (V3)
 

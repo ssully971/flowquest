@@ -16,11 +16,12 @@ import type { LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
+import type { BackgroundSelections } from '@/app/background-selection'
 import type { ClockSettings } from '@/features/home/clock-settings'
 import type { QuotesSettings } from '@/features/home/quotes-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
-import { Logo } from '@/shared/design-system'
 import type { BackgroundId } from '@/shared/design-system'
+import { Logo } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import type { BackgroundDisplaySettings } from './background-display-settings'
@@ -65,8 +66,9 @@ interface SettingsPanelProps {
   onOpenSocial: () => void
   mode: AppMode
   onModeChange: (mode: AppMode) => void
-  backgroundSelection: Record<AppMode, BackgroundId>
-  onBackgroundSelect: (mode: AppMode, id: BackgroundId) => void
+  backgroundSelections: BackgroundSelections
+  onBackgroundSelect: (mode: AppMode, theme: 'dark' | 'light', id: BackgroundId) => void
+  onBackgroundLinkedChange: (mode: AppMode, linked: boolean) => void
   backgroundDisplaySettings: BackgroundDisplaySettings
   onBackgroundDisplaySettingsChange: (settings: BackgroundDisplaySettings) => void
   dailyGoalMinutes: number
@@ -87,8 +89,9 @@ export function SettingsPanel({
   onOpenSocial,
   mode,
   onModeChange,
-  backgroundSelection,
+  backgroundSelections,
   onBackgroundSelect,
+  onBackgroundLinkedChange,
   backgroundDisplaySettings,
   onBackgroundDisplaySettingsChange,
   dailyGoalMinutes,
@@ -288,8 +291,9 @@ export function SettingsPanel({
               <ThemesPage
                 mode={mode}
                 onModeChange={onModeChange}
-                selection={backgroundSelection}
+                selections={backgroundSelections}
                 onSelect={onBackgroundSelect}
+                onLinkedChange={onBackgroundLinkedChange}
                 disableAnimatedThemes={extrasSettings.disableAnimatedThemes}
                 backgroundDisplaySettings={backgroundDisplaySettings}
                 onBackgroundDisplaySettingsChange={onBackgroundDisplaySettingsChange}

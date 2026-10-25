@@ -190,25 +190,15 @@ describe('FocusScreen — Deep Focus (LOT G2)', () => {
     setVisibility('visible')
   })
 
-  it('aucun indicateur tant que Deep Focus est désactivé (réglage par défaut)', async () => {
+  it('mise en page normale inchangée tant que Deep Focus est désactivé (réglage par défaut)', async () => {
     renderFocusScreen()
     await screen.findByText('Sur quoi veux-tu te concentrer ?')
 
     fireEvent.keyDown(window, { key: ' ' })
     await screen.findByRole('button', { name: 'Mettre en pause' })
 
-    expect(screen.queryByText('Deep Focus actif')).not.toBeInTheDocument()
-  })
-
-  it('affiche l’indicateur pendant une session de focus quand Deep Focus est actif', async () => {
-    seedDeepFocusSettings()
-    renderFocusScreen()
-    await screen.findByText('Sur quoi veux-tu te concentrer ?')
-
-    fireEvent.keyDown(window, { key: ' ' })
-    await screen.findByRole('button', { name: 'Mettre en pause' })
-
-    expect(await screen.findByText('Deep Focus actif')).toBeInTheDocument()
+    expect(screen.getByText('Sur quoi veux-tu te concentrer ?')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Terminer' })).toBeInTheDocument()
   })
 
   it('met le minuteur en pause et propose « Reprendre » quand l’onglet passe en arrière-plan', async () => {
@@ -227,5 +217,62 @@ describe('FocusScreen — Deep Focus (LOT G2)', () => {
     )
     const toastContainer = toastMessage.closest('[role="status"]') as HTMLElement
     expect(within(toastContainer).getByRole('button', { name: 'Reprendre' })).toBeInTheDocument()
+  })
+})
+
+describe('FocusScreen — mise en page Deep Focus (lot 3 bis, §6)', () => {
+  beforeEach(async () => {
+    window.localStorage.clear()
+    await clearTimerState()
+  })
+
+  it('mise en page normale tant que rien n’a démarré, même avec Deep Focus actif', async () => {
+    seedDeepFocusSettings()
+    renderFocusScreen()
+
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
+    expect(screen.getByRole('button', { name: 'Lancer' })).toBeInTheDocument()
+  })
+
+  it('bascule vers l’écran minimal (rien que le temps et deux boutons) une fois la session démarrée', async () => {
+    seedDeepFocusSettings()
+    renderFocusScreen()
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
+
+    fireEvent.keyDown(window, { key: ' ' })
+    await screen.findByRole('button', { name: 'Mettre en pause' })
+
+    // Écran normal entièrement remplacé : plus de question, plus de Réinitialiser/Passer/PIP
+    // (exclusifs à TimerControls, jamais rendus par DeepFocusSession).
+    expect(screen.queryByText('Sur quoi veux-tu te concentrer ?')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Réinitialiser' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Passer' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Mettre en pause' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Terminer' })).toBeInTheDocument()
+  })
+
+  it('reste sur l’écran minimal pendant une pause manuelle (pas de clignotement de mise en page)', async () => {
+    seedDeepFocusSettings()
+    renderFocusScreen()
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
+
+    fireEvent.keyDown(window, { key: ' ' })
+    await screen.findByRole('button', { name: 'Mettre en pause' })
+    fireEvent.click(screen.getByRole('button', { name: 'Mettre en pause' }))
+
+    expect(await screen.findByRole('button', { name: 'Reprendre' })).toBeInTheDocument()
+    expect(screen.queryByText('Sur quoi veux-tu te concentrer ?')).not.toBeInTheDocument()
+  })
+
+  it('revient à la mise en page normale en terminant la session depuis l’écran minimal', async () => {
+    seedDeepFocusSettings()
+    renderFocusScreen()
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
+
+    fireEvent.keyDown(window, { key: ' ' })
+    await screen.findByRole('button', { name: 'Mettre en pause' })
+    fireEvent.click(screen.getByRole('button', { name: 'Terminer' }))
+
+    expect(await screen.findByText('Session terminée')).toBeInTheDocument()
   })
 })

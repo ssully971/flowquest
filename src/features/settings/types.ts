@@ -1,6 +1,5 @@
 import type { Appearance } from '@/shared/design-system'
-import type { AppMode } from '@/app/useAppMode'
-import type { BackgroundId } from '@/shared/design-system'
+import type { BackgroundSelections } from '@/app/background-selection'
 import { DEFAULT_CLOCK_SETTINGS } from '@/features/home/clock-settings'
 import type { ClockSettings } from '@/features/home/clock-settings'
 import { DEFAULT_QUOTES_SETTINGS } from '@/features/home/quotes-settings'
@@ -18,7 +17,7 @@ export const SETTINGS_SCHEMA_VERSION = 1
 
 export interface AppSettings {
   appearance: Appearance
-  backgrounds: Record<AppMode, BackgroundId>
+  backgrounds: BackgroundSelections
   backgroundDisplaySettings: BackgroundDisplaySettings
   activeTaskId: string | null
   dailyGoalMinutes: number
@@ -30,7 +29,11 @@ export interface AppSettings {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   appearance: 'system',
-  backgrounds: { home: 'horizon', focus: 'horizon', ambient: 'photo-fjord' },
+  backgrounds: {
+    home: { dark: 'photo-aurore', light: 'photo-lueur', linked: false },
+    focus: { dark: 'photo-aurore', light: 'photo-lueur', linked: false },
+    ambient: { dark: 'photo-fjord', light: 'photo-fjord', linked: true },
+  },
   backgroundDisplaySettings: DEFAULT_BACKGROUND_DISPLAY_SETTINGS,
   activeTaskId: null,
   dailyGoalMinutes: DEFAULT_DAILY_GOAL_MINUTES,

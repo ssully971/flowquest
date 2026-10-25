@@ -15,35 +15,42 @@ import { ToastProvider } from '@/shared/toast'
 import { CHANGELOG } from './changelog'
 import { SettingsPanel } from './SettingsPanel'
 
+const BACKGROUND_SELECTIONS = {
+  home: { dark: 'horizon' as const, light: 'horizon' as const, linked: true },
+  focus: { dark: 'horizon' as const, light: 'horizon' as const, linked: true },
+  ambient: { dark: 'horizon' as const, light: 'horizon' as const, linked: true },
+}
+
 function panel(open: boolean, onClose: () => void, extrasSettings = DEFAULT_EXTRAS_SETTINGS) {
   return (
     <ToastProvider>
       <ThemeProvider>
         <AuthProvider>
-        <CustomBackgroundProvider>
-          <button type="button">Déclencheur</button>
-          <SettingsPanel
-            open={open}
-            onClose={onClose}
-            onOpenSocial={vi.fn()}
-            mode="home"
-            onModeChange={vi.fn()}
-            backgroundSelection={{ home: 'horizon', focus: 'horizon', ambient: 'horizon' }}
-            onBackgroundSelect={vi.fn()}
-            backgroundDisplaySettings={DEFAULT_BACKGROUND_DISPLAY_SETTINGS}
-            onBackgroundDisplaySettingsChange={vi.fn()}
-            dailyGoalMinutes={120}
-            onDailyGoalChange={vi.fn()}
-            timerSettings={DEFAULT_TIMER_SETTINGS}
-            onTimerSettingsChange={vi.fn()}
-            clockSettings={DEFAULT_CLOCK_SETTINGS}
-            onClockSettingsChange={vi.fn()}
-            quotesSettings={DEFAULT_QUOTES_SETTINGS}
-            onQuotesSettingsChange={vi.fn()}
-            extrasSettings={extrasSettings}
-            onExtrasSettingsChange={vi.fn()}
-          />
-        </CustomBackgroundProvider>
+          <CustomBackgroundProvider>
+            <button type="button">Déclencheur</button>
+            <SettingsPanel
+              open={open}
+              onClose={onClose}
+              onOpenSocial={vi.fn()}
+              mode="home"
+              onModeChange={vi.fn()}
+              backgroundSelections={BACKGROUND_SELECTIONS}
+              onBackgroundSelect={vi.fn()}
+              onBackgroundLinkedChange={vi.fn()}
+              backgroundDisplaySettings={DEFAULT_BACKGROUND_DISPLAY_SETTINGS}
+              onBackgroundDisplaySettingsChange={vi.fn()}
+              dailyGoalMinutes={120}
+              onDailyGoalChange={vi.fn()}
+              timerSettings={DEFAULT_TIMER_SETTINGS}
+              onTimerSettingsChange={vi.fn()}
+              clockSettings={DEFAULT_CLOCK_SETTINGS}
+              onClockSettingsChange={vi.fn()}
+              quotesSettings={DEFAULT_QUOTES_SETTINGS}
+              onQuotesSettingsChange={vi.fn()}
+              extrasSettings={extrasSettings}
+              onExtrasSettingsChange={vi.fn()}
+            />
+          </CustomBackgroundProvider>
         </AuthProvider>
       </ThemeProvider>
     </ToastProvider>
@@ -237,8 +244,9 @@ describe('SettingsPanel — carte profil, point d’entrée social unique (LOT H
                 onOpenSocial={onOpenSocial}
                 mode="home"
                 onModeChange={vi.fn()}
-                backgroundSelection={{ home: 'horizon', focus: 'horizon', ambient: 'horizon' }}
+                backgroundSelections={BACKGROUND_SELECTIONS}
                 onBackgroundSelect={vi.fn()}
+                onBackgroundLinkedChange={vi.fn()}
                 backgroundDisplaySettings={DEFAULT_BACKGROUND_DISPLAY_SETTINGS}
                 onBackgroundDisplaySettingsChange={vi.fn()}
                 dailyGoalMinutes={120}

@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
+import { normalizeBackgroundModeSelection } from '@/app/background-selection'
+import type { BackgroundSelections } from '@/app/background-selection'
 import { hasOfferedImport } from '@/features/auth/guest-import'
 import { useAuth } from '@/features/auth/useAuth'
 import type { ClockSettings } from '@/features/home/clock-settings'
 import type { QuotesSettings } from '@/features/home/quotes-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
-import type { Appearance, BackgroundId } from '@/shared/design-system'
+import type { Appearance } from '@/shared/design-system'
 
 import type { BackgroundDisplaySettings } from './background-display-settings'
 import type { ExtrasSettings } from './extras-settings'
@@ -20,8 +22,8 @@ const remoteRepo = new SupabaseSettingsRepository()
 interface UseSettingsSyncParams {
   appearance: Appearance
   setAppearance: (value: Appearance) => void
-  backgrounds: Record<AppMode, BackgroundId>
-  setBackground: (mode: AppMode, id: BackgroundId) => void
+  backgrounds: BackgroundSelections
+  setBackgroundSelection: (mode: AppMode, selection: BackgroundSelections[AppMode]) => void
   backgroundDisplaySettings: BackgroundDisplaySettings
   setBackgroundDisplaySettings: (settings: BackgroundDisplaySettings) => void
   activeTaskId: string | null
@@ -48,7 +50,7 @@ export function useSettingsSync({
   appearance,
   setAppearance,
   backgrounds,
-  setBackground,
+  setBackgroundSelection,
   backgroundDisplaySettings,
   setBackgroundDisplaySettings,
   activeTaskId,
@@ -129,7 +131,10 @@ export function useSettingsSync({
 
         setAppearance(remote.settings.appearance)
         for (const mode of Object.keys(remote.settings.backgrounds) as AppMode[]) {
-          setBackground(mode, remote.settings.backgrounds[mode])
+          setBackgroundSelection(
+            mode,
+            normalizeBackgroundModeSelection(remote.settings.backgrounds[mode], backgrounds[mode]),
+          )
         }
         setBackgroundDisplaySettings(remote.settings.backgroundDisplaySettings)
         setActiveTaskId(remote.settings.activeTaskId)
@@ -145,8 +150,9 @@ export function useSettingsSync({
   }, [
     status,
     user,
+    backgrounds,
     setAppearance,
-    setBackground,
+    setBackgroundSelection,
     setBackgroundDisplaySettings,
     setActiveTaskId,
     setDailyGoalMinutes,

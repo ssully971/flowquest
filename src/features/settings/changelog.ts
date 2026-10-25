@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.14.0',
+    date: '2026-11-03',
+    text: 'Fonds d’écran, couleurs et Deep Focus : 11 nouvelles photos triées par catégorie (dont une catégorie Minimal avec Noir pur et Blanc pur), une bibliothèque repensée avec rangées par catégorie et « Tout voir », un fond différent pour chaque thème (avec option « même fond pour les deux »), une palette de couleurs d’horloge plus douce et propre à chaque thème, et un écran de session ultra-minimal quand Deep Focus est actif (fond noir ou blanc pur, rien d’autre que le temps et deux boutons).',
+  },
+  {
     version: '0.13.0',
     date: '2026-11-02',
     text: 'Épuration et mobile : un seul point d’entrée vers Amis/Salons/Classement (la carte profil en haut de Réglages, avec une pastille sur l’engrenage s’il y a du nouveau), deux tailles d’horloge plus petites et une taille d’icônes réglable, les modes du minuteur deviennent des icônes, un léger effet au survol partout (souris uniquement), et l’écran Focus sur mobile adopte une mise en page épurée façon Flocus.',
