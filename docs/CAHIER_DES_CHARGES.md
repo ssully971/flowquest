@@ -97,6 +97,43 @@ Via Document Picture-in-Picture (Chrome/Edge ordinateur) ou, à défaut, une fen
 - Alerte de fin : choix du son + volume (+ « Aucune alerte »). Sons fournis par Sullivan, libres de droits.
 - **Compteurs de sessions** : points, cœurs, étoiles, tomates, éclairs, diplôme, flocons, bonhomme de neige… tous gratuits. Liste extensible depuis l'admin.
 
+### 6.5 Raccourcis clavier ✅ (LOT G1)
+Un seul écouteur `keydown` (hook `useKeyboardShortcuts`), monté dans Focus et Ambiant
+(jamais une nouvelle instance du moteur) :
+- **Espace** : lancer / mettre en pause / reprendre (`preventDefault` ciblé — ni
+  défilement de page, ni double activation d'un bouton qui a le focus).
+- **N ou →** : passer à la phase suivante.
+- **R** : réinitialiser la phase en cours.
+- **M** : couper/rétablir les sons d'ambiance (gain maître Web Audio — n'a d'effet que
+  sur l'écran Ambiant, seul endroit où des sons jouent).
+- **?** : ouvre une petite fenêtre d'aide listant les raccourcis.
+
+Inactifs dans un champ de saisie (input/textarea/select/contenteditable), pendant qu'une
+fenêtre modale est ouverte (détecté génériquement via `role="dialog"`), avec un
+modificateur (Ctrl/Cmd/Alt), ou en auto-répétition (`event.repeat`). Réglage « Raccourcis
+clavier » dans Réglages > Minuteur (activé par défaut, synchronisé par compte) — aucun
+bouton permanent ajouté à l'écran : l'aide s'ouvre par « ? » ou par un lien dans ce même
+réglage.
+
+### 6.6 Deep Focus ✅ (LOT G2)
+Réglage « Deep Focus » dans Réglages > Minuteur (**désactivé par défaut**, synchronisé
+par compte) : met en pause une session de focus (Pomodoro, phase focus uniquement —
+jamais une pause, jamais le chronomètre libre, jamais un salon de groupe) si l'onglet
+passe en arrière-plan plus longtemps qu'un délai de grâce réglable (5 s par défaut, 0 à
+60 s).
+
+- Détection via `visibilitychange` (`document.visibilityState === 'hidden'`). La pause
+  est **rétroactive à l'instant précis où l'onglet a été quitté** (horodatage capturé à
+  ce moment, pas à l'instant du retour) — le moteur à timestamps du minuteur l'utilise
+  tel quel pour geler le temps écoulé.
+- Double chemin de résolution pour rester juste même quand iOS gèle l'exécution JS en
+  arrière-plan (le `setTimeout` normal peut ne jamais s'exécuter) : un recalcul a lieu
+  aussi au retour (`visible`), à partir de l'horodatage réel du départ.
+- Au retour, un **toast discret** (jamais de boîte de dialogue navigateur) : « Ton
+  minuteur a été mis en pause. Reprends quand tu veux. » avec un bouton Reprendre.
+- Pendant qu'elle est active, un **petit indicateur discret** (icône de cadenas) apparaît
+  près du minuteur — seul signe visible du mode, aucun bouton permanent ajouté à l'écran.
+
 ## 7. Réglages (panneau gauche)
 
 Menu : Thèmes · Horloge · Minuteur · Stats · Citations · Extras · Compte · Support · Nouveautés.
@@ -117,6 +154,12 @@ Menu : Thèmes · Horloge · Minuteur · Stats · Citations · Extras · Compte 
 
 ### 7.5 Citations
 - Catégorie au choix ; afficher en mode Focus ; afficher en Home. Les citations sont gérées par l'admin.
+- **Rythme sur Focus ✅ (LOT G1)** : citation aléatoire au chargement, puis une nouvelle à
+  chaque début de phase (démarrage réel d'une session ou d'une pause — pas en changeant
+  simplement d'onglet de segment sans démarrer, ni en mettant en pause/reprenant), jamais
+  deux fois de suite la même. Fondu d'opacité ~300 ms (coupé si `prefers-reduced-motion`).
+  Indépendant du réglage « rotation » (quotidienne / à chaque chargement) ci-dessus, qui
+  reste la référence pour l'Accueil — sur Focus, le rythme naturel est celui des phases.
 
 ### 7.6 Extras
 - Nom affiché sur le tableau de bord ; désactiver les thèmes animés (appareils lents) ; mode épuré ; empêcher la veille ; onglet des réglages ouvert par défaut ; **randomiseur de thème** à chaque chargement.
@@ -144,6 +187,55 @@ Menu : Thèmes · Horloge · Minuteur · Stats · Citations · Extras · Compte 
 - **Calendrier de focus** façon GitHub, en heures ou en sessions, vue 6 mois ou 1 an.
 - **Tendance de focus** : courbe sur la période choisie.
 - Chaque variation est comparée à la période précédente (flèche + pourcentage).
+
+### 9.1 Piliers de Vie ✅ (LOT G3)
+Chaque session de focus peut se rattacher à un pilier (Travail, Sport, Études…) pour
+suivre l'équilibre entre les domaines de vie.
+
+- **Données** : table `pillars` (nom, couleur, XP, niveau, archivage), colonne
+  `pillar_id` nullable sur `focus_sessions`. Maximum **8 piliers actifs** par
+  utilisateur (archiver un pilier libère une place). Un pilier « Général » est créé à la
+  toute première utilisation.
+- **XP** : dérivée du **temps RÉEL de focus enregistré** (`actual_seconds`), jamais de la
+  durée prévue — cohérent avec le §6.2 (un Pomodoro arrêté à 18 min donne l'XP de
+  18 min). **1 min = 10 XP.** Toujours recomposée côté serveur (fonction SQL
+  `recompute_pillar_xp`, déclenchée par un trigger sur `focus_sessions`) à partir de la
+  somme des sessions enregistrées — jamais à partir d'un compteur local, et donc
+  idempotente si une session est envoyée deux fois et juste entre appareils.
+- **Courbe de niveau** : passer du niveau *L* à *L+1* coûte *600·(L+1)* XP (croissant).
+  Le niveau 2 s'atteint à 600 XP, le niveau 3 à 1800 XP, etc.
+- **Interface, sans encombrer** : une pastille colorée discrète à côté du titre de la
+  session sur l'écran Focus (aucun nouveau bouton permanent), qui ouvre un petit menu —
+  le dernier pilier utilisé reste présélectionné. Création, renommage, couleur,
+  archivage dans **Réglages > Piliers**. Une animation brève de niveau gagné dans le
+  bilan de session (si le bilan est activé), jamais une popup séparée.
+- **Statistiques** : carte « Équilibre » avec un graphique radar (au moins 3 piliers
+  actifs ; message clair sinon) et la liste des piliers avec niveau et barre d'XP.
+
+### 9.2 Galaxie de nœuds ✅ (LOT G4)
+Un onglet « Galaxie » dans Stats (bascule interne Aperçu/Galaxie, jamais un fond
+permanent sur l'accueil, le Focus ou l'Ambiant) : chaque session de focus validée devient
+une étoile.
+
+- **Rendu** : canvas 2D, une passe dessinée dans un canvas hors écran puis mise en cache
+  — jamais de boucle d'animation pour l'affichage normal, redessiné seulement si les
+  données ou la taille changent. `devicePixelRatio` géré. Un scintillement très léger
+  (une poignée d'étoiles, intervalle espacé — jamais 60 fps) est coupé par
+  `prefers-reduced-motion` et dès que l'onglet passe en arrière-plan.
+- **Étoiles** : taille proportionnelle à la durée réelle (bornée), couleur du pilier
+  (gris doux si aucun). Les sessions d'un même jour calendaire sont reliées par de fines
+  lignes translucides, dans leur ordre chronologique.
+- **Positions déterministes** : hachage de l'id de la session (jamais `Math.random()`) —
+  la même session retombe toujours exactement au même endroit.
+- **Plafond** : 1 500 étoiles individuelles au maximum (les plus récentes) ; au-delà, les
+  sessions plus anciennes sont regroupées par mois et par pilier en une étoile agrégée.
+- **Interaction** : survol (ordinateur) ou toucher (tactile) affiche une info-bulle
+  (date, durée, pilier). Filtres par période (30 jours, 90 jours, tout) et par pilier,
+  intégrés à la vue elle-même.
+- **Chargement** : sessions lues par curseur IndexedDB (jamais un `getAll()` en bloc),
+  seulement quand la vue est ouverte — jamais au démarrage de l'app.
+- Option envisagée pour plus tard : utiliser la galaxie comme fond de l'écran Ambiant —
+  proposée, pas construite dans ce lot.
 
 ## 10. Social (V2 — « Mode Amis », livré en 4 lots F1 à F4, voir `docs/AMIS.md`)
 

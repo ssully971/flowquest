@@ -1,30 +1,39 @@
-import { render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
 import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
+import { ActivePillarProvider } from '@/features/pillars/ActivePillarProvider'
 import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
+import { getDb } from '@/shared/storage/db'
 import { ToastProvider } from '@/shared/toast'
 
 import { FocusScreen } from './FocusScreen'
 import { TimerSettingsProvider } from './TimerSettingsProvider'
+
+async function clearTimerState() {
+  const db = await getDb()
+  await db.delete('timerState', 'current')
+}
 
 function renderFocusScreen() {
   return render(
     <ToastProvider>
       <AuthProvider>
         <ActiveTaskProvider>
-          <TimerSettingsProvider>
-            <ClockSettingsProvider>
-              <QuotesSettingsProvider>
-                <ExtrasSettingsProvider>
-                  <FocusScreen />
-                </ExtrasSettingsProvider>
-              </QuotesSettingsProvider>
-            </ClockSettingsProvider>
-          </TimerSettingsProvider>
+          <ActivePillarProvider>
+            <TimerSettingsProvider>
+              <ClockSettingsProvider>
+                <QuotesSettingsProvider>
+                  <ExtrasSettingsProvider>
+                    <FocusScreen />
+                  </ExtrasSettingsProvider>
+                </QuotesSettingsProvider>
+              </ClockSettingsProvider>
+            </TimerSettingsProvider>
+          </ActivePillarProvider>
         </ActiveTaskProvider>
       </AuthProvider>
     </ToastProvider>,
@@ -100,5 +109,120 @@ describe('FocusScreen — la police de l’horloge suit Réglages > Horloge (LOT
     await screen.findByText('Sur quoi te concentres-tu ?')
     const digits = await screen.findByTestId('big-digits')
     expect(digits.style.fontFamily).toContain('Georgia')
+  })
+})
+
+describe('FocusScreen — raccourcis clavier (LOT G1)', () => {
+  beforeEach(async () => {
+    window.localStorage.clear()
+    await clearTimerState()
+  })
+
+  it('Espace démarre le minuteur', async () => {
+    renderFocusScreen()
+    await screen.findByText('Sur quoi te concentres-tu ?')
+
+    fireEvent.keyDown(window, { key: ' ' })
+
+    expect(await screen.findByRole('button', { name: 'Mettre en pause' })).toBeInTheDocument()
+  })
+
+  it('? ouvre la fenêtre d’aide des raccourcis', async () => {
+    renderFocusScreen()
+    await screen.findByText('Sur quoi te concentres-tu ?')
+
+    fireEvent.keyDown(window, { key: '?' })
+
+    expect(await screen.findByRole('dialog', { name: 'Raccourcis clavier' })).toBeInTheDocument()
+  })
+
+  it('n’agit pas quand le réglage « Raccourcis clavier » est désactivé', async () => {
+    window.localStorage.setItem(
+      'flowquest.timerSettings',
+      JSON.stringify({
+        focusMinutes: 25,
+        shortBreakMinutes: 5,
+        longBreakMinutes: 10,
+        sessionsBeforeLongBreak: 4,
+        autoStartNext: false,
+        keyboardShortcutsEnabled: false,
+      }),
+    )
+    renderFocusScreen()
+    await screen.findByText('Sur quoi te concentres-tu ?')
+
+    fireEvent.keyDown(window, { key: ' ' })
+
+    expect(screen.queryByRole('button', { name: 'Mettre en pause' })).not.toBeInTheDocument()
+  })
+})
+
+function setVisibility(state: 'visible' | 'hidden') {
+  Object.defineProperty(document, 'visibilityState', { value: state, configurable: true })
+  fireEvent(document, new Event('visibilitychange'))
+}
+
+function seedDeepFocusSettings() {
+  window.localStorage.setItem(
+    'flowquest.timerSettings',
+    JSON.stringify({
+      focusMinutes: 25,
+      shortBreakMinutes: 5,
+      longBreakMinutes: 10,
+      sessionsBeforeLongBreak: 4,
+      autoStartNext: false,
+      deepFocusEnabled: true,
+      deepFocusGraceSeconds: 0,
+    }),
+  )
+}
+
+describe('FocusScreen — Deep Focus (LOT G2)', () => {
+  beforeEach(async () => {
+    window.localStorage.clear()
+    await clearTimerState()
+  })
+
+  afterEach(() => {
+    setVisibility('visible')
+  })
+
+  it('aucun indicateur tant que Deep Focus est désactivé (réglage par défaut)', async () => {
+    renderFocusScreen()
+    await screen.findByText('Sur quoi te concentres-tu ?')
+
+    fireEvent.keyDown(window, { key: ' ' })
+    await screen.findByRole('button', { name: 'Mettre en pause' })
+
+    expect(screen.queryByText('Deep Focus actif')).not.toBeInTheDocument()
+  })
+
+  it('affiche l’indicateur pendant une session de focus quand Deep Focus est actif', async () => {
+    seedDeepFocusSettings()
+    renderFocusScreen()
+    await screen.findByText('Sur quoi te concentres-tu ?')
+
+    fireEvent.keyDown(window, { key: ' ' })
+    await screen.findByRole('button', { name: 'Mettre en pause' })
+
+    expect(await screen.findByText('Deep Focus actif')).toBeInTheDocument()
+  })
+
+  it('met le minuteur en pause et propose « Reprendre » quand l’onglet passe en arrière-plan', async () => {
+    seedDeepFocusSettings()
+    renderFocusScreen()
+    await screen.findByText('Sur quoi te concentres-tu ?')
+
+    fireEvent.keyDown(window, { key: ' ' })
+    await screen.findByRole('button', { name: 'Mettre en pause' })
+
+    setVisibility('hidden')
+    setVisibility('visible')
+
+    const toastMessage = await screen.findByText(
+      'Ton minuteur a été mis en pause. Reprends quand tu veux.',
+    )
+    const toastContainer = toastMessage.closest('[role="status"]') as HTMLElement
+    expect(within(toastContainer).getByRole('button', { name: 'Reprendre' })).toBeInTheDocument()
   })
 })

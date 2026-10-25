@@ -21,6 +21,14 @@ export interface UseAmbientSoundsResult {
   sleepTimerMinutes: number | null
   setSleepTimerMinutes: (minutes: number | null) => void
   remainingSleepMs: number | null
+  /** Coupure globale (LOT G1, raccourci M) : passe par un GainNode maître plutôt que par
+   * stop()/start() de chaque son — un AudioBufferSourceNode ne peut démarrer qu'une seule
+   * fois (API Web Audio), le couper puis le relancer redémarrerait la boucle depuis le
+   * début. Un gain maître à 0 garde la lecture en cours, juste inaudible, et la reprend
+   * exactement là où elle en était au retour. N'affecte jamais `activeIds` : les sons
+   * restent sélectionnés dans le panneau pendant la coupure. */
+  muted: boolean
+  toggleMute: () => void
 }
 
 interface ActiveSound {
@@ -47,7 +55,10 @@ export function useAmbientSounds(): UseAmbientSoundsResult {
   const [sleepTimerMinutes, setSleepTimerMinutesState] = useState<number | null>(null)
   const [sleepEndAt, setSleepEndAt] = useState<number | null>(null)
   const [remainingSleepMs, setRemainingSleepMs] = useState<number | null>(null)
+  const [muted, setMuted] = useState(false)
+  const mutedRef = useRef(false)
   const audioContextRef = useRef<AudioContext | null>(null)
+  const masterGainRef = useRef<GainNode | null>(null)
   const buffersRef = useRef<Map<string, AudioBuffer>>(new Map())
   const activeSoundsRef = useRef<Map<string, ActiveSound>>(new Map())
   // Miroir synchrone de `activeIds` : contrairement à l'état React, lisible immédiatement
@@ -61,6 +72,16 @@ export function useAmbientSounds(): UseAmbientSoundsResult {
       audioContextRef.current = new Ctor()
     }
     return audioContextRef.current
+  }, [])
+
+  const getMasterGain = useCallback((context: AudioContext): GainNode => {
+    if (!masterGainRef.current) {
+      const gain = context.createGain()
+      gain.gain.value = mutedRef.current ? 0 : 1
+      gain.connect(context.destination)
+      masterGainRef.current = gain
+    }
+    return masterGainRef.current
   }, [])
 
   const getOrDecodeBuffer = useCallback(
@@ -108,7 +129,7 @@ export function useAmbientSounds(): UseAmbientSoundsResult {
         const gain = context.createGain()
         gain.gain.value = volumes[id] ?? DEFAULT_VOLUME
         source.connect(gain)
-        gain.connect(context.destination)
+        gain.connect(getMasterGain(context))
         source.start()
         activeSoundsRef.current.set(id, { source, gain })
       } catch {
@@ -118,8 +139,17 @@ export function useAmbientSounds(): UseAmbientSoundsResult {
         setActiveIds((prev) => prev.filter((activeId) => activeId !== id))
       }
     },
-    [getAudioContext, getOrDecodeBuffer, volumes],
+    [getAudioContext, getOrDecodeBuffer, getMasterGain, volumes],
   )
+
+  const toggleMute = useCallback(() => {
+    setMuted((previous) => {
+      const next = !previous
+      mutedRef.current = next
+      if (masterGainRef.current) masterGainRef.current.gain.value = next ? 0 : 1
+      return next
+    })
+  }, [])
 
   const stopAll = useCallback(() => {
     for (const id of Array.from(activeSoundsRef.current.keys())) {
@@ -205,5 +235,7 @@ export function useAmbientSounds(): UseAmbientSoundsResult {
     sleepTimerMinutes,
     setSleepTimerMinutes,
     remainingSleepMs,
+    muted,
+    toggleMute,
   }
 }

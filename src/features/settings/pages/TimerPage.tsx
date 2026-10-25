@@ -1,5 +1,9 @@
+import { useState } from 'react'
+
+import { KeyboardShortcutsHelp } from '@/features/timer/components/KeyboardShortcutsHelp'
 import {
   COUNTDOWN_MINUTES_RANGE,
+  DEEP_FOCUS_GRACE_SECONDS_RANGE,
   FOCUS_MINUTES_RANGE,
   LONG_BREAK_MINUTES_RANGE,
   SHORT_BREAK_MINUTES_RANGE,
@@ -22,6 +26,7 @@ interface TimerPageProps {
 
 export function TimerPage({ settings, onChange }: TimerPageProps) {
   const s = strings.settings.timer
+  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
 
   return (
     <div className="flex flex-col gap-6">
@@ -101,6 +106,44 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
         onToggle={() => onChange({ ...settings, showTaskInPip: !settings.showTaskInPip })}
       />
 
+      <div className="flex max-w-md flex-col gap-2">
+        <SettingsToggleRow
+          label={s.keyboardShortcutsEnabled}
+          hint={s.keyboardShortcutsEnabledHint}
+          checked={settings.keyboardShortcutsEnabled}
+          onToggle={() =>
+            onChange({ ...settings, keyboardShortcutsEnabled: !settings.keyboardShortcutsEnabled })
+          }
+        />
+        <button
+          type="button"
+          onClick={() => setIsShortcutsHelpOpen(true)}
+          className="self-start text-xs font-medium text-[var(--accent)] underline-offset-2 hover:underline"
+        >
+          {strings.focus.shortcuts.openHelp}
+        </button>
+      </div>
+
+      <div className="flex max-w-md flex-col gap-2">
+        <SettingsToggleRow
+          label={s.deepFocusEnabled}
+          hint={s.deepFocusEnabledHint}
+          checked={settings.deepFocusEnabled}
+          onToggle={() => onChange({ ...settings, deepFocusEnabled: !settings.deepFocusEnabled })}
+        />
+        {settings.deepFocusEnabled ? (
+          <NumericStepper
+            label={s.deepFocusGraceSeconds}
+            value={settings.deepFocusGraceSeconds}
+            min={DEEP_FOCUS_GRACE_SECONDS_RANGE.min}
+            max={DEEP_FOCUS_GRACE_SECONDS_RANGE.max}
+            step={DEEP_FOCUS_GRACE_SECONDS_RANGE.step}
+            unit="s"
+            onChange={(deepFocusGraceSeconds) => onChange({ ...settings, deepFocusGraceSeconds })}
+          />
+        ) : null}
+      </div>
+
       <SessionGoalSettings settings={settings} onChange={onChange} />
 
       <CycleEndSettings settings={settings} onChange={onChange} />
@@ -126,6 +169,8 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
       </div>
 
       <AlertSoundSettings settings={settings} onChange={onChange} />
+
+      <KeyboardShortcutsHelp open={isShortcutsHelpOpen} onClose={() => setIsShortcutsHelpOpen(false)} />
     </div>
   )
 }

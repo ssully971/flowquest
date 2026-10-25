@@ -83,6 +83,7 @@ describe('CalendarSection — navigation par année civile et unité heures / se
       endedAt: now,
       completed: true,
       taskId: null,
+      pillarId: null,
       syncedAt: null,
     })
 

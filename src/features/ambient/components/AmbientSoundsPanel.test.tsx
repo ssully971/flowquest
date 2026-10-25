@@ -16,6 +16,8 @@ function baseProps(overrides: Partial<UseAmbientSoundsResult> = {}): UseAmbientS
     sleepTimerMinutes: null,
     setSleepTimerMinutes: vi.fn(),
     remainingSleepMs: null,
+    muted: false,
+    toggleMute: vi.fn(),
     ...overrides,
   }
 }

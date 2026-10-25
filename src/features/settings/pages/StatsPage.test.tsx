@@ -75,6 +75,7 @@ describe('StatsPage — calendrier de régularité et tendance (§9 du cahier de
       endedAt: now,
       completed: true,
       taskId: null,
+      pillarId: null,
       syncedAt: null,
     })
 
@@ -83,5 +84,54 @@ describe('StatsPage — calendrier de régularité et tendance (§9 du cahier de
     await screen.findByText('Calendrier de focus')
     const matches = await screen.findAllByRole('img', { name: /25 min/ })
     expect(matches.length).toBeGreaterThan(0)
+  })
+})
+
+describe('StatsPage — onglet Galaxie (LOT G4)', () => {
+  afterEach(async () => {
+    await clearFocusSessions()
+  })
+
+  it('reste sur Aperçu par défaut, bascule vers Galaxie au clic', async () => {
+    const user = userEvent.setup()
+    render(<StatsPage dailyGoalMinutes={120} onDailyGoalChange={vi.fn()} />)
+
+    expect(
+      screen.getByText('Termine ta première session de focus pour voir tes statistiques ici.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: 'Galaxie de tes sessions de focus' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('radio', { name: 'Galaxie' }))
+
+    expect(
+      screen.queryByText('Termine ta première session de focus pour voir tes statistiques ici.'),
+    ).not.toBeInTheDocument()
+    expect(
+      await screen.findByText(
+        'Ta galaxie est encore vide — termine ta première session de focus pour voir apparaître ta première étoile.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('affiche le canevas une fois des sessions chargées', async () => {
+    const user = userEvent.setup()
+    const db = await getDb()
+    await db.put('focusSessions', {
+      id: 'galaxy-session-1',
+      kind: 'focus',
+      plannedSeconds: 1500,
+      actualSeconds: 1500,
+      startedAt: Date.now() - 1500_000,
+      endedAt: Date.now(),
+      completed: true,
+      taskId: null,
+      pillarId: null,
+      syncedAt: null,
+    })
+
+    render(<StatsPage dailyGoalMinutes={120} onDailyGoalChange={vi.fn()} />)
+    await user.click(screen.getByRole('radio', { name: 'Galaxie' }))
+
+    expect(await screen.findByRole('img', { name: 'Galaxie de tes sessions de focus' })).toBeInTheDocument()
   })
 })

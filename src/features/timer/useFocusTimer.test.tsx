@@ -3,8 +3,9 @@ import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/AuthProvider'
+import { setActivePillarIdRef } from '@/features/pillars/active-pillar-ref'
 import { getDb } from '@/shared/storage/db'
-import type { FocusSessionRecord } from '@/shared/storage/db'
+import type { FocusSessionRecord, PillarRecord } from '@/shared/storage/db'
 import { ToastProvider } from '@/shared/toast'
 
 import { TimerSettingsProvider } from './TimerSettingsProvider'
@@ -74,9 +75,25 @@ function focusSession(overrides: Partial<FocusSessionRecord> & { startedAt: numb
     endedAt: overrides.startedAt + 1500_000,
     completed: true,
     taskId: null,
+    pillarId: null,
     syncedAt: null,
     ...overrides,
   }
+}
+
+async function seedPillar(overrides: Partial<PillarRecord> = {}): Promise<void> {
+  const pillar: PillarRecord = {
+    id: 'pillar-1',
+    name: 'Travail',
+    color: '#4A9FE8',
+    currentXp: 0,
+    level: 1,
+    createdAt: Date.now(),
+    archivedAt: null,
+    ...overrides,
+  }
+  const db = await getDb()
+  await db.put('pillars', pillar)
 }
 
 beforeEach(async () => {
@@ -85,6 +102,9 @@ beforeEach(async () => {
   const db = await getDb()
   const keys = await db.getAllKeys('focusSessions')
   await Promise.all(keys.map((key) => db.delete('focusSessions', key)))
+  const pillarKeys = await db.getAllKeys('pillars')
+  await Promise.all(pillarKeys.map((key) => db.delete('pillars', key)))
+  setActivePillarIdRef(null)
 })
 
 describe('useFocusTimer — durées configurables et démarrage automatique', () => {
@@ -406,4 +426,149 @@ describe('useFocusTimer — fin de session via le bouton Terminer (LOT E6)', () 
     expect(result.current.segment).toBe('focus')
     expect(result.current.snapshot?.status).toBe('idle')
   })
+})
+
+describe('useFocusTimer — startedAt exposé pour la citation par phase (LOT G1)', () => {
+  it('null tant que la phase n’a pas démarré, fixé une fois start() appelé', async () => {
+    seedTimerSettings({ focusMinutes: 1 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    expect(result.current.startedAt).toBeNull()
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+    expect(result.current.startedAt).not.toBeNull()
+  })
+
+  it('reste identique à travers une pause puis une reprise', async () => {
+    seedTimerSettings({ focusMinutes: 1 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+    const startedAt = result.current.startedAt
+
+    act(() => result.current.pause())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('paused'))
+    expect(result.current.startedAt).toBe(startedAt)
+
+    act(() => result.current.resume())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+    expect(result.current.startedAt).toBe(startedAt)
+  })
+
+  it('redevient null après un reset', async () => {
+    seedTimerSettings({ focusMinutes: 1 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.startedAt).not.toBeNull())
+
+    act(() => result.current.reset())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('idle'))
+    expect(result.current.startedAt).toBeNull()
+  })
+})
+
+describe('useFocusTimer — pause() accepte un horodatage explicite (LOT G2, Deep Focus)', () => {
+  it('gèle le temps écoulé à l’horodatage donné, pas à l’instant réel de l’appel', async () => {
+    // Durée longue (1h) pour que l'écart entre l'horodatage demandé et l'exécution réelle
+    // reste négligeable devant la durée totale, et que rien ne se termine pendant le test.
+    seedTimerSettings({ focusMinutes: 60 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+
+    // Scénario « quitter 40 s puis revenir » : l'onglet se cache à t0, Deep Focus déclenche
+    // pause(t0) — mais l'exécution réelle (ce code) ne tourne qu'au retour, bien après t0.
+    const hiddenAt = Date.now() - 40_000
+    act(() => result.current.pause(hiddenAt))
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('paused'))
+
+    // Le temps de focus compté s'arrête à hiddenAt, jamais aux 40 s qui se sont écoulées
+    // en vrai avant que ce test n'exécute l'assertion.
+    expect(result.current.snapshot?.elapsedMs).toBeLessThan(1000)
+  })
+
+  it('sans horodatage, se comporte comme avant (Date.now() implicite)', async () => {
+    seedTimerSettings({ focusMinutes: 60 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+
+    act(() => result.current.pause())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('paused'))
+    expect(result.current.snapshot?.elapsedMs).toBeLessThan(1000)
+  })
+})
+
+describe('useFocusTimer — pillarLevelUp (LOT G3)', () => {
+  it('se remplit quand le pilier actif passe un niveau pendant le cycle', async () => {
+    // 1 min de focus réel = 10 XP (pillar-xp.ts), donc 1 XP exige au moins 6 s réelles
+    // (floor(6 * 10 / 60) = 1) : on attend 6,5 s pour rester correct même si l'arrondi à
+    // la seconde (voir recordSession) tombe à 6 ou 7. Seuil du niveau 2 : 600 XP — à 599,
+    // ce seul XP gagné suffit à passer niveau 2.
+    await seedPillar({ currentXp: 599, level: 1 })
+    setActivePillarIdRef('pillar-1')
+    seedTimerSettings({ focusMinutes: 1 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    expect(result.current.pillarLevelUp).toBeNull()
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+    await new Promise((resolve) => setTimeout(resolve, 6500))
+
+    act(() => result.current.endSession())
+    await waitFor(() => expect(result.current.cycleEnded).toBe(true))
+    await waitFor(() => expect(result.current.pillarLevelUp).not.toBeNull())
+
+    expect(result.current.pillarLevelUp?.pillarId).toBe('pillar-1')
+    expect(result.current.pillarLevelUp?.newLevel).toBe(2)
+  }, 10_000)
+
+  it('reste null sans changement de niveau', async () => {
+    await seedPillar({ currentXp: 0, level: 1 })
+    setActivePillarIdRef('pillar-1')
+    seedTimerSettings({ focusMinutes: 1 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+
+    act(() => result.current.endSession())
+    await waitFor(() => expect(result.current.cycleEnded).toBe(true))
+
+    expect(result.current.pillarLevelUp).toBeNull()
+  })
+
+  it('est remis à zéro par acknowledgeSessionEnd', async () => {
+    await seedPillar({ currentXp: 599, level: 1 })
+    setActivePillarIdRef('pillar-1')
+    seedTimerSettings({ focusMinutes: 1 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+    await new Promise((resolve) => setTimeout(resolve, 6500))
+
+    act(() => result.current.endSession())
+    await waitFor(() => expect(result.current.cycleEnded).toBe(true))
+    await waitFor(() => expect(result.current.pillarLevelUp).not.toBeNull())
+
+    act(() => result.current.acknowledgeSessionEnd())
+    await waitFor(() => expect(result.current.cycleEnded).toBe(false))
+    expect(result.current.pillarLevelUp).toBeNull()
+  }, 10_000)
 })

@@ -86,8 +86,19 @@ export function pickDailyQuote(
   return filtered[dayOfYear(now) % filtered.length]
 }
 
-/** Aléatoire : une nouvelle citation à chaque appel (typiquement à chaque chargement). */
-export function pickRandomQuote(category: QuoteCategory | 'all', pool: Quote[] = QUOTES): Quote {
+/**
+ * Aléatoire : une nouvelle citation à chaque appel (typiquement à chaque chargement, ou à
+ * chaque début de phase sur l'écran Focus — LOT G1, voir usePhaseQuote). `exclude` évite
+ * de retomber sur la citation déjà affichée (jamais de répétition immédiate) — ignoré si
+ * le pool filtré n'a qu'une seule citation, pour ne pas boucler indéfiniment.
+ */
+export function pickRandomQuote(
+  category: QuoteCategory | 'all',
+  pool: Quote[] = QUOTES,
+  exclude: Quote | null = null,
+): Quote {
   const filtered = quotesForCategory(category, pool)
-  return filtered[Math.floor(Math.random() * filtered.length)]
+  const candidates =
+    exclude && filtered.length > 1 ? filtered.filter((quote) => quote.text !== exclude.text) : filtered
+  return candidates[Math.floor(Math.random() * candidates.length)]
 }

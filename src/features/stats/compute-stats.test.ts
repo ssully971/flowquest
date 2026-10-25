@@ -27,6 +27,7 @@ function session(
     endedAt: overrides.startedAt + 1500_000,
     completed: true,
     taskId: null,
+    pillarId: null,
     syncedAt: null,
     ...overrides,
   }

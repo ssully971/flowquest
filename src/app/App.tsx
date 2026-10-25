@@ -5,6 +5,7 @@ import { DiagnosticPage } from '@/features/diagnostic/DiagnosticPage'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
 import { HomeScreen } from '@/features/home/HomeScreen'
 import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
+import { ActivePillarProvider } from '@/features/pillars/ActivePillarProvider'
 import { BackgroundDisplaySettingsProvider } from '@/features/settings/BackgroundDisplaySettingsProvider'
 import { CustomBackgroundProvider } from '@/features/settings/CustomBackgroundProvider'
 import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
@@ -29,35 +30,37 @@ export function App() {
       <ToastProvider>
         <AuthProvider>
           <ActiveTaskProvider>
-            <TimerSettingsProvider>
-              <ClockSettingsProvider>
-                <QuotesSettingsProvider>
-                  <ExtrasSettingsProvider>
-                    <BackgroundDisplaySettingsProvider>
-                      <CustomBackgroundProvider>
-                        {isDiagnosticRoute ? (
-                          <DiagnosticPage />
-                        ) : isAdminRoute ? (
-                          <AdminGate />
-                        ) : (
-                          <AuthGate>
-                            <AppShell mode={mode} onModeChange={setMode}>
-                              {mode === 'home' ? (
-                                <HomeScreen />
-                              ) : mode === 'focus' ? (
-                                <FocusScreen />
-                              ) : (
-                                <AmbientScreen />
-                              )}
-                            </AppShell>
-                          </AuthGate>
-                        )}
-                      </CustomBackgroundProvider>
-                    </BackgroundDisplaySettingsProvider>
-                  </ExtrasSettingsProvider>
-                </QuotesSettingsProvider>
-              </ClockSettingsProvider>
-            </TimerSettingsProvider>
+            <ActivePillarProvider>
+              <TimerSettingsProvider>
+                <ClockSettingsProvider>
+                  <QuotesSettingsProvider>
+                    <ExtrasSettingsProvider>
+                      <BackgroundDisplaySettingsProvider>
+                        <CustomBackgroundProvider>
+                          {isDiagnosticRoute ? (
+                            <DiagnosticPage />
+                          ) : isAdminRoute ? (
+                            <AdminGate />
+                          ) : (
+                            <AuthGate>
+                              <AppShell mode={mode} onModeChange={setMode}>
+                                {mode === 'home' ? (
+                                  <HomeScreen />
+                                ) : mode === 'focus' ? (
+                                  <FocusScreen />
+                                ) : (
+                                  <AmbientScreen />
+                                )}
+                              </AppShell>
+                            </AuthGate>
+                          )}
+                        </CustomBackgroundProvider>
+                      </BackgroundDisplaySettingsProvider>
+                    </ExtrasSettingsProvider>
+                  </QuotesSettingsProvider>
+                </ClockSettingsProvider>
+              </TimerSettingsProvider>
+            </ActivePillarProvider>
           </ActiveTaskProvider>
         </AuthProvider>
       </ToastProvider>

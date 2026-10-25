@@ -27,6 +27,7 @@ describe('useFocusScore — carte « score de focus » (lot 5)', () => {
       endedAt: now,
       completed: true,
       taskId: null,
+      pillarId: null,
       syncedAt: null,
     })
 

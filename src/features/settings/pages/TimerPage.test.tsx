@@ -70,4 +70,44 @@ describe('TimerPage — durées Pomodoro et démarrage automatique', () => {
     await user.click(toggle)
     expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_TIMER_SETTINGS, showTaskInPip: false })
   })
+
+  it('bascule les raccourcis clavier (LOT G1)', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<TimerPage settings={DEFAULT_TIMER_SETTINGS} onChange={onChange} />)
+
+    const toggle = screen.getByRole('switch', { name: 'Raccourcis clavier' })
+    expect(toggle).toHaveAttribute('aria-checked', 'true')
+
+    await user.click(toggle)
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_TIMER_SETTINGS, keyboardShortcutsEnabled: false })
+  })
+
+  it('le lien « Afficher les raccourcis clavier » ouvre l’aide (LOT G1)', async () => {
+    const user = userEvent.setup()
+    render(<TimerPage settings={DEFAULT_TIMER_SETTINGS} onChange={vi.fn()} />)
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Afficher les raccourcis clavier' }))
+    expect(screen.getByRole('dialog', { name: 'Raccourcis clavier' })).toBeInTheDocument()
+  })
+
+  it('Deep Focus désactivé par défaut, le délai de grâce reste masqué (LOT G2)', () => {
+    render(<TimerPage settings={DEFAULT_TIMER_SETTINGS} onChange={vi.fn()} />)
+
+    expect(screen.getByRole('switch', { name: 'Deep Focus' })).toHaveAttribute('aria-checked', 'false')
+    expect(screen.queryByLabelText('Délai de grâce avant la pause')).not.toBeInTheDocument()
+  })
+
+  it('active Deep Focus et affiche alors le délai de grâce', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<TimerPage settings={DEFAULT_TIMER_SETTINGS} onChange={onChange} />)
+
+    await user.click(screen.getByRole('switch', { name: 'Deep Focus' }))
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_TIMER_SETTINGS, deepFocusEnabled: true })
+
+    render(<TimerPage settings={{ ...DEFAULT_TIMER_SETTINGS, deepFocusEnabled: true }} onChange={vi.fn()} />)
+    expect(screen.getByLabelText('Délai de grâce avant la pause')).toHaveValue(5)
+  })
 })

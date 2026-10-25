@@ -40,6 +40,7 @@ function makeFocusSession(overrides: Partial<FocusSessionRecord> = {}): FocusSes
     endedAt: 1_700_001_500_000,
     completed: true,
     taskId: null,
+    pillarId: null,
     syncedAt: null,
     ...overrides,
   }

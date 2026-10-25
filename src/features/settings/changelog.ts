@@ -13,6 +13,26 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.11.0',
+    date: '2026-10-31',
+    text: 'Galaxie de nœuds : un nouvel onglet dans Stats où chaque session de focus devient une étoile, reliée à celles du même jour, colorée par pilier — avec info-bulle au survol et filtres par période et par pilier.',
+  },
+  {
+    version: '0.10.0',
+    date: '2026-10-30',
+    text: 'Piliers de Vie : rattache tes sessions de focus à un pilier (Travail, Sport, Études…) grâce à une pastille discrète à côté du titre, gagne de l’XP et des niveaux dans Réglages > Piliers, et retrouve ta carte « Équilibre » dans Stats.',
+  },
+  {
+    version: '0.9.0',
+    date: '2026-10-29',
+    text: 'Deep Focus (option désactivée par défaut dans Réglages > Minuteur) : si tu quittes l’onglet pendant une session de focus, ton minuteur se met en pause pile à cet instant, avec un petit indicateur pendant qu’il est actif et un toast « Reprendre » à ton retour.',
+  },
+  {
+    version: '0.8.0',
+    date: '2026-10-28',
+    text: 'Raccourcis clavier dans Focus et Ambiant (Espace, N, R, M, ? pour l’aide) et des citations qui changent à chaque nouvelle phase sur l’écran Focus, avec un léger fondu.',
+  },
+  {
     version: '0.7.0',
     date: '2026-10-27',
     text: 'Mode Amis (4/4) : série partagée avec chaque ami (une flamme sur la liste quand vous avez chacun complété une session le même jour) et une dernière passe de finitions sur tout le Mode Amis.',

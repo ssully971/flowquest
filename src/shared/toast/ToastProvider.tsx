@@ -65,6 +65,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 style={{ color: ACCENT_COLORS[toast.type], flexShrink: 0, marginTop: 2 }}
               />
               <p className="flex-1">{toast.message}</p>
+              {toast.action ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.action?.onClick()
+                    dismiss(toast.id)
+                  }}
+                  className="shrink-0 text-sm font-medium text-[var(--accent)] transition-opacity duration-200 hover:opacity-80"
+                >
+                  {toast.action.label}
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => dismiss(toast.id)}
