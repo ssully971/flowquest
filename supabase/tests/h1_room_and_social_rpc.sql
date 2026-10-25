@@ -63,7 +63,12 @@ begin
 
   raise notice '--- 2. Amitié (send_friend_request / respond_friend_request) ---';
   perform set_config('request.jwt.claims', json_build_object('sub', host_id, 'role', 'authenticated')::text, true);
-  select public.send_friend_request(p_username => friend_username) into friendship;
+  -- `select * into friendship from fonction(...)` (plutôt que `select fonction(...) into
+  -- friendship`) : la fonction renvoie une ligne composite (public.friendships) — sans le
+  -- `from` + `*`, PL/pgSQL ne fait pas correspondre les 9 champs un à un et tente
+  -- d'assigner la représentation texte de toute la ligne au premier champ (uuid),
+  -- provoquant « invalid input syntax for type uuid » (trouvé en le faisant tourner).
+  select * into friendship from public.send_friend_request(p_username => friend_username);
   if friendship.id is null then
     raise exception 'send_friend_request() n''a renvoyé aucune ligne';
   end if;
