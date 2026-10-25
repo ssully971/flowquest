@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.11.0',
+    date: '2026-10-31',
+    text: 'Galaxie de nœuds : un nouvel onglet dans Stats où chaque session de focus devient une étoile, reliée à celles du même jour, colorée par pilier — avec info-bulle au survol et filtres par période et par pilier.',
+  },
+  {
     version: '0.10.0',
     date: '2026-10-30',
     text: 'Piliers de Vie : rattache tes sessions de focus à un pilier (Travail, Sport, Études…) grâce à une pastille discrète à côté du titre, gagne de l’XP et des niveaux dans Réglages > Piliers, et retrouve ta carte « Équilibre » dans Stats.',

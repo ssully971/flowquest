@@ -695,6 +695,9 @@ export const fr = {
       tasks: 'tâches',
       vsPreviousPeriod: 'vs période précédente',
       noChange: 'stable vs période précédente',
+      tabsLabel: 'Vue',
+      tabOverview: 'Aperçu',
+      tabGalaxy: 'Galaxie',
       balance: {
         title: 'Équilibre',
         needMorePillars: 'Ajoute au moins 3 piliers actifs dans Réglages > Piliers pour voir ton équilibre.',
@@ -716,6 +719,22 @@ export const fr = {
       unarchive: 'Désarchiver',
       archivedSection: 'Archivés',
       archivedHint: 'Un pilier archivé disparaît du sélecteur mais garde son XP.',
+    },
+    galaxy: {
+      chartLabel: 'Galaxie de tes sessions de focus',
+      loading: 'Chargement…',
+      empty: 'Ta galaxie est encore vide — termine ta première session de focus pour voir apparaître ta première étoile.',
+      noPillar: 'Sans pilier',
+      sessionsGrouped: 'sessions regroupées',
+      period: 'Période',
+      periods: {
+        '30d': '30 derniers jours',
+        '90d': '90 derniers jours',
+        all: 'Tout',
+      },
+      pillarFilter: 'Pilier',
+      allPillars: 'Tous les piliers',
+      overflowNoteSuffix: 'sessions plus anciennes regroupées par mois',
     },
     timer: {
       title: 'Minuteur',

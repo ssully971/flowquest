@@ -212,6 +212,31 @@ suivre l'équilibre entre les domaines de vie.
 - **Statistiques** : carte « Équilibre » avec un graphique radar (au moins 3 piliers
   actifs ; message clair sinon) et la liste des piliers avec niveau et barre d'XP.
 
+### 9.2 Galaxie de nœuds ✅ (LOT G4)
+Un onglet « Galaxie » dans Stats (bascule interne Aperçu/Galaxie, jamais un fond
+permanent sur l'accueil, le Focus ou l'Ambiant) : chaque session de focus validée devient
+une étoile.
+
+- **Rendu** : canvas 2D, une passe dessinée dans un canvas hors écran puis mise en cache
+  — jamais de boucle d'animation pour l'affichage normal, redessiné seulement si les
+  données ou la taille changent. `devicePixelRatio` géré. Un scintillement très léger
+  (une poignée d'étoiles, intervalle espacé — jamais 60 fps) est coupé par
+  `prefers-reduced-motion` et dès que l'onglet passe en arrière-plan.
+- **Étoiles** : taille proportionnelle à la durée réelle (bornée), couleur du pilier
+  (gris doux si aucun). Les sessions d'un même jour calendaire sont reliées par de fines
+  lignes translucides, dans leur ordre chronologique.
+- **Positions déterministes** : hachage de l'id de la session (jamais `Math.random()`) —
+  la même session retombe toujours exactement au même endroit.
+- **Plafond** : 1 500 étoiles individuelles au maximum (les plus récentes) ; au-delà, les
+  sessions plus anciennes sont regroupées par mois et par pilier en une étoile agrégée.
+- **Interaction** : survol (ordinateur) ou toucher (tactile) affiche une info-bulle
+  (date, durée, pilier). Filtres par période (30 jours, 90 jours, tout) et par pilier,
+  intégrés à la vue elle-même.
+- **Chargement** : sessions lues par curseur IndexedDB (jamais un `getAll()` en bloc),
+  seulement quand la vue est ouverte — jamais au démarrage de l'app.
+- Option envisagée pour plus tard : utiliser la galaxie comme fond de l'écran Ambiant —
+  proposée, pas construite dans ce lot.
+
 ## 10. Social (V2 — « Mode Amis », livré en 4 lots F1 à F4, voir `docs/AMIS.md`)
 
 ### 10.1 Amis ✅ (LOT F1)
