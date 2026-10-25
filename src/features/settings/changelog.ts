@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.13.0',
+    date: '2026-11-02',
+    text: 'Épuration et mobile : un seul point d’entrée vers Amis/Salons/Classement (la carte profil en haut de Réglages, avec une pastille sur l’engrenage s’il y a du nouveau), deux tailles d’horloge plus petites et une taille d’icônes réglable, les modes du minuteur deviennent des icônes, un léger effet au survol partout (souris uniquement), et l’écran Focus sur mobile adopte une mise en page épurée façon Flocus.',
+  },
+  {
     version: '0.12.0',
     date: '2026-11-01',
     text: 'Corrections et temps réel : le bug des salons (« room_id » ambigu) est corrigé, les demandes d’amis, encouragements et invitations de salon arrivent désormais en direct (toast discret), Amis et Salons expliquent clairement comment se connecter quand tu es invité·e, la durée d’un salon affiche sa valeur en direct avec un champ saisissable, et la suppression d’une tâche demande confirmation (réglable dans Extras, avec un « Annuler » de 5 s si tu la désactives).',

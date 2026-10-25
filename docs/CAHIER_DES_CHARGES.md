@@ -336,6 +336,37 @@ Passe de relecture sur l'ensemble du Mode Amis (F1 à F4) avant de le considére
 - **Harmonisation** : tous les champs numériques de Réglages > Minuteur utilisent le même
   stepper compact (−/valeur/+, largeur alignée sur les autres lignes du panneau).
 
+### 10.7 Épuration et mobile (LOT H2)
+- **Point d'entrée social unique** (§10.1, §10.3, §10.2) : les boutons Amis et Salons,
+  jusque-là en bas à droite de l'accueil, ont disparu. `SocialPanel` les fusionne (onglets
+  Amis/Demandes/Classement/Salons/Ajouter) derrière un seul point d'entrée — la carte
+  profil en haut du panneau Réglages (avatar, pseudo, « Amis, salons et classement »).
+  L'icône d'engrenage porte une petite pastille quand il y a une demande d'ami, un
+  encouragement ou une invitation de salon non lus ; le toast d'invitation de salon a
+  maintenant un bouton « Accepter » qui agit directement.
+- **Tailles** : deux tailles d'horloge plus petites que « Petite » ajoutées (XS, S —
+  Réglages > Horloge). Réglage « Taille des icônes » (Petite par défaut, Moyenne,
+  Grande, synchronisé par compte) appliqué au bouton à icône générique utilisé dans toute
+  l'interface (barre du bas, contrôles du minuteur) — traits plus fins par défaut.
+- **Modes du minuteur en icônes** : sur l'écran Focus, les onglets Focus/Pause
+  courte/Pause longue sont trois icônes (cible, tasse, lune). Le nom n'apparaît sous
+  l'icône que pour le mode actif, ou au survol/appui prolongé.
+- **Survol discret** (souris uniquement, `@media (hover: hover)`, Tailwind v4) : curseur
+  pointer et infobulle (nom de l'icône, après 400 ms) sur les boutons à icône — jamais
+  d'effet resté « collé » sur un appareil tactile.
+- **Mobile, écran Focus** : mise en page épurée façon Flocus — logo, citation, titre
+  « Sur quoi veux-tu te concentrer ? », icônes de mode, horloge, 2 boutons (Lancer,
+  Réinitialiser). Tâche active, pilier, sélecteur Pomodoro/Compte à rebours/Chronomètre et
+  objectif masqués sur mobile (desktop inchangé, rien de supprimé) ; Passer/Terminer/Image
+  dans l'image restent masqués tant que rien n'a démarré, révélés dès que la session est
+  en cours. Le sélecteur de mode de la barre du bas (Accueil/Focus/Ambiant) passe en
+  icônes avec pastille active sur mobile (texte en sr-only, visible à partir de `sm:`).
+- **Pas encore couvert** : la barre du bas reste deux groupes de boutons séparés plutôt
+  qu'un seul bandeau unifié comme sur les captures de référence — jugé trop risqué à
+  refondre entièrement dans ce lot ; Réglages, Tâches, Notes et Statistiques restent des
+  panneaux complets (non concernés par la règle « écran de travail », réservée à
+  Accueil/Focus/Ambiant).
+
 ## 11. Défis et succès (V3)
 
 ### 11.1 Défis quotidiens
