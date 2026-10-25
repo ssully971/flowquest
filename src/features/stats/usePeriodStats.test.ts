@@ -29,6 +29,7 @@ describe('usePeriodStats — cartes de la période choisie (lot 5)', () => {
       endedAt: now,
       completed: true,
       taskId: null,
+      pillarId: null,
       syncedAt: null,
     })
     await db.put('tasks', {

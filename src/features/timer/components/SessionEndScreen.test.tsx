@@ -14,17 +14,33 @@ const SUMMARY: CycleSummary = {
 
 describe('SessionEndScreen — confirmation de fin de session (LOT E6)', () => {
   it('affiche toujours la confirmation « Session terminée », même sans bilan', () => {
-    render(<SessionEndScreen summary={null} showSummary={false} onAcknowledge={vi.fn()} />)
+    render(
+      <SessionEndScreen
+        summary={null}
+        showSummary={false}
+        pillarLevelUp={null}
+        onAcknowledge={vi.fn()}
+      />,
+    )
     expect(screen.getByText('Session terminée')).toBeInTheDocument()
   })
 
   it('n’affiche pas le détail chiffré quand le bilan est désactivé', () => {
-    render(<SessionEndScreen summary={SUMMARY} showSummary={false} onAcknowledge={vi.fn()} />)
+    render(
+      <SessionEndScreen
+        summary={SUMMARY}
+        showSummary={false}
+        pillarLevelUp={null}
+        onAcknowledge={vi.fn()}
+      />,
+    )
     expect(screen.queryByText('Sessions')).not.toBeInTheDocument()
   })
 
   it('affiche le détail chiffré quand le bilan est activé', () => {
-    render(<SessionEndScreen summary={SUMMARY} showSummary onAcknowledge={vi.fn()} />)
+    render(
+      <SessionEndScreen summary={SUMMARY} showSummary pillarLevelUp={null} onAcknowledge={vi.fn()} />,
+    )
     expect(screen.getByText('Temps de focus')).toBeInTheDocument()
     expect(screen.getByText('43 min')).toBeInTheDocument()
     expect(screen.getByText('Sessions')).toBeInTheDocument()
@@ -37,9 +53,57 @@ describe('SessionEndScreen — confirmation de fin de session (LOT E6)', () => {
   it('appelle onAcknowledge au clic sur le bouton', async () => {
     const user = userEvent.setup()
     const onAcknowledge = vi.fn()
-    render(<SessionEndScreen summary={SUMMARY} showSummary onAcknowledge={onAcknowledge} />)
+    render(
+      <SessionEndScreen
+        summary={SUMMARY}
+        showSummary
+        pillarLevelUp={null}
+        onAcknowledge={onAcknowledge}
+      />,
+    )
 
     await user.click(screen.getByRole('button', { name: 'Nouvelle session' }))
     expect(onAcknowledge).toHaveBeenCalled()
+  })
+})
+
+describe('SessionEndScreen — animation de niveau gagné (LOT G3)', () => {
+  const LEVEL_UP = {
+    pillarId: 'pillar-1',
+    pillarName: 'Travail',
+    previousLevel: 1,
+    newLevel: 2,
+    leveledUp: true,
+  }
+
+  it('affiche le badge de niveau gagné quand le bilan est activé', () => {
+    render(
+      <SessionEndScreen
+        summary={SUMMARY}
+        showSummary
+        pillarLevelUp={LEVEL_UP}
+        onAcknowledge={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('Travail a atteint le niveau 2')).toBeInTheDocument()
+  })
+
+  it('n’affiche aucun badge sans changement de niveau', () => {
+    render(
+      <SessionEndScreen summary={SUMMARY} showSummary pillarLevelUp={null} onAcknowledge={vi.fn()} />,
+    )
+    expect(screen.queryByText(/a atteint le niveau/)).not.toBeInTheDocument()
+  })
+
+  it('n’affiche pas le badge quand le bilan est désactivé, même avec un niveau gagné', () => {
+    render(
+      <SessionEndScreen
+        summary={SUMMARY}
+        showSummary={false}
+        pillarLevelUp={LEVEL_UP}
+        onAcknowledge={vi.fn()}
+      />,
+    )
+    expect(screen.queryByText(/a atteint le niveau/)).not.toBeInTheDocument()
   })
 })

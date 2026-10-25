@@ -35,8 +35,8 @@ export async function enqueueWrite<T extends SyncTable>(
   })
 }
 
-/** Supprime une ligne `tasks` par id, via la même file (jamais en direct). */
-export async function enqueueDelete(table: 'tasks', recordId: string): Promise<void> {
+/** Supprime une ligne `tasks`/`pillars` par id, via la même file (jamais en direct). */
+export async function enqueueDelete(table: 'tasks' | 'pillars', recordId: string): Promise<void> {
   await enqueue({
     id: generateId(),
     table,
@@ -52,9 +52,9 @@ async function sendToSupabase(entry: QueuedWrite): Promise<{ message: string } |
   if (!supabase) return null
 
   if (entry.operation === 'delete') {
-    if (entry.table !== 'tasks') return null
+    if (entry.table !== 'tasks' && entry.table !== 'pillars') return null
     const { error } = await supabase
-      .from('tasks')
+      .from(entry.table)
       .delete()
       .eq('id', entry.payload.id as string)
     return error
@@ -89,6 +89,12 @@ async function sendToSupabase(entry: QueuedWrite): Promise<{ message: string } |
       const { error } = await supabase
         .from('notes')
         .upsert(entry.payload as Database['public']['Tables']['notes']['Insert'])
+      return error
+    }
+    case 'pillars': {
+      const { error } = await supabase
+        .from('pillars')
+        .upsert(entry.payload as Database['public']['Tables']['pillars']['Insert'])
       return error
     }
     default:

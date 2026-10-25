@@ -236,6 +236,7 @@ export interface Database {
           ended_at: string | null
           completed: boolean
           task_id: string | null
+          pillar_id: string | null
           group_session_id: string | null
           created_at: string
         }
@@ -249,12 +250,38 @@ export interface Database {
           ended_at?: string | null
           completed?: boolean
           task_id?: string | null
+          pillar_id?: string | null
           group_session_id?: string | null
         }
         Update: {
           actual_seconds?: number
           ended_at?: string | null
           completed?: boolean
+        }
+        Relationships: []
+      }
+      pillars: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          color: string
+          current_xp: number
+          level: number
+          created_at: string
+          archived_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          color: string
+          archived_at?: string | null
+        }
+        Update: {
+          name?: string
+          color?: string
+          archived_at?: string | null
         }
         Relationships: []
       }

@@ -75,6 +75,7 @@ describe('StatsPage — calendrier de régularité et tendance (§9 du cahier de
       endedAt: now,
       completed: true,
       taskId: null,
+      pillarId: null,
       syncedAt: null,
     })
 

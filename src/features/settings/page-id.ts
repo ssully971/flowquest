@@ -2,6 +2,7 @@ export type SettingsPageId =
   | 'themes'
   | 'clock'
   | 'timer'
+  | 'pillars'
   | 'stats'
   | 'quotes'
   | 'extras'
@@ -14,6 +15,7 @@ export const SETTINGS_PAGE_IDS: SettingsPageId[] = [
   'themes',
   'clock',
   'timer',
+  'pillars',
   'stats',
   'quotes',
   'extras',

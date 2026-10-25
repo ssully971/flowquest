@@ -143,6 +143,7 @@ describe('importGuestDataToAccount — pousse les données locales vers le compt
       endedAt: Date.now(),
       completed: true,
       taskId: null,
+      pillarId: null,
       syncedAt: null,
     })
 

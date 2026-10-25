@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { getCurrentUserId } from '@/features/auth/current-user'
 import { useAuth } from '@/features/auth/useAuth'
+import type { PillarXpResult } from '@/features/pillars/apply-session-xp'
 import { getDb } from '@/shared/storage/db'
 
 import type { CycleSummary } from './cycle-summary'
@@ -56,6 +57,10 @@ export interface UseFocusTimerResult {
    * sessions » atteint) : un écran de fin doit remplacer l'affichage normal du minuteur. */
   cycleEnded: boolean
   sessionSummary: CycleSummary | null
+  /** Dernier pilier ayant gagné un niveau pendant le cycle en cours (LOT G3) — `null`
+   * sinon. Remis à zéro à `acknowledgeSessionEnd` : sert à l'animation brève du bilan de
+   * session (SessionEndScreen), jamais une popup séparée. */
+  pillarLevelUp: PillarXpResult | null
   /** Termine le cycle en cours pour de bon (LOT E6) : enregistre la session active si besoin,
    * puis affiche l'écran de fin. */
   endSession: () => void
@@ -121,6 +126,7 @@ export function useFocusTimer(): UseFocusTimerResult {
   const [goalReached, setGoalReached] = useState(false)
   const [cycleEnded, setCycleEnded] = useState(false)
   const [sessionSummary, setSessionSummary] = useState<CycleSummary | null>(null)
+  const [pillarLevelUp, setPillarLevelUp] = useState<PillarXpResult | null>(null)
   const [isReady, setIsReady] = useState(false)
   const [snapshot, refresh] = useTimerSnapshot(controller)
   const settledEndedAtRef = useRef<number | null>(null)
@@ -196,7 +202,8 @@ export function useFocusTimer(): UseFocusTimerResult {
       const state = controller.getState()
       const liveSnapshot = controller.getSnapshot()
       if (state.startedAt !== null && liveSnapshot.status !== 'completed') {
-        await recordSession(state, Date.now(), false)
+        const result = await recordSession(state, Date.now(), false)
+        if (result?.leveledUp) setPillarLevelUp(result)
       }
       await advanceToNext()
     })()
@@ -215,7 +222,8 @@ export function useFocusTimer(): UseFocusTimerResult {
       alertSoundId: config.alertSoundId,
       alertVolume: config.alertVolume,
     })
-    void recordSession(state, snapshot.endedAt, true).then(() => {
+    void recordSession(state, snapshot.endedAt, true).then((result) => {
+      if (result?.leveledUp) setPillarLevelUp(result)
       if (state.mode !== 'pomodoro') return
 
       // Réglage « Fin de cycle » (LOT E5) : en mode « s'arrêter après N sessions », on ne
@@ -270,7 +278,8 @@ export function useFocusTimer(): UseFocusTimerResult {
         const state = controller.getState()
         const liveSnapshot = controller.getSnapshot()
         if (state.startedAt !== null && liveSnapshot.status !== 'completed') {
-          await recordSession(state, Date.now(), false)
+          const result = await recordSession(state, Date.now(), false)
+          if (result?.leveledUp) setPillarLevelUp(result)
         }
       }
       await finishCycle()
@@ -290,6 +299,7 @@ export function useFocusTimer(): UseFocusTimerResult {
       setGoalReached(false)
       setCycleEnded(false)
       setSessionSummary(null)
+      setPillarLevelUp(null)
     })()
   }, [])
 
@@ -325,7 +335,8 @@ export function useFocusTimer(): UseFocusTimerResult {
           const state = controller.getState()
           const liveSnapshot = controller.getSnapshot()
           if (state.startedAt !== null && liveSnapshot.status !== 'completed') {
-            await recordSession(state, Date.now(), false)
+            const result = await recordSession(state, Date.now(), false)
+          if (result?.leveledUp) setPillarLevelUp(result)
           }
         }
         const segment = getDefaultSegmentForMode(mode)
@@ -370,7 +381,8 @@ export function useFocusTimer(): UseFocusTimerResult {
         const state = controller.getState()
         const liveSnapshot = controller.getSnapshot()
         if (state.startedAt !== null && liveSnapshot.status !== 'completed') {
-          await recordSession(state, Date.now(), false)
+          const result = await recordSession(state, Date.now(), false)
+          if (result?.leveledUp) setPillarLevelUp(result)
         }
       }
       await controller?.reset()
@@ -391,6 +403,7 @@ export function useFocusTimer(): UseFocusTimerResult {
     isSegmentSwitchBlocked: snapshot?.status === 'running' || snapshot?.status === 'paused',
     cycleEnded,
     sessionSummary,
+    pillarLevelUp,
     endSession,
     acknowledgeSessionEnd,
     selectMode,

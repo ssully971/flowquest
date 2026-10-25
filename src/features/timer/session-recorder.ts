@@ -1,4 +1,7 @@
 import { getCurrentUserId } from '@/features/auth/current-user'
+import { getActivePillarId } from '@/features/pillars/active-pillar-ref'
+import { applySessionXp, reconcilePillarFromServer } from '@/features/pillars/apply-session-xp'
+import type { PillarXpResult } from '@/features/pillars/apply-session-xp'
 import { notifySessionRecorded } from '@/features/stats/session-events'
 import type { FocusSessionRecord } from '@/shared/storage/db'
 import { enqueueWrite } from '@/shared/sync/offline-queue'
@@ -25,9 +28,9 @@ export async function recordSession(
   state: TimerState,
   endedAt: number,
   completed: boolean,
-): Promise<void> {
-  if (state.startedAt === null) return
-  if (!isRecordableSegment(state.segment)) return
+): Promise<PillarXpResult | null> {
+  if (state.startedAt === null) return null
+  if (!isRecordableSegment(state.segment)) return null
 
   // Réutilise le calcul du moteur (getSnapshot/getElapsedMs) plutôt que de reproduire sa
   // propre formule (LOT E7) : seule cette fonction sait déjà gérer correctement le cas
@@ -36,6 +39,11 @@ export async function recordSession(
   // compté à tort comme du temps de travail réel).
   const actualSeconds = Math.round(getSnapshot(state, endedAt).elapsedMs / 1000)
   const plannedSeconds = state.durationMs ? Math.round(state.durationMs / 1000) : actualSeconds
+
+  // Un pilier ne s'attache qu'aux segments de focus (LOT G3) : seuls eux comptent pour
+  // l'XP (recompute_pillar_xp filtre déjà kind = 'focus' côté serveur), inutile de
+  // rattacher un pilier à une pause.
+  const pillarId = state.segment === 'focus' ? getActivePillarId() : null
 
   const record: FocusSessionRecord = {
     id: crypto.randomUUID(),
@@ -46,11 +54,14 @@ export async function recordSession(
     endedAt,
     completed,
     taskId: null,
+    pillarId,
     syncedAt: null,
   }
 
   await localRepo.add(record)
   notifySessionRecorded()
+
+  const pillarXpResult = pillarId ? await applySessionXp(pillarId, actualSeconds) : null
 
   const userId = getCurrentUserId()
   if (userId) {
@@ -63,6 +74,10 @@ export async function recordSession(
       started_at: new Date(record.startedAt).toISOString(),
       ended_at: new Date(endedAt).toISOString(),
       completed: record.completed,
+      pillar_id: pillarId,
     })
+    if (pillarId) void reconcilePillarFromServer(pillarId)
   }
+
+  return pillarXpResult
 }

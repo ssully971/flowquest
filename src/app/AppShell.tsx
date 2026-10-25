@@ -8,6 +8,7 @@ import { CheersBanner } from '@/features/friends/components/CheersBanner'
 import { FriendsPanel } from '@/features/friends/components/FriendsPanel'
 import { useCheers } from '@/features/friends/useCheers'
 import { useLiveStatusSync } from '@/features/friends/useLiveStatusSync'
+import { usePillarSync } from '@/features/pillars/usePillarSync'
 import { InstallPrompt } from '@/features/pwa/InstallPrompt'
 import { RoomScreen } from '@/features/rooms/components/RoomScreen'
 import { RoomsPanel } from '@/features/rooms/components/RoomsPanel'
@@ -112,6 +113,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   })
   useSessionSync()
   useTaskSync()
+  usePillarSync()
   const stats = useDashboardStats(dailyGoalMinutes)
 
   // §7.6 : coupe les animations (thèmes et horloge) pour les appareils lents.

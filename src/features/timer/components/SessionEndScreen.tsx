@@ -1,5 +1,7 @@
-import { PartyPopper } from 'lucide-react'
+import { PartyPopper, Sparkles } from 'lucide-react'
 
+import type { PillarXpResult } from '@/features/pillars/apply-session-xp'
+import { usePrefersReducedMotion } from '@/shared/hooks/usePrefersReducedMotion'
 import { strings } from '@/shared/i18n'
 
 import type { CycleSummary } from '../cycle-summary'
@@ -8,6 +10,7 @@ import { formatPlanDuration } from '../session-goal'
 interface SessionEndScreenProps {
   summary: CycleSummary | null
   showSummary: boolean
+  pillarLevelUp: PillarXpResult | null
   onAcknowledge: () => void
 }
 
@@ -18,8 +21,14 @@ interface SessionEndScreenProps {
  * réglages ; les confettis (effet à part, voir session-end-confetti.ts) sont déclenchés
  * par l'appelant au moment où cet écran apparaît.
  */
-export function SessionEndScreen({ summary, showSummary, onAcknowledge }: SessionEndScreenProps) {
+export function SessionEndScreen({
+  summary,
+  showSummary,
+  pillarLevelUp,
+  onAcknowledge,
+}: SessionEndScreenProps) {
   const s = strings.focus.sessionEnd
+  const prefersReducedMotion = usePrefersReducedMotion()
 
   return (
     <div
@@ -47,6 +56,16 @@ export function SessionEndScreen({ summary, showSummary, onAcknowledge }: Sessio
           <dt className="text-[var(--muted)]">{s.tasksCompleted}</dt>
           <dd className="text-right font-medium text-[var(--text)]">{summary.completedTasksCount}</dd>
         </dl>
+      ) : null}
+
+      {showSummary && pillarLevelUp ? (
+        <p
+          className="mt-1 flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-1.5 text-sm font-semibold text-[var(--on-accent)]"
+          style={prefersReducedMotion ? undefined : { animation: 'pillar-level-up 500ms ease-out' }}
+        >
+          <Sparkles size={16} strokeWidth={1.75} aria-hidden="true" />
+          {pillarLevelUp.pillarName} {s.levelUpReached} {pillarLevelUp.newLevel}
+        </p>
       ) : null}
 
       <button

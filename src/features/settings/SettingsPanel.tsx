@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Clock,
+  Compass,
   LifeBuoy,
   Megaphone,
   Palette,
@@ -32,6 +33,7 @@ import { ChangelogPage } from './pages/ChangelogPage'
 import { ClockPage } from './pages/ClockPage'
 import { ExtrasPage } from './pages/ExtrasPage'
 import { FriendsPrivacyPage } from './pages/FriendsPrivacyPage'
+import { PillarsPage } from './pages/PillarsPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { QuotesPage } from './pages/QuotesPage'
 import { StatsPage } from './pages/StatsPage'
@@ -46,6 +48,7 @@ const NAV_ITEMS: { id: PageId; label: string; icon: LucideIcon }[] = [
   { id: 'themes', label: strings.settings.nav.themes, icon: Palette },
   { id: 'clock', label: strings.settings.nav.clock, icon: Clock },
   { id: 'timer', label: strings.settings.nav.timer, icon: Timer },
+  { id: 'pillars', label: strings.settings.nav.pillars, icon: Compass },
   { id: 'stats', label: strings.settings.nav.stats, icon: BarChart3 },
   { id: 'quotes', label: strings.settings.nav.quotes, icon: Quote },
   { id: 'extras', label: strings.settings.nav.extras, icon: Sparkles },
@@ -291,6 +294,8 @@ export function SettingsPanel({
               />
             ) : activePage === 'timer' ? (
               <TimerPage settings={timerSettings} onChange={onTimerSettingsChange} />
+            ) : activePage === 'pillars' ? (
+              <PillarsPage />
             ) : activePage === 'clock' ? (
               <ClockPage settings={clockSettings} onChange={onClockSettingsChange} />
             ) : activePage === 'quotes' ? (

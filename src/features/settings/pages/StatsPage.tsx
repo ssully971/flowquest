@@ -1,6 +1,7 @@
 import { Minus, Plus } from 'lucide-react'
 import { useState } from 'react'
 
+import { usePillars } from '@/features/pillars/usePillars'
 import { getTrendWindowDays } from '@/features/stats/compute-stats'
 import type { StatsPeriod } from '@/features/stats/compute-stats'
 import {
@@ -15,6 +16,7 @@ import { usePeriodStats } from '@/features/stats/usePeriodStats'
 import { formatFocusDuration } from '@/features/stats/format'
 import { strings } from '@/shared/i18n'
 
+import { BalanceCard } from './stats/BalanceCard'
 import { CalendarSection } from './stats/CalendarSection'
 import { FocusTrend } from './stats/FocusTrend'
 import { PeriodStatCards } from './stats/PeriodStatCards'
@@ -28,6 +30,7 @@ interface StatsPageProps {
 
 export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProps) {
   const stats = useDashboardStats(dailyGoalMinutes)
+  const { activePillars } = usePillars()
   const [period, setPeriod] = useState<StatsPeriod>('week')
   const periodStats = usePeriodStats(period)
   const focusScore = useFocusScore(period)
@@ -137,6 +140,8 @@ export function StatsPage({ dailyGoalMinutes, onDailyGoalChange }: StatsPageProp
             stats={periodStats}
             focusScore={focusScore}
           />
+
+          <BalanceCard activePillars={activePillars} />
         </>
       )}
 

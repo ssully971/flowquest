@@ -5,6 +5,7 @@ import { CLOCK_SIZE_SCALE, CLOCK_STYLE_CSS, resolveClockColor } from '@/features
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
 import { useQuotePool } from '@/features/home/useQuotePool'
+import { PillarSelector } from '@/features/pillars/components/PillarSelector'
 import { isIOSDevice } from '@/features/pwa/platform'
 import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { useActiveTask } from '@/features/tasks/active-task-context'
@@ -163,9 +164,12 @@ export function FocusScreen() {
           >
             {strings.focus.question}
           </p>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            {activeTask ? activeTask.title : strings.focus.noActiveTask}
-          </p>
+          <div className="mt-1 flex items-center justify-center gap-1.5">
+            <p className="text-sm text-[var(--muted)]">
+              {activeTask ? activeTask.title : strings.focus.noActiveTask}
+            </p>
+            <PillarSelector disabled={timer.isSegmentSwitchBlocked} />
+          </div>
         </div>
 
         {quotesSettings.showOnFocus ? <FadingQuote quote={quote} /> : null}
@@ -181,6 +185,7 @@ export function FocusScreen() {
           <SessionEndScreen
             summary={timer.sessionSummary}
             showSummary={timerSettings.sessionSummaryEnabled}
+            pillarLevelUp={timer.pillarLevelUp}
             onAcknowledge={timer.acknowledgeSessionEnd}
           />
         ) : (

@@ -97,6 +97,24 @@ h3 {
   }
 }
 
+/* LOT G3 : animation brève du badge « niveau gagné » dans le bilan de session —
+   désactivée via prefers-reduced-motion directement dans SessionEndScreen.tsx (pas
+   d'animation du tout plutôt qu'une version simplifiée). */
+@keyframes pillar-level-up {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 @keyframes bg-drift {
   0% {
     background-position: 0% 50%;

@@ -18,6 +18,7 @@ export interface FocusSessionRecord {
   endedAt: number | null
   completed: boolean
   taskId: string | null
+  pillarId: string | null
   syncedAt: number | null
 }
 
@@ -35,7 +36,23 @@ export interface TaskRecord {
   updatedAt: number
 }
 
-export type SyncTable = 'user_settings' | 'timer_state' | 'focus_sessions' | 'tasks' | 'notes'
+export interface PillarRecord {
+  id: string
+  name: string
+  color: string
+  currentXp: number
+  level: number
+  createdAt: number
+  archivedAt: number | null
+}
+
+export type SyncTable =
+  | 'user_settings'
+  | 'timer_state'
+  | 'focus_sessions'
+  | 'tasks'
+  | 'notes'
+  | 'pillars'
 
 export interface QueuedWrite {
   id: string
@@ -84,10 +101,14 @@ interface FlowquestDB extends DBSchema {
     key: string
     value: CustomBackgroundRecord
   }
+  pillars: {
+    key: string
+    value: PillarRecord
+  }
 }
 
 const DB_NAME = 'flowquest'
-const DB_VERSION = 5
+const DB_VERSION = 6
 
 let dbPromise: Promise<IDBPDatabase<FlowquestDB>> | null = null
 
@@ -117,6 +138,9 @@ export function getDb(): Promise<IDBPDatabase<FlowquestDB>> {
         }
         if (!db.objectStoreNames.contains('customBackground')) {
           db.createObjectStore('customBackground')
+        }
+        if (!db.objectStoreNames.contains('pillars')) {
+          db.createObjectStore('pillars', { keyPath: 'id' })
         }
       },
     })

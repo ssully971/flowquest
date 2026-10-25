@@ -188,6 +188,30 @@ Menu : Thèmes · Horloge · Minuteur · Stats · Citations · Extras · Compte 
 - **Tendance de focus** : courbe sur la période choisie.
 - Chaque variation est comparée à la période précédente (flèche + pourcentage).
 
+### 9.1 Piliers de Vie ✅ (LOT G3)
+Chaque session de focus peut se rattacher à un pilier (Travail, Sport, Études…) pour
+suivre l'équilibre entre les domaines de vie.
+
+- **Données** : table `pillars` (nom, couleur, XP, niveau, archivage), colonne
+  `pillar_id` nullable sur `focus_sessions`. Maximum **8 piliers actifs** par
+  utilisateur (archiver un pilier libère une place). Un pilier « Général » est créé à la
+  toute première utilisation.
+- **XP** : dérivée du **temps RÉEL de focus enregistré** (`actual_seconds`), jamais de la
+  durée prévue — cohérent avec le §6.2 (un Pomodoro arrêté à 18 min donne l'XP de
+  18 min). **1 min = 10 XP.** Toujours recomposée côté serveur (fonction SQL
+  `recompute_pillar_xp`, déclenchée par un trigger sur `focus_sessions`) à partir de la
+  somme des sessions enregistrées — jamais à partir d'un compteur local, et donc
+  idempotente si une session est envoyée deux fois et juste entre appareils.
+- **Courbe de niveau** : passer du niveau *L* à *L+1* coûte *600·(L+1)* XP (croissant).
+  Le niveau 2 s'atteint à 600 XP, le niveau 3 à 1800 XP, etc.
+- **Interface, sans encombrer** : une pastille colorée discrète à côté du titre de la
+  session sur l'écran Focus (aucun nouveau bouton permanent), qui ouvre un petit menu —
+  le dernier pilier utilisé reste présélectionné. Création, renommage, couleur,
+  archivage dans **Réglages > Piliers**. Une animation brève de niveau gagné dans le
+  bilan de session (si le bilan est activé), jamais une popup séparée.
+- **Statistiques** : carte « Équilibre » avec un graphique radar (au moins 3 piliers
+  actifs ; message clair sinon) et la liste des piliers avec niveau et barre d'XP.
+
 ## 10. Social (V2 — « Mode Amis », livré en 4 lots F1 à F4, voir `docs/AMIS.md`)
 
 ### 10.1 Amis ✅ (LOT F1)

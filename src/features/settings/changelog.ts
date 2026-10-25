@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.10.0',
+    date: '2026-10-30',
+    text: 'Piliers de Vie : rattache tes sessions de focus à un pilier (Travail, Sport, Études…) grâce à une pastille discrète à côté du titre, gagne de l’XP et des niveaux dans Réglages > Piliers, et retrouve ta carte « Équilibre » dans Stats.',
+  },
+  {
     version: '0.9.0',
     date: '2026-10-29',
     text: 'Deep Focus (option désactivée par défaut dans Réglages > Minuteur) : si tu quittes l’onglet pendant une session de focus, ton minuteur se met en pause pile à cet instant, avec un petit indicateur pendant qu’il est actif et un toast « Reprendre » à ton retour.',

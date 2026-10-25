@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
 import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
+import { ActivePillarProvider } from '@/features/pillars/ActivePillarProvider'
 import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
 import { getDb } from '@/shared/storage/db'
@@ -22,15 +23,17 @@ function renderFocusScreen() {
     <ToastProvider>
       <AuthProvider>
         <ActiveTaskProvider>
-          <TimerSettingsProvider>
-            <ClockSettingsProvider>
-              <QuotesSettingsProvider>
-                <ExtrasSettingsProvider>
-                  <FocusScreen />
-                </ExtrasSettingsProvider>
-              </QuotesSettingsProvider>
-            </ClockSettingsProvider>
-          </TimerSettingsProvider>
+          <ActivePillarProvider>
+            <TimerSettingsProvider>
+              <ClockSettingsProvider>
+                <QuotesSettingsProvider>
+                  <ExtrasSettingsProvider>
+                    <FocusScreen />
+                  </ExtrasSettingsProvider>
+                </QuotesSettingsProvider>
+              </ClockSettingsProvider>
+            </TimerSettingsProvider>
+          </ActivePillarProvider>
         </ActiveTaskProvider>
       </AuthProvider>
     </ToastProvider>,

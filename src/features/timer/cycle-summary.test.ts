@@ -13,6 +13,7 @@ function session(overrides: Partial<FocusSessionRecord> & { startedAt: number })
     endedAt: overrides.startedAt + 1500_000,
     completed: true,
     taskId: null,
+    pillarId: null,
     syncedAt: null,
     ...overrides,
   }

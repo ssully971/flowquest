@@ -41,6 +41,7 @@ export function useSessionSync(): void {
           endedAt: row.ended_at ? new Date(row.ended_at).getTime() : null,
           completed: row.completed,
           taskId: row.task_id,
+          pillarId: row.pillar_id,
           syncedAt: Date.now(),
         }
         await db.put('focusSessions', record)
