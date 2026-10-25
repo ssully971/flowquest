@@ -1,4 +1,4 @@
-import type { ExtrasSettings, SettingsPanelSide } from '@/features/settings/extras-settings'
+import type { ExtrasSettings, IconSize, SettingsPanelSide } from '@/features/settings/extras-settings'
 import { SETTINGS_PAGE_IDS } from '@/features/settings/page-id'
 import type { PanelDisplayMode } from '@/shared/design-system'
 import { SegmentedControl, SettingsToggleRow } from '@/shared/design-system'
@@ -80,6 +80,20 @@ export function ExtrasPage({ settings, onChange }: ExtrasPageProps) {
         checked={settings.confirmTaskDeletion}
         onToggle={() => onChange({ ...settings, confirmTaskDeletion: !settings.confirmTaskDeletion })}
       />
+
+      <div>
+        <p className="mb-2 text-sm font-medium text-[var(--panel-muted)]">{s.iconSize}</p>
+        <SegmentedControl<IconSize>
+          ariaLabel={s.iconSize}
+          value={settings.iconSize}
+          onChange={(iconSize) => onChange({ ...settings, iconSize })}
+          options={[
+            { value: 'small', label: s.iconSizeSmall },
+            { value: 'medium', label: s.iconSizeMedium },
+            { value: 'large', label: s.iconSizeLarge },
+          ]}
+        />
+      </div>
 
       <div>
         <p className="mb-2 text-sm font-medium text-[var(--panel-muted)]">{s.settingsPanelSide}</p>

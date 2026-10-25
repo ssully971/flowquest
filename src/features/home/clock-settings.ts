@@ -1,7 +1,10 @@
 import { TASK_COLORS } from '@/features/tasks/task-color'
 
 export type ClockFormat = '12h' | '24h'
-export type ClockSize = 'small' | 'normal' | 'huge'
+// `xs`/`s` ajoutées en LOT H2, §2 : avant, « Petite » (`small`) était la plus petite
+// taille possible — certains écrans (mobile surtout) demandaient une horloge encore plus
+// discrète.
+export type ClockSize = 'xs' | 's' | 'small' | 'normal' | 'huge'
 
 export const CLOCK_COLOR_AUTO = 'auto'
 // Réutilise la palette des couleurs de tâches (§8, exception documentée à la règle « une
@@ -53,6 +56,8 @@ export function resolveClockColor(color: ClockColor): string | undefined {
 }
 
 export const CLOCK_SIZE_SCALE: Record<ClockSize, number> = {
+  xs: 0.38,
+  s: 0.5,
   small: 0.62,
   normal: 1,
   huge: 1.35,

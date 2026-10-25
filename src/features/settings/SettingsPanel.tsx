@@ -35,6 +35,7 @@ import { ExtrasPage } from './pages/ExtrasPage'
 import { FriendsPrivacyPage } from './pages/FriendsPrivacyPage'
 import { PillarsPage } from './pages/PillarsPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { ProfileCard } from './pages/ProfileCard'
 import { QuotesPage } from './pages/QuotesPage'
 import { StatsPage } from './pages/StatsPage'
 import { SupportPage } from './pages/SupportPage'
@@ -61,6 +62,7 @@ const NAV_ITEMS: { id: PageId; label: string; icon: LucideIcon }[] = [
 interface SettingsPanelProps {
   open: boolean
   onClose: () => void
+  onOpenSocial: () => void
   mode: AppMode
   onModeChange: (mode: AppMode) => void
   backgroundSelection: Record<AppMode, BackgroundId>
@@ -82,6 +84,7 @@ interface SettingsPanelProps {
 export function SettingsPanel({
   open,
   onClose,
+  onOpenSocial,
   mode,
   onModeChange,
   backgroundSelection,
@@ -220,13 +223,21 @@ export function SettingsPanel({
           className="flex shrink-0 flex-row overflow-x-auto border-b sm:w-[264px] sm:flex-col sm:overflow-x-visible sm:border-b-0 sm:border-r"
           style={{ borderColor: 'var(--panel-line)' }}
         >
-          <div className="flex items-center justify-between px-5 py-4 sm:hidden">
-            <span className="text-sm font-semibold text-[var(--panel-text)]">
-              {strings.settings.title}
-            </span>
+          <div className="flex shrink-0 flex-col sm:hidden">
+            <div className="flex items-center justify-between px-5 py-4">
+              <span className="text-sm font-semibold text-[var(--panel-text)]">
+                {strings.settings.title}
+              </span>
+            </div>
+            <div className="px-5 pb-3">
+              <ProfileCard onOpenSocial={onOpenSocial} />
+            </div>
           </div>
           <div className="hidden px-5 pb-2 pt-6 sm:block">
             <Logo tone="panel" className="h-5 w-auto" />
+          </div>
+          <div className="hidden px-5 pb-4 sm:block">
+            <ProfileCard onOpenSocial={onOpenSocial} />
           </div>
           {NAV_ITEMS.map((item) => {
             const isActive = item.id === activePage

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { AuthProvider } from '@/features/auth/AuthProvider'
 import { DEFAULT_CLOCK_SETTINGS } from '@/features/home/clock-settings'
 import { DEFAULT_QUOTES_SETTINGS } from '@/features/home/quotes-settings'
 import { DEFAULT_BACKGROUND_DISPLAY_SETTINGS } from '@/features/settings/background-display-settings'
@@ -18,11 +19,13 @@ function panel(open: boolean, onClose: () => void, extrasSettings = DEFAULT_EXTR
   return (
     <ToastProvider>
       <ThemeProvider>
+        <AuthProvider>
         <CustomBackgroundProvider>
           <button type="button">Déclencheur</button>
           <SettingsPanel
             open={open}
             onClose={onClose}
+            onOpenSocial={vi.fn()}
             mode="home"
             onModeChange={vi.fn()}
             backgroundSelection={{ home: 'horizon', focus: 'horizon', ambient: 'horizon' }}
@@ -41,6 +44,7 @@ function panel(open: boolean, onClose: () => void, extrasSettings = DEFAULT_EXTR
             onExtrasSettingsChange={vi.fn()}
           />
         </CustomBackgroundProvider>
+        </AuthProvider>
       </ThemeProvider>
     </ToastProvider>
   )
@@ -215,6 +219,49 @@ describe('SettingsPanel — côté du panneau (LOT B9)', () => {
     const dialog = await screen.findByRole('dialog')
     expect(dialog.className).toContain('right-0')
     expect(dialog.className).not.toContain('left-0')
+  })
+})
+
+describe('SettingsPanel — carte profil, point d’entrée social unique (LOT H2, §1)', () => {
+  it('la carte profil appelle onOpenSocial au clic', async () => {
+    const onOpenSocial = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <ToastProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <CustomBackgroundProvider>
+              <SettingsPanel
+                open
+                onClose={vi.fn()}
+                onOpenSocial={onOpenSocial}
+                mode="home"
+                onModeChange={vi.fn()}
+                backgroundSelection={{ home: 'horizon', focus: 'horizon', ambient: 'horizon' }}
+                onBackgroundSelect={vi.fn()}
+                backgroundDisplaySettings={DEFAULT_BACKGROUND_DISPLAY_SETTINGS}
+                onBackgroundDisplaySettingsChange={vi.fn()}
+                dailyGoalMinutes={120}
+                onDailyGoalChange={vi.fn()}
+                timerSettings={DEFAULT_TIMER_SETTINGS}
+                onTimerSettingsChange={vi.fn()}
+                clockSettings={DEFAULT_CLOCK_SETTINGS}
+                onClockSettingsChange={vi.fn()}
+                quotesSettings={DEFAULT_QUOTES_SETTINGS}
+                onQuotesSettingsChange={vi.fn()}
+                extrasSettings={DEFAULT_EXTRAS_SETTINGS}
+                onExtrasSettingsChange={vi.fn()}
+              />
+            </CustomBackgroundProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </ToastProvider>,
+    )
+    await screen.findByRole('dialog')
+
+    const cards = screen.getAllByText('Amis, salons et classement')
+    await user.click(cards[0])
+    expect(onOpenSocial).toHaveBeenCalled()
   })
 })
 

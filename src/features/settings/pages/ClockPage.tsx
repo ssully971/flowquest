@@ -54,6 +54,8 @@ export function ClockPage({ settings, onChange }: ClockPageProps) {
           value={settings.size}
           onChange={(size) => onChange({ ...settings, size })}
           options={[
+            { value: 'xs', label: s.sizeXs },
+            { value: 's', label: s.sizeS },
             { value: 'small', label: s.sizeSmall },
             { value: 'normal', label: s.sizeNormal },
             { value: 'huge', label: s.sizeHuge },

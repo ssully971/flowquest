@@ -35,6 +35,18 @@ describe('ClockPage — format, taille, secondes, salutation, style et horloge f
     expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_CLOCK_SETTINGS, size: 'huge' })
   })
 
+  it('propose les tailles XS et S, plus petites que « Petite » (LOT H2, §2)', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    renderClockPage(DEFAULT_CLOCK_SETTINGS, onChange)
+
+    await user.click(screen.getByRole('radio', { name: 'XS' }))
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_CLOCK_SETTINGS, size: 'xs' })
+
+    await user.click(screen.getByRole('radio', { name: 'S' }))
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_CLOCK_SETTINGS, size: 's' })
+  })
+
   it('change le style de police parmi les 12 proposés', async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()

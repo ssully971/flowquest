@@ -49,4 +49,17 @@ describe('ClockSettingsProvider — persistance locale des réglages de l’horl
     const { result } = renderHook(() => useClockSettings(), { wrapper })
     expect(result.current.settings).toEqual(DEFAULT_CLOCK_SETTINGS)
   })
+
+  it('accepte les tailles XS et S (LOT H2, §2) comme des valeurs valides, persistées', () => {
+    const { result, unmount } = renderHook(() => useClockSettings(), { wrapper })
+
+    act(() => {
+      result.current.setSettings({ ...DEFAULT_CLOCK_SETTINGS, size: 'xs' })
+    })
+    expect(result.current.settings.size).toBe('xs')
+    unmount()
+
+    const { result: second } = renderHook(() => useClockSettings(), { wrapper })
+    expect(second.current.settings.size).toBe('xs')
+  })
 })

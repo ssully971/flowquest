@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useAuth } from '@/features/auth/useAuth'
+import { strings } from '@/shared/i18n'
 import { useToast } from '@/shared/toast'
 
 import { RoomsError, createRoom, listMyRooms, respondRoomInvite } from './rooms-repository'
@@ -24,6 +25,13 @@ export function useRooms() {
   // Dernières invitations en attente connues (LOT H1) : permet de ne saluer que celles
   // qui viennent d'apparaître, jamais au tout premier chargement (ref encore `null`).
   const previousInvitedIdsRef = useRef<Set<string> | null>(null)
+  // Référence vers `respond` (LOT H2, §1 — toast avec « Accepter ») : `refresh` en a
+  // besoin pour l'action du toast, mais `respond` est défini plus bas et dépend lui-même
+  // de `refresh` — tenue à jour à chaque rendu plutôt que réordonnée pour éviter une
+  // dépendance circulaire entre les deux useCallback.
+  const respondRef = useRef<(roomId: string, accept: boolean) => Promise<boolean>>(
+    () => Promise.resolve(false),
+  )
 
   const refresh = useCallback(() => {
     return listMyRooms()
@@ -40,6 +48,10 @@ export function useRooms() {
             showToast({
               type: 'info',
               message: `${room.hostDisplayName ?? room.hostUsername} t’invite à un salon de focus.`,
+              action: {
+                label: strings.rooms.accept,
+                onClick: () => void respondRef.current(room.roomId, true),
+              },
             })
           }
         }
@@ -89,6 +101,9 @@ export function useRooms() {
     },
     [refresh, showToast],
   )
+  useEffect(() => {
+    respondRef.current = respond
+  }, [respond])
 
   return { rooms, isLoading, loadError, refresh, create, respond }
 }

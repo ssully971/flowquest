@@ -68,6 +68,16 @@ describe('ExtrasPage — nom affiché, thèmes animés, mode épuré, veille, ra
     expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_EXTRAS_SETTINGS, confirmTaskDeletion: false })
   })
 
+  it('change la taille des icônes, petite par défaut (LOT H2, §2)', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<ExtrasPage settings={DEFAULT_EXTRAS_SETTINGS} onChange={onChange} />)
+
+    expect(DEFAULT_EXTRAS_SETTINGS.iconSize).toBe('small')
+    await user.click(screen.getByRole('radio', { name: 'Grande' }))
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_EXTRAS_SETTINGS, iconSize: 'large' })
+  })
+
   it('change le côté du panneau de réglages (LOT B9)', async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()

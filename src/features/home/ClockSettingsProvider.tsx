@@ -2,17 +2,19 @@ import { useCallback, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { ClockSettingsContext } from './clock-settings-context'
-import { CLOCK_STYLES, DEFAULT_CLOCK_SETTINGS } from './clock-settings'
+import { CLOCK_SIZE_SCALE, CLOCK_STYLES, DEFAULT_CLOCK_SETTINGS } from './clock-settings'
 import type { ClockSettings } from './clock-settings'
 
 const STORAGE_KEY = 'flowquest.clockSettings'
+const CLOCK_SIZES = Object.keys(CLOCK_SIZE_SCALE)
 
 function isClockSettings(value: unknown): value is ClockSettings {
   if (typeof value !== 'object' || value === null) return false
   const v = value as Record<string, unknown>
   return (
     (v.format === '12h' || v.format === '24h') &&
-    (v.size === 'small' || v.size === 'normal' || v.size === 'huge') &&
+    typeof v.size === 'string' &&
+    CLOCK_SIZES.includes(v.size) &&
     typeof v.showSeconds === 'boolean' &&
     typeof v.showGreeting === 'boolean' &&
     typeof v.flipClock === 'boolean' &&

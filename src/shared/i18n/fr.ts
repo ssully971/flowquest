@@ -299,8 +299,16 @@ export const fr = {
     modeHome: 'Accueil',
     modeFocus: 'Focus',
     modeAmbient: 'Ambiant',
-    friends: 'Amis',
-    rooms: 'Salons',
+  },
+  social: {
+    panelTitle: 'Amis et salons',
+    closeLabel: 'Fermer',
+    entryLabel: 'Amis, salons et classement',
+    guestLabel: 'Invité',
+    unreadBadge: 'Notifications non lues',
+    tabs: {
+      rooms: 'Salons',
+    },
   },
   friends: {
     panelTitle: 'Amis',
@@ -857,6 +865,8 @@ export const fr = {
       format24h: '24 h',
       size: 'Taille',
       sizeHint: 'S’applique à l’horloge, au minuteur et au mode Ambiant.',
+      sizeXs: 'XS',
+      sizeS: 'S',
       sizeSmall: 'Petite',
       sizeNormal: 'Normale',
       sizeHuge: 'Énorme',
@@ -917,6 +927,10 @@ export const fr = {
       confirmTaskDeletion: 'Confirmer avant de supprimer une tâche',
       confirmTaskDeletionHint:
         'Désactivé : la tâche est supprimée tout de suite, avec 5 s pour annuler.',
+      iconSize: 'Taille des icônes',
+      iconSizeSmall: 'Petite',
+      iconSizeMedium: 'Moyenne',
+      iconSizeLarge: 'Grande',
       defaultSettingsTab: 'Onglet des réglages ouvert par défaut',
       settingsPanelSide: 'Côté du panneau de réglages',
       settingsPanelSideHint: 'Le panneau s’ouvre depuis ce côté de l’écran.',
