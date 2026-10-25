@@ -8,11 +8,21 @@ export interface SegmentedOption<T extends string> {
   icon?: LucideIcon
 }
 
+// Pas de lecture de useExtrasSettings() ici à dessein : ce composant partagé
+// (shared/design-system) sert aussi des usages sans icône (Apparence, Pomodoro/Compte à
+// rebours...) dont les tests n'ont aucune raison de monter ExtrasSettingsProvider.
+// L'appelant qui veut suivre le réglage « Taille des icônes » (AppShell, sélecteur de
+// mode) passe `iconSize` explicitement.
+export type SegmentedIconSize = 'small' | 'medium' | 'large'
+
 interface SegmentedControlProps<T extends string> {
   options: SegmentedOption<T>[]
   value: T
   onChange: (value: T) => void
   ariaLabel: string
+  /** Taille des icônes des options qui en ont une (par défaut « medium », apparence
+   * d'avant le réglage « Taille des icônes »). Sans effet sur les options sans icône. */
+  iconSize?: SegmentedIconSize
 }
 
 interface IndicatorRect {
@@ -20,11 +30,24 @@ interface IndicatorRect {
   width: number
 }
 
+// Même échelle que IconButton (réglage « Taille des icônes », synchronisé par compte).
+const ICON_SIZE_PX: Record<SegmentedIconSize, number> = {
+  small: 15,
+  medium: 18,
+  large: 22,
+}
+const ICON_STROKE_WIDTH: Record<SegmentedIconSize, number> = {
+  small: 1.5,
+  medium: 1.75,
+  large: 1.75,
+}
+
 export function SegmentedControl<T extends string>({
   options,
   value,
   onChange,
   ariaLabel,
+  iconSize = 'medium',
 }: SegmentedControlProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null)
   const buttonRefs = useRef<Map<T, HTMLButtonElement>>(new Map())
@@ -43,7 +66,7 @@ export function SegmentedControl<T extends string>({
     const containerRect = container.getBoundingClientRect()
     const buttonRect = button.getBoundingClientRect()
     setIndicator({ left: buttonRect.left - containerRect.left, width: buttonRect.width })
-  }, [value, options])
+  }, [value, options, iconSize])
 
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     const currentIndex = options.findIndex((option) => option.value === value)
@@ -91,20 +114,35 @@ export function SegmentedControl<T extends string>({
             type="button"
             role="radio"
             aria-checked={selected}
+            aria-label={Icon ? option.label : undefined}
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(option.value)}
             onKeyDown={handleKeyDown}
-            className={`relative z-10 inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors duration-200 ${
-              selected ? 'text-[var(--on-accent)]' : 'text-[var(--muted)] hover:text-[var(--text)]'
-            }`}
+            className={
+              Icon
+                ? // Une option à icône (ex. le sélecteur de mode, demandé « en bas à
+                  // droite ») : icône seule, le nom n'apparaît en dessous que pour l'option
+                  // active — « c'est quand on appuie sur l'icône qu'en dessous ça montre
+                  // le nom ». La pastille glissante ci-dessus reste le seul repère visuel
+                  // des options inactives.
+                  `relative z-10 flex h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-full px-2.5 transition-colors duration-150 ${
+                    selected ? 'text-[var(--on-accent)]' : 'text-[var(--muted)] hover:text-[var(--text)]'
+                  }`
+                : `relative z-10 inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors duration-200 ${
+                    selected ? 'text-[var(--on-accent)]' : 'text-[var(--muted)] hover:text-[var(--text)]'
+                  }`
+            }
           >
-            {Icon ? <Icon size={18} strokeWidth={1.75} aria-hidden="true" /> : null}
-            {/* LOT H2, §5 : une option avec icône n'affiche son texte qu'à partir de
-                `sm:` — sur mobile, l'icône seule reste visible. `sr-only` (pas `hidden`) :
-                le texte reste lu par un lecteur d'écran même masqué visuellement, sinon
-                le bouton perdrait tout nom accessible sur mobile (l'icône est
-                aria-hidden). Une option sans icône garde son texte visible partout. */}
-            <span className={Icon ? 'sr-only sm:not-sr-only' : undefined}>{option.label}</span>
+            {Icon ? (
+              <Icon size={ICON_SIZE_PX[iconSize]} strokeWidth={ICON_STROKE_WIDTH[iconSize]} aria-hidden="true" />
+            ) : null}
+            {Icon ? (
+              selected ? (
+                <span className="text-[10px] font-medium leading-none">{option.label}</span>
+              ) : null
+            ) : (
+              <span>{option.label}</span>
+            )}
           </button>
         )
       })}

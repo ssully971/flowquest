@@ -42,6 +42,7 @@ import {
 import { useFullscreen } from '@/shared/hooks/useFullscreen'
 import { strings } from '@/shared/i18n'
 
+import { MobileMenu } from './MobileMenu'
 import type { AppMode } from './useAppMode'
 import { useBackgroundSettings } from './useBackgroundSettings'
 
@@ -192,7 +193,30 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
         className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 px-4 sm:flex-nowrap sm:justify-between sm:px-10"
         style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
       >
-        <div data-testid="left-button-group" className="flex items-center gap-3">
+        {/* Menu mobile (retour après feu vert, LOT H2 §5) : Réglages et Plein écran
+            (actions ponctuelles, sans panneau ancré à repositionner) tenaient sur une
+            ligne à part sur petit écran — regroupés ici derrière un seul bouton. Série,
+            sélecteur de mode, Tâches et Notes gardent leur panneau ancré à leur propre
+            bouton (inchangé) : les en extraire aurait cassé leur positionnement.
+            Desktop inchangé (`hidden sm:flex` sur les boutons repris dans ce menu). */}
+        <MobileMenu
+          items={[
+            {
+              key: 'settings',
+              icon: Settings,
+              label: strings.common.settings,
+              onClick: () => setIsSettingsOpen(true),
+            },
+            {
+              key: 'fullscreen',
+              icon: fullscreen.isFullscreen ? Minimize2 : Maximize2,
+              label: fullscreen.isFullscreen ? strings.common.exitFullscreen : strings.common.fullscreen,
+              onClick: fullscreen.toggle,
+            },
+          ]}
+        />
+
+        <div data-testid="left-button-group" className="hidden items-center gap-3 sm:flex">
           {extrasSettings.settingsPanelSide === 'left' ? settingsButton : null}
           <IconButton
             icon={fullscreen.isFullscreen ? Minimize2 : Maximize2}
@@ -207,7 +231,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
           data-testid="right-button-group"
           className="flex flex-wrap items-center justify-center gap-3"
         >
-          {extrasSettings.settingsPanelSide === 'right' ? settingsButton : null}
+          <div className="hidden sm:contents">{extrasSettings.settingsPanelSide === 'right' ? settingsButton : null}</div>
           {extrasSettings.showStreak ? (
             <div className="relative">
               <button
@@ -228,6 +252,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
             value={mode}
             onChange={onModeChange}
             options={MODE_OPTIONS}
+            iconSize={extrasSettings.iconSize}
           />
           {mode !== 'ambient' ? (
             <div className="relative">

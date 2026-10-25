@@ -155,15 +155,22 @@ export function FocusScreen() {
       : 0
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="relative h-full overflow-y-auto">
+      {/* LOT H2, §5 (retour après feu vert) : logo + citation ancrés en haut sur mobile,
+          comme l'accueil (HomeScreen) — pas au milieu d'un bloc centré, pour rester
+          aussi aéré que l'accueil. Desktop inchangé : logo absent, citation à sa place
+          habituelle dans le bloc centré ci-dessous (voir plus bas, `sm:block`). */}
+      <div className="absolute inset-x-0 top-0 flex flex-col items-center gap-2 px-6 pt-[max(2rem,env(safe-area-inset-top))] text-center sm:hidden">
+        <Logo className="h-8 w-auto" />
+        {quotesSettings.showOnFocus ? <FadingQuote quote={quote} /> : null}
+      </div>
+
       <div className="flex min-h-full flex-col items-center justify-center gap-6 px-4 py-8 pb-24 text-center sm:gap-7 sm:pb-28">
         {/* LOT H2, §5 : mise en page mobile épurée (logo, citation, titre, icônes de
             mode, horloge, 2 boutons) — la tâche active, le pilier et le mode
             Pomodoro/Compte à rebours/Chronomètre restent une fonctionnalité desktop,
             volontairement absente de cette version mobile simplifiée (voir le
             compte-rendu du lot pour la liste complète de ce qui est masqué). */}
-        <Logo className="h-8 w-auto sm:hidden" />
-
         <div className="w-full">
           <p
             className="text-[28px] font-semibold text-[var(--text)]"
@@ -179,7 +186,11 @@ export function FocusScreen() {
           </div>
         </div>
 
-        {quotesSettings.showOnFocus ? <FadingQuote quote={quote} /> : null}
+        {quotesSettings.showOnFocus ? (
+          <div className="hidden sm:block">
+            <FadingQuote quote={quote} />
+          </div>
+        ) : null}
 
         <div className="hidden sm:block">
           <SegmentedControl

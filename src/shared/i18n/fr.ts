@@ -293,6 +293,7 @@ export const fr = {
     notes: 'Bloc-notes',
     streak: 'Série',
     settings: 'Réglages',
+    menu: 'Menu',
     fullscreen: 'Plein écran',
     exitFullscreen: 'Quitter le plein écran',
     mode: 'Mode',

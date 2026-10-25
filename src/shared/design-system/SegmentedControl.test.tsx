@@ -57,20 +57,47 @@ describe('SegmentedControl', () => {
     }
   })
 
-  it('masque visuellement (mais garde accessible) le texte d’une option à icône sur mobile (LOT H2, §5)', () => {
+  it('une option à icône n’affiche son nom en dessous que si elle est active (LOT H2, retour après feu vert)', () => {
     const iconOptions: SegmentedOption<'home' | 'focus'>[] = [
       { value: 'home', label: 'Accueil', icon: Home },
-      { value: 'focus', label: 'Focus' },
+      { value: 'focus', label: 'Focus', icon: Home },
     ]
     render(<SegmentedControl ariaLabel="Mode" value="home" onChange={vi.fn()} options={iconOptions} />)
 
-    // Toujours trouvable par son nom accessible (sr-only, pas disparu du DOM) — jamais de
-    // bouton sans nom accessible sur mobile malgré l'icône masquée aux lecteurs d'écran.
-    const withIcon = screen.getByRole('radio', { name: 'Accueil' })
-    expect(withIcon.querySelector('span')?.className).toContain('sr-only')
+    // Toujours trouvable par son nom accessible (aria-label porté par le bouton), que le
+    // texte soit affiché ou non.
+    const active = screen.getByRole('radio', { name: 'Accueil' })
+    expect(active.querySelector('span')).toHaveTextContent('Accueil')
 
-    // Sans icône, le texte reste visible à toutes les tailles (comportement inchangé).
-    const withoutIcon = screen.getByRole('radio', { name: 'Focus' })
-    expect(withoutIcon.querySelector('span')?.className).not.toContain('sr-only')
+    const inactive = screen.getByRole('radio', { name: 'Focus' })
+    expect(inactive.querySelector('span')).toBeNull()
+  })
+
+  it('suit `iconSize` pour la taille des icônes (défaut « medium »)', () => {
+    const iconOptions: SegmentedOption<'home' | 'focus'>[] = [
+      { value: 'home', label: 'Accueil', icon: Home },
+      { value: 'focus', label: 'Focus', icon: Home },
+    ]
+    const { rerender } = render(
+      <SegmentedControl ariaLabel="Mode" value="home" onChange={vi.fn()} options={iconOptions} />,
+    )
+    expect(screen.getByRole('radio', { name: 'Accueil' }).querySelector('svg')).toHaveAttribute(
+      'width',
+      '18',
+    )
+
+    rerender(
+      <SegmentedControl
+        ariaLabel="Mode"
+        value="home"
+        onChange={vi.fn()}
+        options={iconOptions}
+        iconSize="small"
+      />,
+    )
+    expect(screen.getByRole('radio', { name: 'Accueil' }).querySelector('svg')).toHaveAttribute(
+      'width',
+      '15',
+    )
   })
 })
