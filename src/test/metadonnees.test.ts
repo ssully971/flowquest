@@ -23,4 +23,11 @@ describe('index.html — métadonnées Fokitsu', () => {
     expect(indexHtml).toContain('content="#F1EAFF" media="(prefers-color-scheme: light)"')
     expect(indexHtml).toContain('content="#0C0719" media="(prefers-color-scheme: dark)"')
   })
+
+  it('favicon issue de la tête de renard (ico + PNG), plus de favicon SVG', () => {
+    expect(indexHtml).toContain('<link rel="icon" href="/favicon.ico" sizes="any" />')
+    expect(indexHtml).toContain('sizes="32x32" href="/favicon-32.png"')
+    expect(indexHtml).toContain('sizes="16x16" href="/favicon-16.png"')
+    expect(indexHtml).not.toContain('favicon.svg')
+  })
 })

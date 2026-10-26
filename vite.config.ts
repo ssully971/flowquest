@@ -12,7 +12,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.ico', 'favicon-16.png', 'favicon-32.png'],
       manifest: {
         name: 'Fokitsu',
         short_name: 'Fokitsu',

@@ -6,13 +6,13 @@ export type LogoVariant = 'mark' | 'wordmark'
 export type LogoTone = 'auto' | 'panel'
 
 interface LogoProps {
-  /** `mark` : seule l'icône chronomètre. `wordmark` (défaut) : le texte « Fokitsu ». */
+  /** `mark` : seule l'icône de la marque (tête de renard). `wordmark` (défaut) : le texte « Fokitsu ». */
   variant?: LogoVariant
   /**
    * `auto` (défaut) : blanc en thème sombre, noir en thème clair (fonds pleins, comme
-   * l'accueil). `panel` : pour un fond neutre (panneau Réglages) — version colorée en
-   * sombre, mais noire en clair : la version colorée (dégradé partant du quasi-blanc) ne
-   * respecte pas le contraste AA sur le panneau clair, presque blanc lui aussi.
+   * l'accueil). `panel` : pour un fond neutre (panneau Réglages) — version bleu nuit en
+   * clair (contraste ≈ 10:1 sur le panneau), blanche en sombre : le bleu nuit n'atteint
+   * que ≈ 1,7:1 sur le panneau sombre.
    */
   tone?: LogoTone
   className?: string
@@ -35,8 +35,8 @@ export function Logo({ variant = 'wordmark', tone = 'auto', className }: LogoPro
   const src =
     tone === 'panel'
       ? isDark
-        ? SRC.wordmarkColor
-        : SRC.wordmarkBlack
+        ? SRC.wordmarkWhite
+        : SRC.wordmarkColor
       : isDark
         ? SRC.wordmarkWhite
         : SRC.wordmarkBlack

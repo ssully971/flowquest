@@ -25,7 +25,7 @@ rien : Fokitsu retombe alors automatiquement sur l'OAuth redirigé déjà en pla
    existant).
 2. **Écran de consentement OAuth** (APIs & Services > OAuth consent screen) :
    - Nom de l'application : `Fokitsu`.
-   - Logo de l'application : le logo Fokitsu (`public/brand/logo-icon.png`), pour
+   - Logo de l'application : le logo Fokitsu (`public/icon-512.png`), pour
      qu'il apparaisse dans la fenêtre de consentement.
    - Domaine de l'application / domaines autorisés : `flowquestt.vercel.app` (et ton
      domaine personnalisé si tu en configures un plus tard).

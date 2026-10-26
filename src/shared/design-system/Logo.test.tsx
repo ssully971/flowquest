@@ -22,7 +22,7 @@ describe('Logo — variantes selon le thème (LOT 2)', () => {
     document.documentElement.removeAttribute('data-theme')
   })
 
-  it('variant="mark" affiche toujours l’icône chronomètre, quel que soit le thème', () => {
+  it('variant="mark" affiche toujours l’icône tête de renard, quel que soit le thème', () => {
     renderLogo('dark', { variant: 'mark' })
     expect(screen.getByAltText('Fokitsu')).toHaveAttribute('src', '/brand/logo-icon.webp')
   })
@@ -43,19 +43,19 @@ describe('Logo — variantes selon le thème (LOT 2)', () => {
     )
   })
 
-  it('tone="panel" affiche la version colorée en thème sombre (contraste suffisant)', () => {
+  it('tone="panel" affiche la version blanche en thème sombre (le bleu nuit n’y a pas assez de contraste)', () => {
     renderLogo('dark', { tone: 'panel' })
     expect(screen.getByAltText('Fokitsu')).toHaveAttribute(
       'src',
-      '/brand/logo-wordmark-color.webp',
+      '/brand/logo-wordmark-white.webp',
     )
   })
 
-  it('tone="panel" retombe sur la version noire en thème clair (la version colorée n’a pas assez de contraste sur un panneau clair)', () => {
+  it('tone="panel" affiche la version bleu nuit en thème clair (contraste ≈ 10:1 sur le panneau)', () => {
     renderLogo('light', { tone: 'panel' })
     expect(screen.getByAltText('Fokitsu')).toHaveAttribute(
       'src',
-      '/brand/logo-wordmark-black.webp',
+      '/brand/logo-wordmark-color.webp',
     )
   })
 })
