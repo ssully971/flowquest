@@ -83,3 +83,13 @@ traqueurs tiers (le script vient de `accounts.google.com`). Dans ce cas, le bout
 repli (OAuth redirigé) s'affiche automatiquement après l'échec de chargement — aucune
 action utilisateur requise, juste une fenêtre de consentement qui montre à nouveau
 l'URL Supabase dans ce cas précis.
+
+## 7. Bêta fermée : nouveaux comptes Google
+
+Tant que le drapeau `beta_fermee` est actif (voir `docs/BETA_FERMEE.md`), un **nouveau**
+compte créé par Google est créé *en attente* (`profiles.invite_ok = false`) : l'application
+affiche l'écran « Entre ton code d'invitation » (`InviteCodeGate`) à la place de l'app, et
+le serveur bloque les fonctions sociales. Le compte est activé par `consume_invite_code()`
+dès qu'un code valide est saisi, ou supprimé automatiquement au bout de 24 h. Les comptes
+Google **existants** ne voient aucun changement. Aucune configuration Google Cloud ou
+Supabase supplémentaire n'est nécessaire.

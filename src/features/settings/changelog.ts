@@ -13,9 +13,14 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.18.0',
+    date: '2026-11-07',
+    text: 'Flowquest devient Fokitsu ! Nouveau nom, nouveau logo et nouvelle icône (un petit renard), sur l’application, les e-mails et l’écran d’accueil. Tes réglages, tes tâches et tes sessions sont conservés tels quels.',
+  },
+  {
     version: '0.17.0',
     date: '2026-11-06',
-    text: 'Flowquest devient Fokitsu ! Nouveau nom, nouveau logo et nouvelle icône (un petit renard), sur l’application, les e-mails et l’écran d’accueil. Tes réglages, tes tâches et tes sessions sont conservés tels quels.',
+    text: 'Fokitsu passe en bêta fermée : on s’inscrit désormais avec un code d’invitation à usage unique (les comptes existants ne changent pas). Dans ton profil, une nouvelle section « Inviter un ami » te permet de générer des codes une fois ton compte assez ancien et ton temps de focus suffisant, avec ta progression pour y arriver.',
   },
   {
     version: '0.16.0',

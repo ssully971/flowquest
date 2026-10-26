@@ -26,6 +26,7 @@ export interface AuthContextValue {
     password: string,
     username: string,
     marketingConsent: boolean,
+    inviteCode?: string,
   ) => Promise<SignUpResult>
   signInWithEmail: (email: string, password: string) => Promise<void>
   signInWithGoogle: () => Promise<void>
