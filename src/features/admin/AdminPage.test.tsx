@@ -68,4 +68,30 @@ describe('AdminPage — panneau Admin refait (lot I2)', () => {
     await user.click(screen.getByRole('tab', { name: 'Journal' }))
     expect(screen.getByRole('tab', { name: 'Journal' })).toHaveAttribute('aria-selected', 'true')
   })
+
+  it('bascule vers Utilisateurs (lot I3)', async () => {
+    const user = userEvent.setup()
+    renderAdminPage()
+
+    await user.click(screen.getByRole('tab', { name: 'Utilisateurs' }))
+
+    expect(screen.getByRole('tab', { name: 'Utilisateurs' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.getByRole('heading', { name: 'Utilisateurs', level: 1 })).toBeInTheDocument()
+  })
+
+  it('bascule vers Maître du jeu (lot I3)', async () => {
+    const user = userEvent.setup()
+    renderAdminPage()
+
+    await user.click(screen.getByRole('tab', { name: 'Maître du jeu' }))
+
+    expect(screen.getByRole('tab', { name: 'Maître du jeu' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.getByRole('heading', { name: 'Maître du jeu', level: 1 })).toBeInTheDocument()
+  })
 })

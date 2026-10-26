@@ -24,6 +24,8 @@ import { useFriends } from '@/features/friends/useFriends'
 import { useLeaderboard } from '@/features/friends/useLeaderboard'
 import { useLiveStatusSync } from '@/features/friends/useLiveStatusSync'
 import { usePillarSync } from '@/features/pillars/usePillarSync'
+import { useXpGrantNotice } from '@/features/pillars/useXpGrantNotice'
+import { GameCampaignBanner } from '@/features/game-master/GameCampaignBanner'
 import { InstallPrompt } from '@/features/pwa/InstallPrompt'
 import { RoomScreen } from '@/features/rooms/components/RoomScreen'
 import { useRooms } from '@/features/rooms/useRooms'
@@ -143,6 +145,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   useSessionSync()
   useTaskSync()
   usePillarSync()
+  useXpGrantNotice()
   const stats = useDashboardStats(dailyGoalMinutes)
 
   // §7.6 : coupe les animations (thèmes et horloge) pour les appareils lents.
@@ -345,6 +348,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
       <InstallPrompt />
       <CheersBanner cheers={cheers.cheers} onDismiss={cheers.dismiss} />
       <MaintenanceBanner />
+      <GameCampaignBanner />
       {activeRoomId ? (
         <RoomScreen
           key={activeRoomId}

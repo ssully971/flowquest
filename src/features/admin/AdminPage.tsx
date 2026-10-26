@@ -1,4 +1,12 @@
-import { LayoutDashboard, LifeBuoy, Quote, ScrollText, ToggleLeft } from 'lucide-react'
+import {
+  Gamepad2,
+  LayoutDashboard,
+  LifeBuoy,
+  Quote,
+  ScrollText,
+  ToggleLeft,
+  Users,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 
@@ -7,15 +15,19 @@ import { strings } from '@/shared/i18n'
 
 import { AdminContentPanel } from './sections/AdminContentPanel'
 import { AdminFeaturesPanel } from './sections/AdminFeaturesPanel'
+import { AdminGameMasterPanel } from './sections/AdminGameMasterPanel'
 import { AdminJournalPanel } from './sections/AdminJournalPanel'
 import { AdminOverviewPanel } from './sections/AdminOverviewPanel'
+import { AdminUsersPanel } from './sections/AdminUsersPanel'
 import { AdminSupportPanel } from './AdminSupportPanel'
 
-type Section = 'overview' | 'features' | 'content' | 'support' | 'journal'
+type Section = 'overview' | 'users' | 'features' | 'gameMaster' | 'content' | 'support' | 'journal'
 
 const SECTIONS: { id: Section; icon: LucideIcon }[] = [
   { id: 'overview', icon: LayoutDashboard },
+  { id: 'users', icon: Users },
   { id: 'features', icon: ToggleLeft },
+  { id: 'gameMaster', icon: Gamepad2 },
   { id: 'content', icon: Quote },
   { id: 'support', icon: LifeBuoy },
   { id: 'journal', icon: ScrollText },
@@ -36,8 +48,12 @@ export function AdminPage() {
     switch (section) {
       case 'overview':
         return <AdminOverviewPanel />
+      case 'users':
+        return <AdminUsersPanel />
       case 'features':
         return <AdminFeaturesPanel />
+      case 'gameMaster':
+        return <AdminGameMasterPanel />
       case 'content':
         return <AdminContentPanel />
       case 'support':
