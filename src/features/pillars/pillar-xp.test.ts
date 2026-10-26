@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  goalPace,
+  goalProgressRatio,
   levelForXp,
   levelProgressForXp,
   xpForActualSeconds,
+  xpRemainingForGoal,
   xpToReachLevel,
 } from './pillar-xp'
 
@@ -65,5 +68,70 @@ describe('levelProgressForXp', () => {
     const progress = levelProgressForXp(600)
     expect(progress.level).toBe(2)
     expect(progress.xpInLevel).toBe(0)
+  })
+})
+
+describe('xpRemainingForGoal — objectif de niveau (lot 4, §4)', () => {
+  it('calcule l’XP restante jusqu’au niveau visé', () => {
+    // Niveau 3 = 1800 XP (voir xpToReachLevel) ; à 600 XP, il en reste 1200.
+    expect(xpRemainingForGoal(600, 3)).toBe(1200)
+  })
+
+  it('jamais négative, même si l’objectif est déjà dépassé', () => {
+    expect(xpRemainingForGoal(2000, 3)).toBe(0)
+  })
+
+  it('vaut 0 pile au seuil du niveau visé', () => {
+    expect(xpRemainingForGoal(1800, 3)).toBe(0)
+  })
+})
+
+describe('goalProgressRatio', () => {
+  it('0 au départ, 1 une fois l’objectif atteint', () => {
+    expect(goalProgressRatio(0, 3)).toBe(0)
+    expect(goalProgressRatio(1800, 3)).toBe(1)
+  })
+
+  it('ne dépasse jamais 1, même bien au-delà de l’objectif', () => {
+    expect(goalProgressRatio(5000, 3)).toBe(1)
+  })
+
+  it('à mi-chemin de l’objectif, vaut environ 0,5', () => {
+    expect(goalProgressRatio(900, 3)).toBeCloseTo(0.5, 5)
+  })
+})
+
+describe('goalPace — rythme nécessaire pour atteindre l’objectif (lot 4, §4)', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000
+  const NOW = new Date('2026-01-01T00:00:00Z').getTime()
+
+  it('sans date limite : XP et temps restants, mais aucun rythme quotidien', () => {
+    const pace = goalPace(600, 3, null, NOW)
+    expect(pace.xpRemaining).toBe(1200)
+    expect(pace.secondsRemaining).toBe(1200 / 10 * 60) // 10 XP/min, voir XP_PER_MINUTE.
+    expect(pace.daysUntilDeadline).toBeNull()
+    expect(pace.averageSecondsPerDayNeeded).toBeNull()
+  })
+
+  it('avec une date limite dans 10 jours : rythme quotidien moyen nécessaire', () => {
+    const deadline = NOW + 10 * DAY_MS
+    const pace = goalPace(600, 3, deadline, NOW)
+    expect(pace.daysUntilDeadline).toBeCloseTo(10, 5)
+    // 1200 XP restantes = 7200 s de focus réel (10 XP/min) ÷ 10 jours = 720 s/jour.
+    expect(pace.averageSecondsPerDayNeeded).toBeCloseTo(720, 5)
+  })
+
+  it('date limite déjà dépassée et objectif non atteint : pas de rythme calculable', () => {
+    const deadline = NOW - DAY_MS
+    const pace = goalPace(600, 3, deadline, NOW)
+    expect(pace.daysUntilDeadline).toBeLessThan(0)
+    expect(pace.averageSecondsPerDayNeeded).toBeNull()
+  })
+
+  it('objectif déjà atteint : aucun rythme nécessaire même avec une date limite', () => {
+    const deadline = NOW + 10 * DAY_MS
+    const pace = goalPace(1800, 3, deadline, NOW)
+    expect(pace.xpRemaining).toBe(0)
+    expect(pace.averageSecondsPerDayNeeded).toBeNull()
   })
 })

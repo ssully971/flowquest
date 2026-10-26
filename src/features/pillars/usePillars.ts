@@ -41,6 +41,8 @@ function ensureDefaultPillar(): Promise<void> {
         level: 1,
         createdAt: Date.now(),
         archivedAt: null,
+        goalLevel: null,
+        goalDeadline: null,
       }
       await repo.put(pillar)
       pushIfAuthenticated(pillar)
@@ -62,6 +64,8 @@ export interface UsePillarsResult {
   recolorPillar: (id: string, color: string) => Promise<void>
   archivePillar: (id: string) => Promise<void>
   unarchivePillar: (id: string) => Promise<void>
+  setGoal: (id: string, goalLevel: number, goalDeadline: number | null) => Promise<void>
+  clearGoal: (id: string) => Promise<void>
 }
 
 function pushIfAuthenticated(pillar: PillarRecord): void {
@@ -121,6 +125,8 @@ export function usePillars(): UsePillarsResult {
       level: 1,
       createdAt: Date.now(),
       archivedAt: null,
+      goalLevel: null,
+      goalDeadline: null,
     }
     await repo.put(pillar)
     pushIfAuthenticated(pillar)
@@ -169,6 +175,30 @@ export function usePillars(): UsePillarsResult {
   const archivePillar = useCallback((id: string) => setArchived(id, true), [setArchived])
   const unarchivePillar = useCallback((id: string) => setArchived(id, false), [setArchived])
 
+  // Objectif de niveau (lot 4, §4) : niveau visé et date limite optionnelle. `setGoal`
+  // remplace l'objectif précédent le cas échéant (un seul objectif actif par pilier,
+  // jamais un historique).
+  const setGoal = useCallback(async (id: string, goalLevel: number, goalDeadline: number | null) => {
+    if (!Number.isFinite(goalLevel) || goalLevel < 1) return
+    const current = await repo.listAll()
+    const pillar = current.find((item) => item.id === id)
+    if (!pillar) return
+    const updated: PillarRecord = { ...pillar, goalLevel: Math.floor(goalLevel), goalDeadline }
+    await repo.put(updated)
+    pushIfAuthenticated(updated)
+    notifyPillarsChanged()
+  }, [])
+
+  const clearGoal = useCallback(async (id: string) => {
+    const current = await repo.listAll()
+    const pillar = current.find((item) => item.id === id)
+    if (!pillar) return
+    const updated: PillarRecord = { ...pillar, goalLevel: null, goalDeadline: null }
+    await repo.put(updated)
+    pushIfAuthenticated(updated)
+    notifyPillarsChanged()
+  }, [])
+
   return {
     pillars,
     activePillars: pillars.filter((pillar) => pillar.archivedAt === null),
@@ -178,5 +208,7 @@ export function usePillars(): UsePillarsResult {
     recolorPillar,
     archivePillar,
     unarchivePillar,
+    setGoal,
+    clearGoal,
   }
 }

@@ -44,6 +44,11 @@ export interface PillarRecord {
   level: number
   createdAt: number
   archivedAt: number | null
+  /** Objectif de niveau (lot 4, §4) : `null` si aucun objectif fixé. */
+  goalLevel: number | null
+  /** Date limite optionnelle de l'objectif (ms epoch), `null` si aucune — un objectif
+   * peut être fixé sans date limite (juste un niveau visé). */
+  goalDeadline: number | null
 }
 
 export type SyncTable =

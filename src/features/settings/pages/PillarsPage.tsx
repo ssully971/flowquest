@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { useRef, useState } from 'react'
 
 import { GalaxyView } from '@/features/galaxy/components/GalaxyView'
+import { PillarGoal } from '@/features/pillars/components/PillarGoal'
 import { levelProgressForXp } from '@/features/pillars/pillar-xp'
 import { PILLAR_COLORS } from '@/features/pillars/pillar-colors'
 import { MAX_ACTIVE_PILLARS, usePillars } from '@/features/pillars/usePillars'
@@ -17,12 +18,16 @@ function PillarRow({
   onRecolor,
   onArchive,
   onUnarchive,
+  onSetGoal,
+  onClearGoal,
 }: {
   pillar: PillarRecord
   onRename: (name: string) => void
   onRecolor: (color: string) => void
   onArchive: () => void
   onUnarchive: () => void
+  onSetGoal: (level: number, deadlineMs: number | null) => void
+  onClearGoal: () => void
 }) {
   const s = strings.settings.pillars
   const [isEditingName, setIsEditingName] = useState(false)
@@ -121,12 +126,15 @@ function PillarRow({
       ) : null}
 
       {!pillar.archivedAt ? (
-        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--panel-line)]">
-          <div
-            className="h-full rounded-full transition-[width] duration-300"
-            style={{ width: `${progressPct}%`, backgroundColor: pillar.color }}
-          />
-        </div>
+        <>
+          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--panel-line)]">
+            <div
+              className="h-full rounded-full transition-[width] duration-300"
+              style={{ width: `${progressPct}%`, backgroundColor: pillar.color }}
+            />
+          </div>
+          <PillarGoal pillar={pillar} onSetGoal={onSetGoal} onClearGoal={onClearGoal} />
+        </>
       ) : null}
     </div>
   )
@@ -134,8 +142,17 @@ function PillarRow({
 
 export function PillarsPage() {
   const s = strings.settings.pillars
-  const { pillars, activePillars, addPillar, renamePillar, recolorPillar, archivePillar, unarchivePillar } =
-    usePillars()
+  const {
+    pillars,
+    activePillars,
+    addPillar,
+    renamePillar,
+    recolorPillar,
+    archivePillar,
+    unarchivePillar,
+    setGoal,
+    clearGoal,
+  } = usePillars()
   const [draftName, setDraftName] = useState('')
   const colorRef = useRef(0)
 
@@ -174,6 +191,8 @@ export function PillarsPage() {
               onRecolor={(color) => void recolorPillar(pillar.id, color)}
               onArchive={() => void archivePillar(pillar.id)}
               onUnarchive={() => void unarchivePillar(pillar.id)}
+              onSetGoal={(level, deadline) => void setGoal(pillar.id, level, deadline)}
+              onClearGoal={() => void clearGoal(pillar.id)}
             />
           ))
         )}
@@ -211,6 +230,8 @@ export function PillarsPage() {
               onRecolor={(color) => void recolorPillar(pillar.id, color)}
               onArchive={() => void archivePillar(pillar.id)}
               onUnarchive={() => void unarchivePillar(pillar.id)}
+              onSetGoal={(level, deadline) => void setGoal(pillar.id, level, deadline)}
+              onClearGoal={() => void clearGoal(pillar.id)}
             />
           ))}
         </div>

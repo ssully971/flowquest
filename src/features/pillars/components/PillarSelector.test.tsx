@@ -88,6 +88,8 @@ describe('PillarSelector — sélection persistée (LOT G3)', () => {
       level: 1,
       createdAt: 1,
       archivedAt: null,
+      goalLevel: null,
+      goalDeadline: null,
     })
     await db.put('pillars', {
       id: 'p-travail',
@@ -97,6 +99,8 @@ describe('PillarSelector — sélection persistée (LOT G3)', () => {
       level: 1,
       createdAt: 2,
       archivedAt: null,
+      goalLevel: null,
+      goalDeadline: null,
     })
   })
 

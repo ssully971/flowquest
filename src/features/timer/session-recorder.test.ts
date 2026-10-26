@@ -19,6 +19,8 @@ async function seedPillar(overrides: Partial<PillarRecord> = {}): Promise<Pillar
     level: 1,
     createdAt: Date.now(),
     archivedAt: null,
+    goalLevel: null,
+    goalDeadline: null,
     ...overrides,
   }
   await pillarRepo.put(pillar)
@@ -185,6 +187,8 @@ describe('recordSession', () => {
         previousLevel: 1,
         newLevel: 1,
         leveledUp: false,
+        goalReached: false,
+        goalLevel: null,
       })
     })
 

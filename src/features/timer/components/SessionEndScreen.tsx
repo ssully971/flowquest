@@ -1,4 +1,4 @@
-import { PartyPopper, Sparkles } from 'lucide-react'
+import { PartyPopper, Sparkles, Trophy } from 'lucide-react'
 
 import type { PillarXpResult } from '@/features/pillars/apply-session-xp'
 import { usePrefersReducedMotion } from '@/shared/hooks/usePrefersReducedMotion'
@@ -63,8 +63,16 @@ export function SessionEndScreen({
           className="mt-1 flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-1.5 text-sm font-semibold text-[var(--on-accent)]"
           style={prefersReducedMotion ? undefined : { animation: 'pillar-level-up 500ms ease-out' }}
         >
-          <Sparkles size={16} strokeWidth={1.75} aria-hidden="true" />
-          {pillarLevelUp.pillarName} {s.levelUpReached} {pillarLevelUp.newLevel}
+          {/* Objectif atteint (lot 4, §4) : message et icône distincts d'un simple
+              passage de niveau — c'est la session précise qui a fait franchir le niveau
+              visé, un évènement plus notable qu'un niveau de plus. */}
+          {pillarLevelUp.goalReached ? (
+            <Trophy size={16} strokeWidth={1.75} aria-hidden="true" />
+          ) : (
+            <Sparkles size={16} strokeWidth={1.75} aria-hidden="true" />
+          )}
+          {pillarLevelUp.pillarName}{' '}
+          {pillarLevelUp.goalReached ? s.goalReached : s.levelUpReached} {pillarLevelUp.newLevel}
         </p>
       ) : null}
 

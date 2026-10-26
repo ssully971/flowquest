@@ -14,6 +14,8 @@ function makePillar(overrides: Partial<PillarRecord>): PillarRecord {
     level: 1,
     createdAt: Date.now(),
     archivedAt: null,
+    goalLevel: null,
+    goalDeadline: null,
     ...overrides,
   }
 }

@@ -90,6 +90,8 @@ async function seedPillar(overrides: Partial<PillarRecord> = {}): Promise<void> 
     level: 1,
     createdAt: Date.now(),
     archivedAt: null,
+    goalLevel: null,
+    goalDeadline: null,
     ...overrides,
   }
   const db = await getDb()

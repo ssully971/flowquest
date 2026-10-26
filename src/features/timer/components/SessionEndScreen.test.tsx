@@ -74,6 +74,8 @@ describe('SessionEndScreen — animation de niveau gagné (LOT G3)', () => {
     previousLevel: 1,
     newLevel: 2,
     leveledUp: true,
+    goalReached: false,
+    goalLevel: null,
   }
 
   it('affiche le badge de niveau gagné quand le bilan est activé', () => {
@@ -105,5 +107,42 @@ describe('SessionEndScreen — animation de niveau gagné (LOT G3)', () => {
       />,
     )
     expect(screen.queryByText(/a atteint le niveau/)).not.toBeInTheDocument()
+  })
+})
+
+describe('SessionEndScreen — objectif de niveau atteint (lot 4, §4)', () => {
+  const GOAL_REACHED = {
+    pillarId: 'pillar-1',
+    pillarName: 'Travail',
+    previousLevel: 1,
+    newLevel: 2,
+    leveledUp: true,
+    goalReached: true,
+    goalLevel: 2,
+  }
+
+  it('affiche un message distinct d’un simple niveau gagné quand l’objectif est atteint', () => {
+    render(
+      <SessionEndScreen
+        summary={SUMMARY}
+        showSummary
+        pillarLevelUp={GOAL_REACHED}
+        onAcknowledge={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('Travail a atteint son objectif : niveau 2')).toBeInTheDocument()
+    expect(screen.queryByText(/a atteint le niveau 2/)).not.toBeInTheDocument()
+  })
+
+  it('n’affiche pas le message d’objectif quand le bilan est désactivé', () => {
+    render(
+      <SessionEndScreen
+        summary={SUMMARY}
+        showSummary={false}
+        pillarLevelUp={GOAL_REACHED}
+        onAcknowledge={vi.fn()}
+      />,
+    )
+    expect(screen.queryByText(/a atteint son objectif/)).not.toBeInTheDocument()
   })
 })

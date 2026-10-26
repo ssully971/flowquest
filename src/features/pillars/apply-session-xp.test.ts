@@ -26,6 +26,8 @@ async function seedPillar(overrides: Partial<PillarRecord> = {}): Promise<Pillar
     level: 1,
     createdAt: Date.now(),
     archivedAt: null,
+    goalLevel: null,
+    goalDeadline: null,
     ...overrides,
   }
   const db = await getDb()
@@ -51,6 +53,8 @@ describe('applySessionXp', () => {
       previousLevel: 1,
       newLevel: 1,
       leveledUp: false,
+      goalReached: false,
+      goalLevel: null,
     })
 
     const db = await getDb()
@@ -72,6 +76,50 @@ describe('applySessionXp', () => {
     const { applySessionXp } = await import('./apply-session-xp')
     const result = await applySessionXp('does-not-exist', 60)
     expect(result).toBeNull()
+  })
+})
+
+describe('applySessionXp — objectif de niveau (lot 4, §4)', () => {
+  beforeEach(async () => {
+    maybeSingleMock.mockReset()
+    maybeSingleMock.mockResolvedValue({ data: null, error: null })
+    await clearPillars()
+  })
+
+  it('détecte la session qui fait franchir l’objectif', async () => {
+    // Niveau 2 = 600 XP (voir pillar-xp.ts). 595 + 10 (1 min) = 605 ≥ 600.
+    await seedPillar({ currentXp: 595, level: 1, goalLevel: 2 })
+    const { applySessionXp } = await import('./apply-session-xp')
+
+    const result = await applySessionXp('pillar-1', 60)
+    expect(result?.goalReached).toBe(true)
+    expect(result?.goalLevel).toBe(2)
+  })
+
+  it('ne signale rien tant que l’objectif n’est pas encore atteint', async () => {
+    await seedPillar({ currentXp: 100, level: 1, goalLevel: 2 })
+    const { applySessionXp } = await import('./apply-session-xp')
+
+    const result = await applySessionXp('pillar-1', 60) // 110 XP, encore loin de 600
+    expect(result?.goalReached).toBe(false)
+  })
+
+  it('ne signale plus rien une fois l’objectif déjà dépassé (sessions suivantes)', async () => {
+    // Déjà au niveau 2, objectif niveau 2 déjà atteint par une session précédente.
+    await seedPillar({ currentXp: 650, level: 2, goalLevel: 2 })
+    const { applySessionXp } = await import('./apply-session-xp')
+
+    const result = await applySessionXp('pillar-1', 60)
+    expect(result?.goalReached).toBe(false)
+  })
+
+  it('aucun objectif fixé : goalReached toujours faux, même en cas de passage de niveau', async () => {
+    await seedPillar({ currentXp: 595, level: 1, goalLevel: null })
+    const { applySessionXp } = await import('./apply-session-xp')
+
+    const result = await applySessionXp('pillar-1', 60)
+    expect(result?.leveledUp).toBe(true)
+    expect(result?.goalReached).toBe(false)
   })
 })
 

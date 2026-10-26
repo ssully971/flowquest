@@ -28,6 +28,8 @@ function pillar(overrides: Partial<PillarRecord> & { id: string }): PillarRecord
     level: 1,
     createdAt: 0,
     archivedAt: null,
+    goalLevel: null,
+    goalDeadline: null,
     ...overrides,
   }
 }

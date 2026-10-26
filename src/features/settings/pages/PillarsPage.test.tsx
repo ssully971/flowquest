@@ -29,6 +29,8 @@ async function seedPillars(count: number) {
       level: 1,
       createdAt: Date.now() + index,
       archivedAt: null,
+      goalLevel: null,
+      goalDeadline: null,
     }
     await db.put('pillars', pillar)
   }
