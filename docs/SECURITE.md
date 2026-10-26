@@ -308,6 +308,33 @@ Ces deux tables ne contiennent aucune donnée personnelle : c'est du contenu éd
 statique existant (invité hors-ligne, base vide ou non encore peuplée) — jamais une
 dépendance dure à la base.
 
+### `invite_codes` et `invite_code_attempts` (bêta fermée, `0047_invite_codes.sql`)
+
+| Opération | Règle |
+|---|---|
+| SELECT `invite_codes` | `created_by = auth.uid()` (ses propres codes) ou `is_admin()`. `anon` : aucun droit. |
+| INSERT / UPDATE / DELETE | **Aucune politique ni GRANT** : tout passe par des fonctions `SECURITY DEFINER` (`search_path` verrouillé, `EXECUTE` explicite, révoqué à `public`/`anon` sauf `check_invite_code`). |
+| `invite_code_attempts` | RLS activée, aucun accès client (limitation de débit ; la clé est une empreinte SHA-256 de l'IP, jamais l'IP). |
+
+Points d'attention :
+
+- **Garde d'inscription** : `handle_new_user()` valide et consomme le code dans la même
+  transaction que la création du compte (`UPDATE ... WHERE is_used = false AND
+  (expires_at IS NULL OR expires_at > now()) RETURNING`). Aucune confiance accordée au
+  client : un appel direct à l'API Auth sans code valide échoue.
+- **Comptes Google** : créés « en attente » (`profiles.invite_ok = false`), traités comme
+  bannis par `is_banned()` ; seul `consume_invite_code()` peut les activer. `invite_ok` est
+  protégé par un trigger : le client ne peut pas le modifier, même sur sa propre ligne.
+- **Focus pour le parrainage** : somme de `focus_sessions` calculée côté serveur (focus
+  terminé, plafonné au temps réel `ended_at - started_at`). Limite connue : les lignes de
+  `focus_sessions` sont insérables par leur propriétaire (RLS), un utilisateur déterminé
+  peut donc fabriquer de fausses sessions ; le plafond horaire, l'ancienneté de 7 jours et
+  la limite de 2 codes/mois bornent l'abus.
+- **Seuils** : `invite_setting()` est l'unique endroit à modifier.
+- **Brute-force** : `check_invite_code` (10 essais / 10 min / IP) et `consume_invite_code`
+  (par utilisateur) lèvent `too_many_attempts` ; l'espace de codes (31^8) rend l'énumération
+  irréaliste.
+
 ### `admin_log`
 
 | Opération | Règle |

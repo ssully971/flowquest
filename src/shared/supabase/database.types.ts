@@ -19,6 +19,39 @@ export type RoomStatus = 'lobby' | 'running' | 'paused' | 'ended'
 export type RoomParticipantRole = 'host' | 'member'
 export type RoomParticipantStatus = 'invited' | 'joined' | 'declined' | 'left' | 'abandoned'
 
+export type InviteCodeType = 'admin' | 'user'
+export type InviteCodeStatus = 'active' | 'used' | 'expired'
+
+export interface InviteCodeIssued {
+  code: string
+  expires_at: string
+}
+
+export interface InviteEligibilityRow {
+  focus_seconds: number
+  focus_required_seconds: number
+  account_age_days: number
+  account_age_required_days: number
+  codes_this_month: number
+  codes_monthly_limit: number
+  next_reset_at: string
+}
+
+export interface MyInviteCodeRow {
+  id: string
+  code: string
+  created_at: string
+  expires_at: string | null
+  is_used: boolean
+  used_at: string | null
+  used_by_username: string | null
+  status: InviteCodeStatus
+}
+
+export interface AdminInviteCodeRow extends MyInviteCodeRow {
+  type: InviteCodeType
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -41,6 +74,9 @@ export interface Database {
           participate_leaderboard: boolean
           marketing_consent: boolean
           marketing_consent_at: string | null
+          /** false = compte créé via Google en attente de code d'invitation (bêta fermée,
+           * 0047_invite_codes.sql) ; jamais modifiable côté client. */
+          invite_ok: boolean
           last_active_at: string | null
           created_at: string
           updated_at: string
@@ -70,6 +106,24 @@ export interface Database {
           marketing_consent_at?: string | null
           last_active_at?: string | null
         }
+        Relationships: []
+      }
+      invite_codes: {
+        Row: {
+          id: string
+          code: string
+          created_by: string
+          type: InviteCodeType
+          is_used: boolean
+          used_by: string | null
+          used_at: string | null
+          expires_at: string | null
+          created_at: string
+        }
+        // Aucune politique INSERT/UPDATE/DELETE : tout passe par les RPC SECURITY DEFINER
+        // (admin_generate_invite_code, user_generate_invite_code, consume_invite_code...).
+        Insert: Record<string, never>
+        Update: Record<string, never>
         Relationships: []
       }
       feature_flags: {
@@ -675,6 +729,38 @@ export interface Database {
       admin_user_stats: {
         Args: { p_target_user_id: string }
         Returns: AdminUserStats
+      }
+      admin_generate_invite_code: {
+        Args: Record<string, never>
+        Returns: InviteCodeIssued[]
+      }
+      admin_revoke_invite_code: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      admin_list_invite_codes: {
+        Args: { p_limit?: number }
+        Returns: AdminInviteCodeRow[]
+      }
+      user_generate_invite_code: {
+        Args: Record<string, never>
+        Returns: InviteCodeIssued[]
+      }
+      get_invite_eligibility: {
+        Args: Record<string, never>
+        Returns: InviteEligibilityRow[]
+      }
+      list_my_invite_codes: {
+        Args: Record<string, never>
+        Returns: MyInviteCodeRow[]
+      }
+      check_invite_code: {
+        Args: { p_code: string }
+        Returns: boolean
+      }
+      consume_invite_code: {
+        Args: { p_code: string }
+        Returns: boolean
       }
       admin_delete_user: {
         Args: { p_target_user_id: string; p_confirm_username: string }
