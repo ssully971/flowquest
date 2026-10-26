@@ -1,5 +1,9 @@
 import { supabase } from '@/shared/supabase/client'
-import type { InviteCodeIssued, InviteEligibilityRow, MyInviteCodeRow } from '@/shared/supabase/database.types'
+import type {
+  InviteCodeIssued,
+  InviteEligibilityRow,
+  MyInviteCodeRow,
+} from '@/shared/supabase/database.types'
 
 /** Erreurs typées levées par les fonctions SQL (le message Postgres EST la clé). */
 export type InviteErrorKind =
