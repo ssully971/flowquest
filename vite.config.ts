@@ -14,8 +14,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Flowquest',
-        short_name: 'Flowquest',
+        name: 'Fokitsu',
+        short_name: 'Fokitsu',
         description: 'La quête du flow : minuteur de concentration gratuit.',
         lang: 'fr',
         start_url: '/',
