@@ -253,7 +253,7 @@ export function SettingsPanel({
             </div>
           </div>
           <div className="hidden px-5 pb-2 pt-6 sm:block">
-            <Logo tone="panel" className="h-5 w-auto" />
+            <Logo tone="panel" className="h-6 w-auto" />
           </div>
           <div className="hidden px-5 pb-4 sm:block">
             <ProfileCard onOpenSocial={onOpenSocial} />

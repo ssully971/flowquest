@@ -67,7 +67,7 @@ export function LegalLayout({ title, lastUpdated, sections, children }: LegalLay
 
         <a
           href="/"
-          className="w-fit text-sm text-[var(--accent)] underline-offset-2 hover:underline"
+          className="font-brand w-fit text-sm text-[var(--accent)] underline-offset-2 hover:underline"
         >
           {s.backHome}
         </a>

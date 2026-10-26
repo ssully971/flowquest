@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.19.0',
+    date: '2026-11-08',
+    text: 'Nouvelle typographie pour le nom Fokitsu : un logotype plus géométrique et plus lisible, y compris en petit.',
+  },
+  {
     version: '0.18.0',
     date: '2026-11-07',
     text: 'Flowquest devient Fokitsu ! Nouveau nom, nouveau logo et nouvelle icône (un petit renard), sur l’application, les e-mails et l’écran d’accueil. Tes réglages, tes tâches et tes sessions sont conservés tels quels.',

@@ -31,6 +31,10 @@
   --glass-icon-hover: rgba(20, 15, 32, 0.95);
 
   --font-display: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
+  /* Police de marque : celle du logotype « Fokitsu » (Montserrat, auto-hébergée via
+   * @fontsource-variable/montserrat, voir docs/RENOMMAGE.md). Réservée au NOM de l'app
+   * affiché en texte (classe .font-brand) ; les titres de pages restent en --font-display. */
+  --font-brand: 'Montserrat Variable', ui-sans-serif, system-ui, sans-serif;
   --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
 
   --radius-sm: 12px;

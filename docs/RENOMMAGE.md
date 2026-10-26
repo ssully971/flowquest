@@ -73,3 +73,38 @@ Sans l'implémenter ici :
 - **PWA** : les écrans d'accueil iOS/Android déjà installés gardent l'ancien nom et l'ancienne
   icône jusqu'à désinstallation puis réinstallation.
 - **E-mail de contact** : `flowquestt@gmail.com` reste affiché dans les pages légales.
+
+## Police de marque (v0.19.0)
+
+Le premier logotype « Fokitsu » (IMG_6358-60, lettres arrondies) a été remplacé par un rendu
+dans la police de l'ancien logotype « flowquest ». Les anciens fichiers sont conservés dans
+`design/logos-sources/logotype-*-v1-arrondi.webp` pour un retour en arrière.
+
+**Police retenue : Montserrat** (variable, graisse 750, interlettrage −0,02 em). Méthode :
+« flowquest » rendu dans Chromium avec 11 polices open source (Bricolage Grotesque, Poppins,
+Montserrat, Outfit, Urbanist, Lexend, Plus Jakarta Sans, Sora, Manrope, Figtree, DM Sans) à
+3 à 7 graisses et plusieurs interlettrages, comparé à l'ancien logo à même hauteur
+(recouvrement des pixels, IoU). Montserrat arrive en tête (≈ 0,83, rapport largeur/hauteur
+5,40 contre 5,37 pour l'ancien) ; le suivant, Sora, plafonne à ≈ 0,78 et les polices arrondies
+(Outfit, Urbanist, Poppins) sont nettement plus loin. La surimpression est dans
+`design/logos-sources/comparaison-police.png`.
+
+Couleurs exactes : blanc `#FFFFFF`, noir `#000000`, bleu nuit `#393B58` (échantillonné dans les
+logotypes précédents).
+
+**Regénérer les logotypes** (changer `BRAND_TEXT` en tête du script, ex. `'fokitsu'`) :
+
+```
+node design/outils/generer-logotypes.mjs /tmp/logotypes   # PNG transparents, lettres ≈ 480 px
+python3 design/outils/finaliser-logotypes.py /tmp/logotypes public/brand   # recadrage + WebP ≈ 960 px
+```
+
+(Playwright est déjà une devDependency ; Pillow et NumPy sont de simples outils de travail.
+Sous Linux sans navigateur Playwright téléchargé, passer `CHROME=/chemin/vers/chrome`.)
+
+**Texte du nom en titre** : jeton `--font-brand` (`tokens.css`) et classe `.font-brand`
+(`global.css`), police auto-hébergée via `@fontsource-variable/montserrat` (importée dans
+`src/main.tsx`). Utilisée pour le titre de l'écran de connexion et le lien « Retour à Fokitsu »
+des pages légales ; les autres titres restent en `--font-display` (Bricolage Grotesque).
+Le logo du panneau Réglages passe de `h-5` à `h-6` (contraste inchangé : bleu nuit en clair,
+blanc en sombre).

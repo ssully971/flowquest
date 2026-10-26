@@ -99,8 +99,8 @@ export function AuthGate({ children }: AuthGateProps) {
                 <div className="flex flex-col items-center gap-1 text-center">
                   <h2
                     id="auth-gate-title"
-                    className="text-xl font-semibold"
-                    style={{ fontFamily: 'var(--font-display)', color: 'var(--text)' }}
+                    className="font-brand text-xl"
+                    style={{ color: 'var(--text)' }}
                   >
                     {s.title}
                   </h2>

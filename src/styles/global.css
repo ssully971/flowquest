@@ -16,6 +16,14 @@ body {
     color 200ms ease;
 }
 
+/* Nom de l'app en texte (titre de connexion, liens de marque) : même graisse et même
+ * interlettrage resserré que les logotypes générés par design/outils. */
+.font-brand {
+  font-family: var(--font-brand);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
 h1,
 h2,
 h3 {
