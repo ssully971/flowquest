@@ -5,6 +5,12 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vitest/config'
 
+// Fuseau figé pour les tests (le calcul des jours/semaines se fait en heure locale) : sans
+// cela, certains tests dépendent du fuseau de la machine qui les lance (CI en UTC,
+// développeur en America/Guadeloupe...). Les tests sensibles au changement d'heure fixent
+// eux-mêmes un fuseau avec DST le temps de leur exécution.
+process.env.TZ = 'UTC'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [

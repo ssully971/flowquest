@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import type { FocusSessionRecord, TaskRecord } from '@/shared/storage/db'
 
@@ -144,11 +144,36 @@ describe('computeStats — série de jours (streak), conditionnée par l’objec
 
 describe('computeDailyFocus — historique jour par jour (calendrier et tendance, §9)', () => {
   it('retourne exactement `days` entrées, la plus récente en dernier, se terminant aujourd’hui', () => {
-    const now = Date.UTC(2026, 0, 15, 12, 0, 0)
+    // Minuit LOCAL (jamais Date.UTC : le calcul des jours se fait en heure locale).
+    const now = new Date(2026, 0, 15, 12, 0, 0).getTime()
     const result = computeDailyFocus([], now, 7)
     expect(result).toHaveLength(7)
-    expect(result[6].dayStart).toBe(Date.UTC(2026, 0, 15))
-    expect(result[0].dayStart).toBe(Date.UTC(2026, 0, 9))
+    expect(result[6].dayStart).toBe(new Date(2026, 0, 15).getTime())
+    expect(result[0].dayStart).toBe(new Date(2026, 0, 9).getTime())
+  })
+
+  it('reste aligné sur minuit local à travers un changement d’heure (jours de 23 h / 25 h)', () => {
+    vi.stubEnv('TZ', 'Europe/Paris')
+    try {
+      // Passage à l'heure d'été en France : dimanche 29 mars 2026 (ce jour dure 23 h).
+      const now = new Date(2026, 2, 31, 12, 0, 0).getTime()
+      const sessionOnThe28th: FocusSessionRecord = session({
+        startedAt: new Date(2026, 2, 28, 10, 0, 0).getTime(),
+        actualSeconds: 600,
+      })
+      const result = computeDailyFocus([sessionOnThe28th], now, 7)
+      for (const entry of result) {
+        const date = new Date(entry.dayStart)
+        expect([date.getHours(), date.getMinutes()]).toEqual([0, 0])
+      }
+      expect(result.map((entry) => new Date(entry.dayStart).getDate())).toEqual([
+        25, 26, 27, 28, 29, 30, 31,
+      ])
+      // La session du 28 est bien retrouvée (avec 24 h fixes, la clé du jour était décalée).
+      expect(result[3].focusSeconds).toBe(600)
+    } finally {
+      vi.unstubAllEnvs()
+    }
   })
 
   it('cumule toutes les sessions focus du même jour (même abandonnées, LOT E7), ignore les pauses', () => {
@@ -315,17 +340,18 @@ describe('aggregateWeeklyFocus — regroupement en semaines (lundi à dimanche) 
   }
 
   it('cumule les jours d’une même semaine (lundi à dimanche)', () => {
-    const monday = Date.UTC(2026, 0, 12) // lundi 12 janvier 2026
-    const sunday = monday + 6 * DAY_MS
-    const days = [day(monday, 600, 1), day(monday + DAY_MS, 300, 1), day(sunday, 900, 2)]
+    const monday = new Date(2026, 0, 12).getTime() // lundi 12 janvier 2026, minuit local
+    const tuesday = new Date(2026, 0, 13).getTime()
+    const sunday = new Date(2026, 0, 18).getTime()
+    const days = [day(monday, 600, 1), day(tuesday, 300, 1), day(sunday, 900, 2)]
 
     const weeks = aggregateWeeklyFocus(days)
     expect(weeks).toEqual([{ weekStart: monday, focusSeconds: 1800, sessionsCount: 4 }])
   })
 
   it('sépare deux semaines distinctes, triées chronologiquement', () => {
-    const monday = Date.UTC(2026, 0, 12)
-    const nextMonday = monday + 7 * DAY_MS
+    const monday = new Date(2026, 0, 12).getTime()
+    const nextMonday = new Date(2026, 0, 19).getTime()
     const days = [day(nextMonday, 300, 1), day(monday, 600, 1)] // ordre volontairement inversé
 
     const weeks = aggregateWeeklyFocus(days)

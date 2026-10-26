@@ -11,6 +11,16 @@ export interface DashboardStats {
 const DAY_MS = 24 * 60 * 60 * 1000
 export const DEFAULT_DAILY_GOAL_MINUTES = 120
 
+/** Décale un début de jour de `days` jours CALENDAIRES (minuit local → minuit local). Ne
+ * jamais soustraire `n * DAY_MS` : un jour de changement d'heure dure 23 h ou 25 h, et le
+ * résultat ne tomberait plus sur minuit (clés de jour introuvables, séries cassées). */
+function shiftDays(dayStart: number, days: number): number {
+  const date = new Date(dayStart)
+  date.setDate(date.getDate() + days)
+  date.setHours(0, 0, 0, 0)
+  return date.getTime()
+}
+
 function startOfDay(timestamp: number): number {
   const date = new Date(timestamp)
   date.setHours(0, 0, 0, 0)
@@ -42,7 +52,7 @@ export function computeStats(
     .filter((session) => session.startedAt >= todayStart)
     .reduce((sum, session) => sum + session.actualSeconds, 0)
 
-  const weekStart = todayStart - 6 * DAY_MS
+  const weekStart = shiftDays(todayStart, -6)
   const weekFocusSeconds = focusSessions
     .filter((session) => session.startedAt >= weekStart)
     .reduce((sum, session) => sum + session.actualSeconds, 0)
@@ -60,10 +70,10 @@ export function computeStats(
   )
 
   let currentStreakDays = 0
-  let cursor = daysWithGoalMet.has(todayStart) ? todayStart : todayStart - DAY_MS
+  let cursor = daysWithGoalMet.has(todayStart) ? todayStart : shiftDays(todayStart, -1)
   while (daysWithGoalMet.has(cursor)) {
     currentStreakDays += 1
-    cursor -= DAY_MS
+    cursor = shiftDays(cursor, -1)
   }
 
   const sortedDays = Array.from(daysWithGoalMet).sort((a, b) => a - b)
@@ -71,7 +81,7 @@ export function computeStats(
   let runningStreak = 0
   let previousDay: number | null = null
   for (const day of sortedDays) {
-    runningStreak = previousDay !== null && day - previousDay === DAY_MS ? runningStreak + 1 : 1
+    runningStreak = previousDay !== null && shiftDays(previousDay, 1) === day ? runningStreak + 1 : 1
     longestStreakDays = Math.max(longestStreakDays, runningStreak)
     previousDay = day
   }
@@ -126,7 +136,7 @@ export function computeDailyFocus(
   const todayStart = startOfDay(now)
   const result: DayFocus[] = []
   for (let offset = days - 1; offset >= 0; offset--) {
-    const dayStart = todayStart - offset * DAY_MS
+    const dayStart = shiftDays(todayStart, -offset)
     const focusSeconds = secondsByDay.get(dayStart) ?? 0
     const sessionsCount = countByDay.get(dayStart) ?? 0
     result.push({ dayStart, focusSeconds, sessionsCount, goalMet: focusSeconds >= goalSeconds })
@@ -151,7 +161,7 @@ export function aggregateWeeklyFocus(days: DayFocus[]): WeekFocus[] {
   for (const day of days) {
     const weekday = new Date(day.dayStart).getDay() // 0 = dimanche
     const mondayOffset = (weekday + 6) % 7
-    const weekStart = day.dayStart - mondayOffset * DAY_MS
+    const weekStart = shiftDays(day.dayStart, -mondayOffset)
     const existing = byWeek.get(weekStart) ?? { weekStart, focusSeconds: 0, sessionsCount: 0 }
     existing.focusSeconds += day.focusSeconds
     existing.sessionsCount += day.sessionsCount
@@ -232,8 +242,8 @@ function getRollingWindow(
   todayStart: number,
   days: number,
 ): { start: number; previousStart: number; previousEnd: number } {
-  const start = todayStart - (days - 1) * DAY_MS
-  return { start, previousStart: start - days * DAY_MS, previousEnd: start - 1 }
+  const start = shiftDays(todayStart, -(days - 1))
+  return { start, previousStart: shiftDays(start, -days), previousEnd: start - 1 }
 }
 
 /**
