@@ -1,5 +1,6 @@
 import {
   Gamepad2,
+  KeyRound,
   LayoutDashboard,
   LifeBuoy,
   Quote,
@@ -16,17 +17,20 @@ import { strings } from '@/shared/i18n'
 import { AdminContentPanel } from './sections/AdminContentPanel'
 import { AdminFeaturesPanel } from './sections/AdminFeaturesPanel'
 import { AdminGameMasterPanel } from './sections/AdminGameMasterPanel'
+import { AdminInvitesPanel } from './sections/AdminInvitesPanel'
 import { AdminJournalPanel } from './sections/AdminJournalPanel'
 import { AdminOverviewPanel } from './sections/AdminOverviewPanel'
 import { AdminUsersPanel } from './sections/AdminUsersPanel'
 import { AdminSupportPanel } from './AdminSupportPanel'
 
-type Section = 'overview' | 'users' | 'features' | 'gameMaster' | 'content' | 'support' | 'journal'
+type Section =
+  'overview' | 'users' | 'features' | 'invites' | 'gameMaster' | 'content' | 'support' | 'journal'
 
 const SECTIONS: { id: Section; icon: LucideIcon }[] = [
   { id: 'overview', icon: LayoutDashboard },
   { id: 'users', icon: Users },
   { id: 'features', icon: ToggleLeft },
+  { id: 'invites', icon: KeyRound },
   { id: 'gameMaster', icon: Gamepad2 },
   { id: 'content', icon: Quote },
   { id: 'support', icon: LifeBuoy },
@@ -52,6 +56,8 @@ export function AdminPage() {
         return <AdminUsersPanel />
       case 'features':
         return <AdminFeaturesPanel />
+      case 'invites':
+        return <AdminInvitesPanel />
       case 'gameMaster':
         return <AdminGameMasterPanel />
       case 'content':
