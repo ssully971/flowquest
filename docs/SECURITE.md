@@ -206,14 +206,14 @@ score personnel déjà en production n'était pas dans le périmètre demandé. 
 
 | Opération | Règle |
 |---|---|
-| SELECT (`rooms`) | Participant du salon (`exists (select 1 from room_participants where room_id = rooms.id and user_id = auth.uid())`), quel que soit son statut — y compris une invitation pas encore acceptée (il doit voir l'hôte et la durée annoncée avant de répondre). |
+| SELECT (`rooms`) | Participant du salon (`is_room_participant(id)`, helper `SECURITY DEFINER` de `0048` — la sous-requête inline de `0028` provoquait une récursion infinie de la politique et privait Realtime de tout évènement), quel que soit son statut — y compris une invitation pas encore acceptée (il doit voir l'hôte et la durée annoncée avant de répondre). |
 | SELECT (`room_participants`) | Participant du **même salon**, pas seulement soi-même — les participants d'un salon se voient entre eux même sans lien d'amitié direct (réunis par l'hôte, qui est ami avec chacun). Aucune nouvelle fuite : pseudo/nom/avatar sont déjà consultables par n'importe qui par pseudo exact (`find_profile_preview()`, LOT F1). |
 | INSERT / UPDATE / DELETE (les deux tables) | **Aucune politique.** Toute mutation passe par les fonctions `SECURITY DEFINER` de `0029_rooms_rpc.sql` (`create_room`, `respond_room_invite`, `start_room`, `pause_room`, `resume_room`, `end_room`, `transfer_host`, `leave_room`). |
 
 **`_room_tick(p_room_id)`**, interne (aucun `GRANT`, appelée seulement par les autres
 fonctions du même fichier) : entretien paresseux exécuté en tête de chaque fonction qui
 touche un salon existant — clôt naturellement un salon dont le temps est écoulé, marque
-« abandoned » les participants `joined` silencieux depuis plus de 2 minutes
+« abandoned » les participants `joined` silencieux depuis plus de 3 heures (2 minutes avant `0048`)
 (`room_participants.last_seen_at`, pendant que le salon tourne ou est en pause), et
 transfère l'hôte au participant `joined` le plus ancien s'il n'est plus là (ou clôt le
 salon si plus personne n'y est). Pas de job planifié : `get_room_state()` est interrogée en

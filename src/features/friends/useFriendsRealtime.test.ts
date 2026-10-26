@@ -69,7 +69,7 @@ describe('useFriendsRealtime — abonnement au statut des amis, reconnexion, rep
     expect(onChange).toHaveBeenCalled()
   })
 
-  it('retombe sur une interrogation toutes les 30 s si le canal n’est pas SUBSCRIBED', async () => {
+  it('retombe sur une interrogation toutes les 4 s si le canal n’est pas SUBSCRIBED', async () => {
     const channel = makeFakeChannel()
     channelMock.mockReturnValue(channel)
     const onChange = vi.fn()

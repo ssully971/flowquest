@@ -121,3 +121,11 @@ export async function transferHost(roomId: string, newHostId: string): Promise<v
   const { error } = await client.rpc('transfer_host', { p_room_id: roomId, p_new_host_id: newHostId })
   if (error) throw new RoomsError(translateRpcError(error.message))
 }
+
+/** Battement de cœur GLOBAL (migration 0048) : met à jour ma présence dans tous mes salons
+ * non terminés, sans dépendre d'un écran de salon ouvert. */
+export async function touchMyRooms(): Promise<void> {
+  const client = requireClient()
+  const { error } = await client.rpc('touch_my_rooms')
+  if (error) throw new RoomsError(translateRpcError(error.message))
+}

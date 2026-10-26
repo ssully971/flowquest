@@ -198,15 +198,19 @@ désactivé par défaut.
   depuis `started_at`/`duration_ms` (jamais accumulé localement) — reste exact même après
   une suspension d'onglet ou un changement d'appareil.
 - **Transfert d'hôte** : explicite à tout moment (« Nommer hôte »), ou automatique si
-  l'hôte reste silencieux plus de 2 minutes pendant que le salon tourne (voir « Gestion de
-  l'abandon » ci-dessous) — le salon ne reste jamais bloqué sans personne aux commandes.
-- **Gestion de l'abandon** : un participant `joined` dont le battement de cœur du salon
-  (`room_participants.last_seen_at`) date de plus de 2 minutes pendant que le salon tourne
-  ou est en pause est marqué « abandoned ». Si c'était l'hôte, son rôle est transféré
-  aussitôt (ou le salon est clôturé si plus personne n'y est).
-- **Fermer l'écran du salon sans le quitter** (bouton « Fermer ») reste possible : tant
-  qu'on revient avant le délai d'abandon de 2 minutes, on reste considéré présent — pas de
-  fonctionnalité de minimisation dédiée dans ce lot, ce comportement suffit.
+  l'hôte reste silencieux plus de 3 heures (voir « Gestion de l'abandon » ci-dessous) — le salon ne reste jamais bloqué sans personne aux commandes.
+- **Gestion de l'abandon** (révisée au LOT M1, migration `0048`) : un participant `joined`
+  dont le battement de cœur (`room_participants.last_seen_at`) date de plus de **3 heures**
+  est marqué « abandoned » (appareil éteint, application supprimée). Si c'était l'hôte, son
+  rôle est transféré (ou le salon est clôturé si plus personne n'y est). Avant le LOT M1 le
+  seuil était de 2 minutes, ce qui faisait « partir » du salon quiconque fermait l'écran ou
+  suspendait l'onglet. « Présent » (pastille verte) reste calculé sur 2 minutes : simple
+  indicateur d'affichage, sans effet sur l'appartenance au salon.
+- **Fermer l'écran du salon, changer de page, suspendre l'onglet ne quitte JAMAIS le
+  salon** : le salon vit côté serveur, l'écran n'en est qu'une vue. Un battement de cœur
+  global (`useRoomPresence`, monté dans AppShell, RPC `touch_my_rooms()`) signale la
+  présence toutes les 30 s onglet visible et au retour au premier plan, quel que soit
+  l'écran. Seuls « Quitter » et « Terminer » (boutons explicites) font quitter ou clôturer.
 - Aucun détail de tâche n'est jamais partagé dans un salon, seulement les avatars, pseudos
   et le minuteur commun.
 - **Un salon sans invité n'a pas de sens** (finition LOT F4) : `create_room()` refuse
@@ -269,8 +273,11 @@ attendant).
   (`useLiveStatusSync`) et pour différer l'affichage des encouragements pendant le focus
   (`useCheers`).
 - `useRealtimeSync` (`src/shared/supabase/useRealtimeSync.ts`) : brique générique extraite
-  de `useFriendsRealtime` (F2) lors du LOT F3 — reconnexion sur `visibilitychange`, repli
-  par interrogation toutes les 30 s, canal et écouteurs paramétrables. `useFriendsRealtime`,
+  de `useFriendsRealtime` (F2) lors du LOT F3 — resynchronisation complète (rechargement +
+  nouvelle connexion) sur `visibilitychange`, `pageshow`, `focus` et `online`, repli par
+  interrogation toutes les 4 s tant que le canal n'est pas SUBSCRIBED (LOT M1, avant : 30 s),
+  filet d'interrogation optionnel même canal ouvert (`safetyPollMs`, activé pour les salons),
+  canal et écouteurs paramétrables. `useFriendsRealtime`,
   `useRoomRealtime` (F3, un canal par salon filtré sur `room_id`) et `useDuoStreaks` (F4,
   statut en direct de la série partagée) en sont trois fines enveloppes — confirmé
   réutilisable tel quel comme annoncé lors du LOT F3.
@@ -297,3 +304,23 @@ Le Mode Amis V1 (lots F1 à F4) est livré en entier. Reste volontairement hors 
 - Série partagée : pas de rappel/notification quand la série est sur le point d'être
   perdue (ex. « il te reste 3 h pour ne pas perdre ta série avec Léa ») — la flamme grise
   sur la liste d'amis sert d'indice visuel passif en attendant.
+
+## Temps réel : cause racine du LOT M1
+
+Symptôme : les demandes d'ami arrivaient en direct, pas la création d'un salon ni
+démarrage/pause. Causes (migration `0048_rooms_realtime_fix.sql`) :
+
+1. **Récursion RLS** — la politique SELECT de `room_participants` relisait sa propre table
+   (« infinite recursion detected in policy for relation »). Les RPC `SECURITY DEFINER`
+   fonctionnaient (d'où un chargement correct), mais Realtime évalue la politique pour
+   chaque abonné : tous les évènements de `rooms`/`room_participants` étaient perdus.
+   Correctif : helper `is_room_participant()` (`SECURITY DEFINER`).
+2. **`live_status`** — sa politique relisait `profiles` sous la RLS du lecteur (qui ne voit
+   que sa propre ligne) : jamais d'évènement pour les amis. Correctif : `can_see_live_status()`.
+3. **`useRealtimeSync`** — le rappel `CLOSED` réarmait un intervalle après le nettoyage
+   (fuite), pas de repli pendant la connexion, repli à 30 s, rien sur `online`/`pageshow`.
+4. **Le salon « s'arrêtait » quand on quittait la page** — le battement de cœur n'existait
+   que dans `get_room_state()` (appelé par l'écran ouvert) et l'abandon tombait à 2 minutes.
+5. `REPLICA IDENTITY FULL` sur `rooms`, `room_participants`, `live_status`.
+
+Test SQL : `supabase/tests/rooms_realtime.sql`.

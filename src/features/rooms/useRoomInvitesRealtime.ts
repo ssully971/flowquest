@@ -28,5 +28,6 @@ export function useRoomInvitesRealtime(onChange: () => void, enabled: boolean): 
     },
     onChange,
     enabled && userId !== null,
+    { safetyPollMs: 20_000 },
   )
 }

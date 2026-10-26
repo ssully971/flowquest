@@ -28,6 +28,7 @@ import { useXpGrantNotice } from '@/features/pillars/useXpGrantNotice'
 import { GameCampaignBanner } from '@/features/game-master/GameCampaignBanner'
 import { InstallPrompt } from '@/features/pwa/InstallPrompt'
 import { RoomScreen } from '@/features/rooms/components/RoomScreen'
+import { useRoomPresence } from '@/features/rooms/useRoomPresence'
 import { useRooms } from '@/features/rooms/useRooms'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
@@ -116,6 +117,8 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   // supportent plusieurs montages, mais doubler les abonnements serait du gaspillage).
   const friendsState = useFriends()
   const roomsState = useRooms()
+  // Battement de cœur global des salons (LOT M1) : fermer l'écran d'un salon ne le quitte jamais.
+  useRoomPresence(roomsState.rooms.length > 0)
   const leaderboardState = useLeaderboard()
   const duoStreaksState = useDuoStreaks()
   const hasUnreadSocial =

@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.20.0',
+    date: '2026-11-09',
+    text: 'Mode Amis en direct : invitations, création et démarrage d’un salon, pause, arrivées et départs apparaissent chez les autres sans rien rafraîchir. Fermer l’écran du salon ou mettre l’appareil en veille ne te fait plus quitter le salon.',
+  },
+  {
     version: '0.19.0',
     date: '2026-11-08',
     text: 'Nouvelle typographie pour le nom Fokitsu : un logotype plus géométrique et plus lisible, y compris en petit.',

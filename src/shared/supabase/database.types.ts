@@ -762,6 +762,10 @@ export interface Database {
         Args: { p_code: string }
         Returns: boolean
       }
+      touch_my_rooms: {
+        Args: Record<string, never>
+        Returns: undefined
+      }
       admin_delete_user: {
         Args: { p_target_user_id: string; p_confirm_username: string }
         Returns: undefined
