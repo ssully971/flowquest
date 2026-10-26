@@ -22,3 +22,20 @@ export function formatInviteDate(iso: string): string {
     minute: '2-digit',
   })
 }
+
+/** « 4 h 20 » à partir d'un nombre de secondes (heures pleines : « 10 h »). */
+export function formatFocusDuration(seconds: number): string {
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  return minutes === 0 ? `${hours} h` : `${hours} h ${String(minutes).padStart(2, '0')}`
+}
+
+/** « 1er novembre » / « 12 novembre » — jour du mois dans le fuseau de la Guadeloupe, celui
+ * qui définit le mois calendaire côté serveur. */
+export function formatResetDate(iso: string): string {
+  const date = new Date(iso)
+  const timeZone = 'America/Guadeloupe'
+  const day = Number(new Intl.DateTimeFormat('fr-FR', { day: 'numeric', timeZone }).format(date))
+  const month = new Intl.DateTimeFormat('fr-FR', { month: 'long', timeZone }).format(date)
+  return `${day === 1 ? '1er' : day} ${month}`
+}

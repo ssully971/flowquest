@@ -723,7 +723,7 @@ export const fr = {
       motivationFocus: 'Chaque session de focus te rapproche du but.',
       motivationAge: 'Un peu de patience : ton compte mûrit.',
       conditionsMet: 'Tu peux inviter un ami !',
-      monthlyCounterSuffix: 'codes générés ce mois-ci',
+      monthlyCounterSuffix: 'codes utilisés ce mois-ci',
       monthlyLimitReached: 'Tu as atteint la limite de codes ce mois-ci.',
       nextResetPrefix: 'Prochain code possible le',
       generate: 'Générer un code',

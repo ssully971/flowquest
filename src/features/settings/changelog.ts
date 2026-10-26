@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.17.0',
+    date: '2026-11-06',
+    text: 'Flowquest passe en bêta fermée : on s’inscrit désormais avec un code d’invitation à usage unique (les comptes existants ne changent pas). Dans ton profil, une nouvelle section « Inviter un ami » te permet de générer des codes une fois ton compte assez ancien et ton temps de focus suffisant, avec ta progression pour y arriver.',
+  },
+  {
     version: '0.16.0',
     date: '2026-11-05',
     text: 'Huit nouveaux fonds d\'écran, des boutons qui se fondent dans le fond choisi (barre du bas, sélecteur de mode, contrôles du minuteur), les conditions d\'utilisation, la politique de confidentialité et les mentions légales (accessibles sans connexion), une case pour recevoir les nouveautés par e-mail (décochée par défaut), et une page À propos avec les crédits des photos et sons utilisés.',
