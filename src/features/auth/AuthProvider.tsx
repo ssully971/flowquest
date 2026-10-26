@@ -2,6 +2,7 @@ import type { Session, User } from '@supabase/supabase-js'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
+import { strings } from '@/shared/i18n'
 import { isSupabaseConfigured, supabase } from '@/shared/supabase/client'
 import { useToast } from '@/shared/toast'
 
@@ -140,18 +141,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password: string,
       username: string,
       marketingConsent: boolean,
+      inviteCode?: string,
     ): Promise<SignUpResult> => {
       if (!supabase) throw new Error('Supabase non configuré')
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { username, marketing_consent: marketingConsent },
+          // Bêta fermée : le code part dans les metadata et est validé + consommé côté
+          // serveur, dans la transaction de création du compte (handle_new_user).
+          data: {
+            username,
+            marketing_consent: marketingConsent,
+            ...(inviteCode ? { invite_code: inviteCode } : {}),
+          },
           emailRedirectTo: window.location.origin,
         },
       })
       if (error) {
-        showToast({ type: 'error', message: translateAuthError(error.message) })
+        // Refus du trigger d'inscription : message générique, jamais la raison réelle
+        // (code inexistant, utilisé ou expiré — on ne le révèle pas).
+        const message =
+          inviteCode && error.message.includes('Database error saving new user')
+            ? strings.invites.signUp.invalid
+            : translateAuthError(error.message)
+        showToast({ type: 'error', message })
         throw error
       }
       return { needsEmailConfirmation: !data.session }

@@ -11,6 +11,8 @@ const signUpMock = vi.fn()
 const resendMock = vi.fn()
 const rpcMock = vi.fn()
 
+vi.mock('@/features/feature-flags/useFeatureFlag', () => ({ useFeatureFlag: () => true }))
+
 vi.mock('@/shared/supabase/client', () => ({
   isSupabaseConfigured: true,
   supabase: {
@@ -57,6 +59,7 @@ describe('SignUpForm — consentement marketing (lot I1, §3)', () => {
     await user.type(screen.getByLabelText('Pseudo'), 'sullivan_97')
     await user.type(screen.getByLabelText('E-mail'), 'sullivan@exemple.com')
     await user.type(screen.getByLabelText('Mot de passe'), 'Secret123')
+    await user.type(screen.getByLabelText('Code d’invitation'), 'abcd2345')
     expect(screen.getByText('Je souhaite recevoir les nouveautés par e-mail')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Créer mon compte' }))
 
@@ -78,6 +81,7 @@ describe('SignUpForm — consentement marketing (lot I1, §3)', () => {
     await user.type(screen.getByLabelText('Pseudo'), 'sullivan_97')
     await user.type(screen.getByLabelText('E-mail'), 'sullivan@exemple.com')
     await user.type(screen.getByLabelText('Mot de passe'), 'Secret123')
+    await user.type(screen.getByLabelText('Code d’invitation'), 'abcd2345')
     await user.click(screen.getByText('Je souhaite recevoir les nouveautés par e-mail'))
     await user.click(screen.getByRole('button', { name: 'Créer mon compte' }))
 
@@ -110,6 +114,7 @@ describe('SignUpForm — renvoi de l’e-mail de confirmation avec délai (LOT 1
     await user.type(screen.getByLabelText('Pseudo'), 'sullivan_97')
     await user.type(screen.getByLabelText('E-mail'), 'sullivan@exemple.com')
     await user.type(screen.getByLabelText('Mot de passe'), 'Secret123')
+    await user.type(screen.getByLabelText('Code d’invitation'), 'abcd2345')
     await user.click(screen.getByRole('button', { name: 'Créer mon compte' }))
 
     expect(
@@ -129,6 +134,7 @@ describe('SignUpForm — renvoi de l’e-mail de confirmation avec délai (LOT 1
     await user.type(screen.getByLabelText('Pseudo'), 'sullivan_97')
     await user.type(screen.getByLabelText('E-mail'), 'sullivan@exemple.com')
     await user.type(screen.getByLabelText('Mot de passe'), 'Secret123')
+    await user.type(screen.getByLabelText('Code d’invitation'), 'abcd2345')
     await user.click(screen.getByRole('button', { name: 'Créer mon compte' }))
     await screen.findByRole('button', { name: 'Renvoyer l’e-mail' })
 
@@ -152,5 +158,76 @@ describe('SignUpForm — renvoi de l’e-mail de confirmation avec délai (LOT 1
       await vi.advanceTimersByTimeAsync(45_000)
     })
     expect(screen.getByRole('button', { name: 'Renvoyer l’e-mail' })).toBeEnabled()
+  })
+})
+
+describe('SignUpForm — bêta fermée (code d’invitation)', () => {
+  async function fillCommon(user: ReturnType<typeof userEvent.setup>) {
+    await user.type(screen.getByLabelText('Pseudo'), 'sullivan_97')
+    await user.type(screen.getByLabelText('E-mail'), 'sullivan@exemple.com')
+    await user.type(screen.getByLabelText('Mot de passe'), 'Secret123')
+  }
+
+  it('refuse l’envoi sans code, sans appeler signUp', async () => {
+    const user = userEvent.setup()
+    renderForm()
+    await fillCommon(user)
+
+    await user.click(screen.getByRole('button', { name: 'Créer mon compte' }))
+
+    expect(
+      await screen.findByText('Entre ton code d’invitation pour créer un compte.'),
+    ).toBeInTheDocument()
+    expect(signUpMock).not.toHaveBeenCalled()
+  })
+
+  it('normalise le code (majuscules) et l’envoie dans les metadata du signUp', async () => {
+    signUpMock.mockResolvedValue({ data: { session: null }, error: null })
+    const user = userEvent.setup()
+    renderForm()
+    await fillCommon(user)
+    await user.type(screen.getByLabelText('Code d’invitation'), '  abcd-2345 ')
+
+    expect(screen.getByLabelText('Code d’invitation')).toHaveValue('ABCD2345')
+    await user.click(screen.getByRole('button', { name: 'Créer mon compte' }))
+
+    await screen.findByText('Compte créé ! Un e-mail de confirmation vient de partir.')
+    expect(signUpMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          data: expect.objectContaining({ invite_code: 'ABCD2345' }),
+        }),
+      }),
+    )
+  })
+
+  it('vérifie le code en direct : valide puis invalide, avec un message générique', async () => {
+    const user = userEvent.setup()
+    renderForm()
+
+    await user.type(screen.getByLabelText('Code d’invitation'), 'ABCD2345')
+    expect(await screen.findByText('Code valide.')).toBeInTheDocument()
+    expect(rpcMock).toHaveBeenCalledWith('check_invite_code', { p_code: 'ABCD2345' })
+
+    rpcMock.mockImplementation((name: string) =>
+      Promise.resolve({ data: name === 'check_invite_code' ? false : true, error: null }),
+    )
+    await user.clear(screen.getByLabelText('Code d’invitation'))
+    await user.type(screen.getByLabelText('Code d’invitation'), 'ZZZZ2345')
+    expect(await screen.findByText('Code invalide ou expiré.')).toBeInTheDocument()
+  })
+
+  it('traduit le refus du serveur en message générique (jamais la raison réelle)', async () => {
+    signUpMock.mockResolvedValue({
+      data: { session: null },
+      error: { message: 'Database error saving new user' },
+    })
+    const user = userEvent.setup()
+    renderForm()
+    await fillCommon(user)
+    await user.type(screen.getByLabelText('Code d’invitation'), 'ABCD2345')
+    await user.click(screen.getByRole('button', { name: 'Créer mon compte' }))
+
+    expect(await screen.findByText('Code invalide ou expiré.')).toBeInTheDocument()
   })
 })

@@ -1,6 +1,9 @@
 import type { FormEvent } from 'react'
 import { useState } from 'react'
 
+import { useFeatureFlag } from '@/features/feature-flags/useFeatureFlag'
+import { isInviteCodeWellFormed, normalizeInviteCode } from '@/features/invites/invite-code'
+import { useInviteCodeCheck } from '@/features/invites/useInviteCodeCheck'
 import { strings } from '@/shared/i18n'
 import { useToast } from '@/shared/toast'
 
@@ -30,6 +33,8 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const betaClosed = useFeatureFlag('beta_fermee')
+  const [inviteCode, setInviteCode] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [confirmationSent, setConfirmationSent] = useState(false)
@@ -43,6 +48,25 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
     username,
     username.length > 0 && !usernameFormatIssue,
   )
+
+  const inviteWellFormed = isInviteCodeWellFormed(inviteCode)
+  const inviteCheck = useInviteCodeCheck(inviteCode, betaClosed && inviteWellFormed)
+  const inviteError =
+    !betaClosed || inviteCode.length === 0
+      ? null
+      : !inviteWellFormed || inviteCheck === 'invalid'
+        ? strings.invites.signUp.invalid
+        : inviteCheck === 'rate_limited'
+          ? strings.invites.signUp.tooManyAttempts
+          : null
+  const inviteHint =
+    betaClosed && !inviteError
+      ? inviteCheck === 'checking'
+        ? strings.invites.signUp.checking
+        : inviteCheck === 'valid'
+          ? strings.invites.signUp.valid
+          : strings.invites.signUp.hint
+      : undefined
 
   const usernameError =
     username.length === 0
@@ -73,6 +97,12 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
       setFormError(strings.auth.errors.usernameTaken)
       return
     }
+    if (betaClosed && !inviteWellFormed) {
+      setFormError(
+        inviteCode.length === 0 ? strings.invites.signUp.required : strings.invites.signUp.invalid,
+      )
+      return
+    }
     if (!isValidPassword(password)) {
       setFormError(strings.auth.errors.invalidPassword)
       return
@@ -85,6 +115,7 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
         password,
         username,
         marketingConsent,
+        betaClosed ? inviteCode : undefined,
       )
       if (needsEmailConfirmation) setConfirmationSent(true)
     } catch {
@@ -140,6 +171,16 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
         error={usernameError}
         hint={usernameHint}
       />
+      {betaClosed ? (
+        <FormField
+          label={strings.invites.signUp.label}
+          value={inviteCode}
+          onChange={(value) => setInviteCode(normalizeInviteCode(value))}
+          autoComplete="off"
+          error={inviteError}
+          hint={inviteHint}
+        />
+      ) : null}
       <FormField
         label={strings.auth.fields.email}
         type="email"
