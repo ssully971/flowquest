@@ -2,6 +2,7 @@ import {
   BarChart3,
   Clock,
   Compass,
+  Info,
   LifeBuoy,
   Megaphone,
   Palette,
@@ -17,6 +18,8 @@ import { useEffect, useRef, useState } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
 import type { BackgroundSelections } from '@/app/background-selection'
+import { FeatureGate } from '@/features/feature-flags/FeatureGate'
+import { useFeatureFlag } from '@/features/feature-flags/useFeatureFlag'
 import type { ClockSettings } from '@/features/home/clock-settings'
 import type { QuotesSettings } from '@/features/home/quotes-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
@@ -29,6 +32,7 @@ import { getLastSeenChangelogVersion, markChangelogSeen } from './changelog-seen
 import type { ExtrasSettings } from './extras-settings'
 import { getLastSettingsPage, setLastSettingsPage } from './last-page'
 import type { SettingsPageId } from './page-id'
+import { AboutPage } from './pages/AboutPage'
 import { AccountPage } from './pages/AccountPage'
 import { ChangelogPage } from './pages/ChangelogPage'
 import { ClockPage } from './pages/ClockPage'
@@ -58,6 +62,7 @@ const NAV_ITEMS: { id: PageId; label: string; icon: LucideIcon }[] = [
   { id: 'friends', label: strings.settings.nav.friends, icon: UserCog },
   { id: 'support', label: strings.settings.nav.support, icon: LifeBuoy },
   { id: 'changelog', label: strings.settings.nav.changelog, icon: Megaphone },
+  { id: 'about', label: strings.settings.nav.about, icon: Info },
 ]
 
 interface SettingsPanelProps {
@@ -126,6 +131,7 @@ export function SettingsPanel({
   const latestChangelogVersion = changelogEntries[0]?.version
   const hasUnreadChangelog =
     latestChangelogVersion !== undefined && lastSeenChangelogVersion !== latestChangelogVersion
+  const pillarsFlagEnabled = useFeatureFlag('pillars')
 
   if (open && !mounted) {
     setMounted(true)
@@ -138,17 +144,16 @@ export function SettingsPanel({
     markChangelogSeen(latestChangelogVersion)
     setLastSeenChangelogVersion(latestChangelogVersion)
   }
-  // Piliers désactivés (lot 4, §5) : plus de page Piliers (ni son entrée de navigation,
-  // voir visibleNavItems plus bas) — si on y était resté (ex. désactivé depuis Extras
-  // pendant que ce panneau reste ouvert), on retombe sur Thèmes plutôt que de laisser
-  // affiché le radar/la galaxie/le calcul d'XP d'une page qui n'a plus d'entrée.
-  if (!extrasSettings.pillarsEnabled && activePage === 'pillars') {
+  // Piliers désactivés (lot 4, §5) OU coupés par l'administrateur (lot I2, §1, drapeau
+  // « pillars ») : plus de page Piliers (ni son entrée de navigation, voir
+  // visibleNavItems plus bas) — si on y était resté, on retombe sur Thèmes plutôt que de
+  // laisser affiché le radar/la galaxie/le calcul d'XP d'une page qui n'a plus d'entrée.
+  const pillarsAvailable = extrasSettings.pillarsEnabled && pillarsFlagEnabled
+  if (!pillarsAvailable && activePage === 'pillars') {
     setActivePage('themes')
   }
 
-  const visibleNavItems = NAV_ITEMS.filter(
-    (item) => item.id !== 'pillars' || extrasSettings.pillarsEnabled,
-  )
+  const visibleNavItems = NAV_ITEMS.filter((item) => item.id !== 'pillars' || pillarsAvailable)
 
   const handleSelectPage = (page: PageId) => {
     setActivePage(page)
@@ -321,7 +326,9 @@ export function SettingsPanel({
             ) : activePage === 'timer' ? (
               <TimerPage settings={timerSettings} onChange={onTimerSettingsChange} />
             ) : activePage === 'pillars' ? (
-              <PillarsPage />
+              <FeatureGate flag="pillars">
+                <PillarsPage />
+              </FeatureGate>
             ) : activePage === 'clock' ? (
               <ClockPage settings={clockSettings} onChange={onClockSettingsChange} />
             ) : activePage === 'quotes' ? (
@@ -332,6 +339,8 @@ export function SettingsPanel({
               <SupportPage />
             ) : activePage === 'changelog' ? (
               <ChangelogPage />
+            ) : activePage === 'about' ? (
+              <AboutPage onOpenChangelog={() => handleSelectPage('changelog')} />
             ) : (
               <PlaceholderPage
                 title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}

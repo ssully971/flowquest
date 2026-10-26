@@ -2,10 +2,14 @@ import { AdminGate } from '@/features/admin/AdminGate'
 import { AuthGate } from '@/features/auth/AuthGate'
 import { AuthGateRequestProvider } from '@/features/auth/AuthGateRequestProvider'
 import { AuthProvider } from '@/features/auth/AuthProvider'
+import { SuspensionGate } from '@/features/auth/SuspensionGate'
 import { DiagnosticPage } from '@/features/diagnostic/DiagnosticPage'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
 import { HomeScreen } from '@/features/home/HomeScreen'
 import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
+import { LegalNoticePage } from '@/features/legal/pages/LegalNoticePage'
+import { PrivacyPage } from '@/features/legal/pages/PrivacyPage'
+import { TermsPage } from '@/features/legal/pages/TermsPage'
 import { ActivePillarProvider } from '@/features/pillars/ActivePillarProvider'
 import { BackgroundDisplaySettingsProvider } from '@/features/settings/BackgroundDisplaySettingsProvider'
 import { CustomBackgroundProvider } from '@/features/settings/CustomBackgroundProvider'
@@ -22,9 +26,14 @@ import { useAppMode } from './useAppMode'
 
 export function App() {
   const [mode, setMode] = useAppMode()
-  const isAdminRoute = typeof window !== 'undefined' && window.location.pathname === '/admin'
-  const isDiagnosticRoute =
-    typeof window !== 'undefined' && window.location.pathname === '/diagnostic'
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : ''
+  const isAdminRoute = pathname === '/admin'
+  const isDiagnosticRoute = pathname === '/diagnostic'
+  // Pages légales (lot I1, §3) : URL propres, accessibles sans connexion — jamais
+  // derrière AuthGate, comme /admin et /diagnostic ci-dessus.
+  const isTermsRoute = pathname === '/conditions'
+  const isPrivacyRoute = pathname === '/confidentialite'
+  const isLegalNoticeRoute = pathname === '/mentions-legales'
 
   return (
     <ThemeProvider>
@@ -38,22 +47,30 @@ export function App() {
                     <ExtrasSettingsProvider>
                       <BackgroundDisplaySettingsProvider>
                         <CustomBackgroundProvider>
-                          {isDiagnosticRoute ? (
+                          {isTermsRoute ? (
+                            <TermsPage />
+                          ) : isPrivacyRoute ? (
+                            <PrivacyPage />
+                          ) : isLegalNoticeRoute ? (
+                            <LegalNoticePage />
+                          ) : isDiagnosticRoute ? (
                             <DiagnosticPage />
                           ) : isAdminRoute ? (
                             <AdminGate />
                           ) : (
                             <AuthGateRequestProvider>
                               <AuthGate>
-                                <AppShell mode={mode} onModeChange={setMode}>
-                                  {mode === 'home' ? (
-                                    <HomeScreen />
-                                  ) : mode === 'focus' ? (
-                                    <FocusScreen />
-                                  ) : (
-                                    <AmbientScreen />
-                                  )}
-                                </AppShell>
+                                <SuspensionGate>
+                                  <AppShell mode={mode} onModeChange={setMode}>
+                                    {mode === 'home' ? (
+                                      <HomeScreen />
+                                    ) : mode === 'focus' ? (
+                                      <FocusScreen />
+                                    ) : (
+                                      <AmbientScreen />
+                                    )}
+                                  </AppShell>
+                                </SuspensionGate>
                               </AuthGate>
                             </AuthGateRequestProvider>
                           )}

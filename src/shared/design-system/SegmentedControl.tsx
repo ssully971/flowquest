@@ -23,6 +23,11 @@ interface SegmentedControlProps<T extends string> {
   /** Taille des icônes des options qui en ont une (par défaut « medium », apparence
    * d'avant le réglage « Taille des icônes »). Sans effet sur les options sans icône. */
   iconSize?: SegmentedIconSize
+  /** « glass » (lot I1, §2) : verre dépoli sans aplat de couleur, pour un sélecteur qui
+   * flotte directement sur le fond d'écran (sélecteur de mode Accueil/Focus/Ambiant,
+   * Pomodoro/Compte à rebours/Chronomètre) — jamais à l'intérieur d'un panneau de
+   * Réglages déjà opaque, qui garde « solid » (par défaut, inchangé). */
+  variant?: 'solid' | 'glass'
 }
 
 interface IndicatorRect {
@@ -48,6 +53,7 @@ export function SegmentedControl<T extends string>({
   onChange,
   ariaLabel,
   iconSize = 'medium',
+  variant = 'solid',
 }: SegmentedControlProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null)
   const buttonRefs = useRef<Map<T, HTMLButtonElement>>(new Map())
@@ -92,7 +98,11 @@ export function SegmentedControl<T extends string>({
       ref={containerRef}
       role="radiogroup"
       aria-label={ariaLabel}
-      className="relative inline-flex items-center gap-1 rounded-full border border-[var(--line)] bg-[var(--surface)] p-1.5"
+      className={
+        variant === 'glass'
+          ? 'glass-pill relative inline-flex items-center gap-1 rounded-full p-1.5'
+          : 'relative inline-flex items-center gap-1 rounded-full border border-[var(--line)] bg-[var(--surface)] p-1.5'
+      }
     >
       {indicator ? (
         <div
@@ -104,6 +114,13 @@ export function SegmentedControl<T extends string>({
       {options.map((option) => {
         const selected = option.value === value
         const Icon = option.icon
+        // Verre dépoli (lot I1, §2) : une option inactive reste neutre, gris clair/foncé
+        // selon le thème (--glass-icon), jamais la teinte violette de --muted — seule
+        // l'option sélectionnée porte --on-accent, posée sur la pastille --accent.
+        const inactiveColorClass =
+          variant === 'glass'
+            ? 'text-[var(--glass-icon)] hover:text-[var(--glass-icon-hover)]'
+            : 'text-[var(--muted)] hover:text-[var(--text)]'
         return (
           <button
             key={option.value}
@@ -126,15 +143,19 @@ export function SegmentedControl<T extends string>({
                   // le nom ». La pastille glissante ci-dessus reste le seul repère visuel
                   // des options inactives.
                   `relative z-10 flex h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-full px-2.5 transition-colors duration-150 ${
-                    selected ? 'text-[var(--on-accent)]' : 'text-[var(--muted)] hover:text-[var(--text)]'
+                    selected ? 'text-[var(--on-accent)]' : inactiveColorClass
                   }`
                 : `relative z-10 inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors duration-200 ${
-                    selected ? 'text-[var(--on-accent)]' : 'text-[var(--muted)] hover:text-[var(--text)]'
+                    selected ? 'text-[var(--on-accent)]' : inactiveColorClass
                   }`
             }
           >
             {Icon ? (
-              <Icon size={ICON_SIZE_PX[iconSize]} strokeWidth={ICON_STROKE_WIDTH[iconSize]} aria-hidden="true" />
+              <Icon
+                size={ICON_SIZE_PX[iconSize]}
+                strokeWidth={ICON_STROKE_WIDTH[iconSize]}
+                aria-hidden="true"
+              />
             ) : null}
             {Icon ? (
               selected ? (

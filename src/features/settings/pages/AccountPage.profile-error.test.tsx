@@ -18,6 +18,8 @@ vi.mock('@/shared/supabase/client', () => ({
       getSession: (...args: unknown[]) => getSessionMock(...args),
       onAuthStateChange: (...args: unknown[]) => onAuthStateChangeMock(...args),
     },
+    channel: () => ({ on: vi.fn().mockReturnThis(), subscribe: vi.fn().mockReturnThis() }),
+    removeChannel: vi.fn(),
     from: (...args: unknown[]) => fromMock(...args),
     rpc: (...args: unknown[]) => rpcMock(...args),
   },

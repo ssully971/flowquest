@@ -254,6 +254,92 @@ const PHOTO_BACKGROUND_SPECS: PhotoBackgroundSpec[] = [
     // Beaucoup de détail (bokeh, sapin) : trop chargé en mode Ambiant.
     usableInAmbient: false,
   },
+  // Paysages — lot I1 (voir docs/CREDITS.md pour la provenance Pixabay de ce lot)
+  {
+    id: 'photo-lac-bleu',
+    label: 'Lac bleu',
+    category: 'scenic',
+    folder: 'scenic',
+    file: 'lac-bleu.webp',
+    suggestedTheme: 'light',
+    usableInAmbient: true,
+    credit: 'aalmeidah · Pixabay',
+  },
+  {
+    id: 'photo-chalet-enneige',
+    label: 'Chalet enneigé',
+    category: 'scenic',
+    folder: 'scenic',
+    file: 'chalet-enneige.webp',
+    suggestedTheme: 'light',
+    usableInAmbient: true,
+    credit: 'aalmeidah · Pixabay',
+  },
+  {
+    id: 'photo-cerf-neiges',
+    label: 'Cerf des neiges',
+    category: 'scenic',
+    folder: 'scenic',
+    file: 'cerf-neiges.webp',
+    suggestedTheme: 'light',
+    // Beaucoup de détail peint (cerf, branches, fleurs) : trop chargé en mode Ambiant.
+    usableInAmbient: false,
+    credit: 'aalmeidah · Pixabay',
+  },
+  {
+    id: 'photo-crete-mauve',
+    label: 'Crête mauve',
+    category: 'scenic',
+    folder: 'scenic',
+    file: 'crete-mauve.webp',
+    suggestedTheme: 'dark',
+    usableInAmbient: true,
+    credit: 'decster1 · Pixabay',
+  },
+  {
+    id: 'photo-veillee-lac',
+    label: 'Veillée au lac',
+    category: 'scenic',
+    folder: 'scenic',
+    file: 'veillee-lac.webp',
+    suggestedTheme: 'dark',
+    usableInAmbient: true,
+    credit: 'decster1 · Pixabay',
+  },
+  {
+    id: 'photo-pleine-lune',
+    label: 'Pleine lune',
+    category: 'scenic',
+    folder: 'scenic',
+    file: 'pleine-lune.webp',
+    suggestedTheme: 'dark',
+    usableInAmbient: true,
+    credit: 'nnnhi · Pixabay',
+  },
+  // Nature — lot I1
+  {
+    id: 'photo-foret-aquarelle',
+    label: 'Forêt d’aquarelle',
+    category: 'nature',
+    folder: 'nature',
+    file: 'foret-aquarelle.webp',
+    suggestedTheme: 'light',
+    usableInAmbient: true,
+    credit: 'ievali · Pixabay',
+  },
+  // Urbain — lot I1
+  {
+    id: 'photo-ardoise',
+    label: 'Ardoise',
+    category: 'urban',
+    folder: 'urban',
+    file: 'ardoise.webp',
+    suggestedTheme: 'dark',
+    // Illustration très chargée (bâtiments, personnages, véhicule) : distrait en mode
+    // Ambiant, où le minuteur doit rester lisible.
+    usableInAmbient: false,
+    credit: 'jozefm84 · Pixabay',
+  },
 ]
 
 export const PHOTO_BACKGROUND_IDS: BackgroundId[] = PHOTO_BACKGROUND_SPECS.map((spec) => spec.id)

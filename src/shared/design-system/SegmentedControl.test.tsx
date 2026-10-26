@@ -12,6 +12,33 @@ const options: SegmentedOption<'a' | 'b' | 'c'>[] = [
   { value: 'c', label: 'C' },
 ]
 
+describe('SegmentedControl — verre dépoli sans aplat de couleur (lot I1, §2)', () => {
+  it('variant « glass » : conteneur en verre dépoli, options inactives en gris neutre', () => {
+    render(
+      <SegmentedControl
+        ariaLabel="Test"
+        value="b"
+        onChange={vi.fn()}
+        options={options}
+        variant="glass"
+      />,
+    )
+    const group = screen.getByRole('radiogroup', { name: 'Test' })
+    expect(group.className).toContain('glass-pill')
+    expect(group.className).not.toContain('bg-[var(--surface)]')
+    expect(screen.getByRole('radio', { name: 'A' }).className).toContain('text-[var(--glass-icon)]')
+    // L'option sélectionnée garde --on-accent, posée sur la pastille --accent (inchangé).
+    expect(screen.getByRole('radio', { name: 'B' }).className).toContain('text-[var(--on-accent)]')
+  })
+
+  it('par défaut (« solid »), conteneur opaque inchangé', () => {
+    render(<SegmentedControl ariaLabel="Test" value="b" onChange={vi.fn()} options={options} />)
+    const group = screen.getByRole('radiogroup', { name: 'Test' })
+    expect(group.className).toContain('bg-[var(--surface)]')
+    expect(group.className).not.toContain('glass-pill')
+  })
+})
+
 describe('SegmentedControl', () => {
   it('ne tabule que sur l’option sélectionnée (roving tabindex)', () => {
     render(<SegmentedControl ariaLabel="Test" value="b" onChange={vi.fn()} options={options} />)
@@ -62,7 +89,9 @@ describe('SegmentedControl', () => {
       { value: 'home', label: 'Accueil', icon: Home },
       { value: 'focus', label: 'Focus', icon: Home },
     ]
-    render(<SegmentedControl ariaLabel="Mode" value="home" onChange={vi.fn()} options={iconOptions} />)
+    render(
+      <SegmentedControl ariaLabel="Mode" value="home" onChange={vi.fn()} options={iconOptions} />,
+    )
 
     // Toujours trouvable par son nom accessible (aria-label porté par le bouton), que le
     // texte soit affiché ou non.

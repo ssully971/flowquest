@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { SignInPrompt } from '@/features/auth/components/SignInPrompt'
 import { useAuth } from '@/features/auth/useAuth'
+import { useFeatureFlag } from '@/features/feature-flags/useFeatureFlag'
 import { CreateRoomForm } from '@/features/rooms/components/CreateRoomForm'
 import { RoomCard } from '@/features/rooms/components/RoomCard'
 import type { useRooms } from '@/features/rooms/useRooms'
@@ -59,6 +60,12 @@ export function SocialPanel({
   const [roomsTab, setRoomsTab] = useState<RoomsTab>('mine')
   const [reportTarget, setReportTarget] = useState<Friend | null>(null)
   const { refresh: refreshRooms } = roomsState
+  // Coupe-circuits (lot I2, §1) : le classement et les salons peuvent être coupés
+  // indépendamment du reste du mode Amis — leur onglet disparaît alors entièrement
+  // plutôt que de rester visible mais vide.
+  const leaderboardFlagEnabled = useFeatureFlag('leaderboard')
+  const roomsFlagEnabled = useFeatureFlag('rooms')
+  const friendsFlagEnabled = useFeatureFlag('friends')
 
   // Un salon invité pendant que le panneau était fermé doit apparaître dès l'ouverture
   // (trouvé via le test Playwright à deux contextes, LOT F3) — même logique que l'ancien
@@ -69,7 +76,9 @@ export function SocialPanel({
 
   if (!open) return null
 
-  const streakByFriendId = new Map(duoStreaksState.streaks.map((streak) => [streak.friendId, streak]))
+  const streakByFriendId = new Map(
+    duoStreaksState.streaks.map((streak) => [streak.friendId, streak]),
+  )
   const requestCount = friendsState.incomingRequests.length
   const roomInviteCount = roomsState.rooms.filter((room) => room.myStatus === 'invited').length
 
@@ -82,10 +91,22 @@ export function SocialPanel({
   const TABS: { value: Tab; label: string; badge?: number }[] = [
     { value: 'friends', label: sf.tabs.friends },
     { value: 'requests', label: sf.tabs.requests, badge: requestCount },
-    { value: 'leaderboard', label: sf.leaderboard.tab },
-    { value: 'rooms', label: s.tabs.rooms, badge: roomInviteCount },
+    ...(leaderboardFlagEnabled
+      ? [{ value: 'leaderboard' as const, label: sf.leaderboard.tab }]
+      : []),
+    ...(roomsFlagEnabled
+      ? [{ value: 'rooms' as const, label: s.tabs.rooms, badge: roomInviteCount }]
+      : []),
     { value: 'add', label: sf.tabs.add },
   ]
+  // Si l'onglet actif vient d'être coupé par l'admin pendant que ce panneau reste ouvert,
+  // retombe sur « Amis » plutôt que de laisser un onglet sans entrée de navigation actif.
+  if (
+    (tab === 'leaderboard' && !leaderboardFlagEnabled) ||
+    (tab === 'rooms' && !roomsFlagEnabled)
+  ) {
+    setTab('friends')
+  }
 
   return (
     <>
@@ -98,7 +119,9 @@ export function SocialPanel({
         panelSizeClassName="w-[24rem]"
         windowSizeClassName="w-full max-w-[36rem] max-h-[85vh]"
       >
-        {!isSupabaseConfigured ? (
+        {!friendsFlagEnabled ? (
+          <p className="max-w-sm text-sm text-[var(--muted)]">{s.featureDisabled}</p>
+        ) : !isSupabaseConfigured ? (
           <p className="max-w-sm text-sm text-[var(--muted)]">{sf.signInRequired}</p>
         ) : status !== 'authenticated' ? (
           <SignInPrompt message={sf.signInRequired} ctaLabel={sf.signInCta} />
@@ -117,7 +140,9 @@ export function SocialPanel({
                   aria-selected={tab === item.value}
                   onClick={() => setTab(item.value)}
                   className={`relative rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors duration-200 ${
-                    tab === item.value ? 'bg-[var(--surface-2)] text-[var(--text)]' : 'text-[var(--muted)]'
+                    tab === item.value
+                      ? 'bg-[var(--surface-2)] text-[var(--text)]'
+                      : 'text-[var(--muted)]'
                   }`}
                 >
                   {item.label}
@@ -153,7 +178,9 @@ export function SocialPanel({
                       aria-selected={roomsTab === 'mine'}
                       onClick={() => setRoomsTab('mine')}
                       className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors duration-200 ${
-                        roomsTab === 'mine' ? 'bg-[var(--surface-2)] text-[var(--text)]' : 'text-[var(--muted)]'
+                        roomsTab === 'mine'
+                          ? 'bg-[var(--surface-2)] text-[var(--text)]'
+                          : 'text-[var(--muted)]'
                       }`}
                     >
                       {sr.tabs.mine}
@@ -164,7 +191,9 @@ export function SocialPanel({
                       aria-selected={roomsTab === 'create'}
                       onClick={() => setRoomsTab('create')}
                       className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors duration-200 ${
-                        roomsTab === 'create' ? 'bg-[var(--surface-2)] text-[var(--text)]' : 'text-[var(--muted)]'
+                        roomsTab === 'create'
+                          ? 'bg-[var(--surface-2)] text-[var(--text)]'
+                          : 'text-[var(--muted)]'
                       }`}
                     >
                       {sr.tabs.create}
@@ -253,12 +282,17 @@ export function SocialPanel({
               ) : (
                 <div className="flex flex-col gap-5">
                   {profile ? (
-                    <MyFriendCode code={profile.friend_code} onRegenerate={friendsState.regenerateCode} />
+                    <MyFriendCode
+                      code={profile.friend_code}
+                      onRegenerate={friendsState.regenerateCode}
+                    />
                   ) : null}
                   <AddFriendForm
                     onPreview={friendsState.preview}
                     onSend={(query) =>
-                      'code' in query ? friendsState.addByCode(query.code) : friendsState.addByUsername(query.username)
+                      'code' in query
+                        ? friendsState.addByCode(query.code)
+                        : friendsState.addByUsername(query.username)
                     }
                   />
                 </div>

@@ -4,6 +4,7 @@ import { IndexedDbSettingsRepository } from '@/features/settings/storage/indexed
 import type { StoredSettings } from '@/features/settings/storage/settings-repository'
 import { IndexedDbTaskRepository } from '@/features/tasks/storage/indexed-db-task-repository'
 import { IndexedDbFocusSessionRepository } from '@/features/timer/storage/focus-session-repository'
+import { APP_NAME } from '@/shared/app-config'
 import type { FocusSessionRecord, TaskRecord } from '@/shared/storage/db'
 
 export const BACKUP_SCHEMA_VERSION = 1
@@ -95,32 +96,36 @@ export function parseBackupFile(raw: string): LocalBackup {
   }
 
   if (typeof parsed !== 'object' || parsed === null) {
-    throw new BackupParseError('Ce fichier ne contient pas une sauvegarde Flowquest valide.')
+    throw new BackupParseError(`Ce fichier ne contient pas une sauvegarde ${APP_NAME} valide.`)
   }
   const candidate = parsed as Record<string, unknown>
 
   if (candidate.app !== BACKUP_APP_MARKER) {
-    throw new BackupParseError('Ce fichier ne vient pas de Flowquest.')
+    throw new BackupParseError(`Ce fichier ne vient pas de ${APP_NAME}.`)
   }
   if (typeof candidate.schemaVersion !== 'number') {
     throw new BackupParseError('Ce fichier de sauvegarde est corrompu (version manquante).')
   }
   if (candidate.schemaVersion > BACKUP_SCHEMA_VERSION) {
     throw new BackupParseError(
-      'Cette sauvegarde vient d’une version plus récente de Flowquest. Mets l’application à jour avant de l’importer.',
+      `Cette sauvegarde vient d’une version plus récente de ${APP_NAME}. Mets l’application à jour avant de l’importer.`,
     )
   }
   if (!Array.isArray(candidate.tasks) || !candidate.tasks.every(isTaskRecord)) {
     throw new BackupParseError('Ce fichier de sauvegarde est corrompu (tâches invalides).')
   }
-  if (!Array.isArray(candidate.focusSessions) || !candidate.focusSessions.every(isFocusSessionRecord)) {
+  if (
+    !Array.isArray(candidate.focusSessions) ||
+    !candidate.focusSessions.every(isFocusSessionRecord)
+  ) {
     throw new BackupParseError('Ce fichier de sauvegarde est corrompu (sessions invalides).')
   }
 
   return {
     app: BACKUP_APP_MARKER,
     schemaVersion: candidate.schemaVersion,
-    exportedAt: typeof candidate.exportedAt === 'string' ? candidate.exportedAt : new Date().toISOString(),
+    exportedAt:
+      typeof candidate.exportedAt === 'string' ? candidate.exportedAt : new Date().toISOString(),
     tasks: candidate.tasks,
     notes: (candidate.notes as StoredNote | null) ?? null,
     focusSessions: candidate.focusSessions,
@@ -186,5 +191,12 @@ export async function importBackup(backup: LocalBackup): Promise<ImportSummary> 
     }
   }
 
-  return { tasksAdded, tasksSkipped, focusSessionsAdded, focusSessionsSkipped, notesUpdated, settingsUpdated }
+  return {
+    tasksAdded,
+    tasksSkipped,
+    focusSessionsAdded,
+    focusSessionsSkipped,
+    notesUpdated,
+    settingsUpdated,
+  }
 }

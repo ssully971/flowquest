@@ -6,6 +6,8 @@ import {
   CLOCK_STYLE_CSS,
   resolveClockColor,
 } from '@/features/home/clock-settings'
+import { FeatureGate } from '@/features/feature-flags/FeatureGate'
+import { useFeatureFlag } from '@/features/feature-flags/useFeatureFlag'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
 import { useQuotePool } from '@/features/home/useQuotePool'
@@ -85,8 +87,12 @@ export function FocusScreen() {
   // du Pomodoro. Volontairement indépendant du statut running/paused (voir
   // useDeepFocus.ts) : sinon la pause déclenchée par ce hook désinstallerait son propre
   // écouteur avant que le toast de reprise n'ait pu se déclencher au retour.
+  const deepFocusFlagEnabled = useFeatureFlag('deep_focus')
   const isDeepFocusEligible =
-    timerSettings.deepFocusEnabled && timer.mode === 'pomodoro' && timer.segment === 'focus'
+    timerSettings.deepFocusEnabled &&
+    deepFocusFlagEnabled &&
+    timer.mode === 'pomodoro' &&
+    timer.segment === 'focus'
 
   useDeepFocus({
     enabled: isDeepFocusEligible,
@@ -252,7 +258,9 @@ export function FocusScreen() {
               {activeTask ? activeTask.title : strings.focus.noActiveTask}
             </p>
             {extrasSettings.pillarsEnabled ? (
-              <PillarSelector disabled={timer.isSegmentSwitchBlocked} />
+              <FeatureGate flag="pillars">
+                <PillarSelector disabled={timer.isSegmentSwitchBlocked} />
+              </FeatureGate>
             ) : null}
           </div>
         </div>
@@ -269,6 +277,7 @@ export function FocusScreen() {
             value={timer.mode}
             onChange={timer.selectMode}
             options={MODE_OPTIONS}
+            variant="glass"
           />
         </div>
 

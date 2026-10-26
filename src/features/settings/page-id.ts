@@ -10,6 +10,7 @@ export type SettingsPageId =
   | 'friends'
   | 'support'
   | 'changelog'
+  | 'about'
 
 export const SETTINGS_PAGE_IDS: SettingsPageId[] = [
   'themes',
@@ -23,4 +24,5 @@ export const SETTINGS_PAGE_IDS: SettingsPageId[] = [
   'friends',
   'support',
   'changelog',
+  'about',
 ]

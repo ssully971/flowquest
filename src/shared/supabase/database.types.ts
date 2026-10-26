@@ -32,12 +32,16 @@ export interface Database {
           timezone: string
           stats_visibility: StatsVisibility
           banned_at: string | null
+          suspended_until: string | null
           friend_code: string
           avatar_version: number
           invisible_mode: boolean
           show_live_status: boolean
           show_total_time_score: boolean
           participate_leaderboard: boolean
+          marketing_consent: boolean
+          marketing_consent_at: string | null
+          last_active_at: string | null
           created_at: string
           updated_at: string
         }
@@ -48,6 +52,8 @@ export interface Database {
           avatar_url?: string | null
           timezone?: string
           stats_visibility?: StatsVisibility
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
         }
         Update: {
           username?: string
@@ -60,7 +66,25 @@ export interface Database {
           show_live_status?: boolean
           show_total_time_score?: boolean
           participate_leaderboard?: boolean
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
+          last_active_at?: string | null
         }
+        Relationships: []
+      }
+      feature_flags: {
+        Row: {
+          key: string
+          enabled: boolean
+          label: string
+          description: string
+          updated_by: string | null
+          updated_at: string
+        }
+        // Aucune politique RLS INSERT/UPDATE/DELETE : toute mutation passe par la RPC
+        // admin_set_feature_flag(), jamais une écriture directe côté client.
+        Insert: Record<string, never>
+        Update: Record<string, never>
         Relationships: []
       }
       friendships: {
@@ -238,6 +262,7 @@ export interface Database {
           task_id: string | null
           pillar_id: string | null
           group_session_id: string | null
+          xp_multiplier: number
           created_at: string
         }
         Insert: {
@@ -438,6 +463,40 @@ export interface Database {
         }
         Relationships: []
       }
+      game_campaigns: {
+        Row: {
+          id: string
+          name: string
+          xp_multiplier: number
+          starts_at: string
+          ends_at: string
+          active: boolean
+          created_by: string | null
+          created_at: string
+        }
+        // Aucune politique RLS directe : lecture via current_game_campaign() (bandeau),
+        // gestion via les RPC admin_start_campaign()/admin_stop_campaign().
+        Insert: Record<string, never>
+        Update: Record<string, never>
+        Relationships: []
+      }
+      xp_grants: {
+        Row: {
+          id: string
+          target_user_id: string
+          pillar_id: string
+          amount: number
+          reason: string
+          granted_by: string | null
+          created_at: string
+          seen_at: string | null
+        }
+        // Lecture (xp_grants_select_own) permise au bénéficiaire ; écriture uniquement
+        // via admin_grant_xp()/acknowledge_xp_grant().
+        Insert: Record<string, never>
+        Update: Record<string, never>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -577,8 +636,147 @@ export interface Database {
         Args: Record<string, never>
         Returns: DuoStreakRow[]
       }
+      is_feature_enabled: {
+        Args: { flag_key: string }
+        Returns: boolean
+      }
+      admin_set_feature_flag: {
+        Args: { flag_key: string; new_enabled: boolean; new_description?: string | null }
+        Returns: Database['public']['Tables']['feature_flags']['Row']
+      }
+      touch_activity: {
+        Args: Record<string, never>
+        Returns: undefined
+      }
+      admin_stats_overview: {
+        Args: Record<string, never>
+        Returns: AdminStatsOverview
+      }
+      admin_list_log: {
+        Args: { p_limit?: number; p_search?: string | null }
+        Returns: AdminLogRow[]
+      }
+      admin_list_users: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string | null; p_sort?: string }
+        Returns: AdminUserRow[]
+      }
+      admin_export_users: {
+        Args: { p_only_consented?: boolean }
+        Returns: AdminUserExportRow[]
+      }
+      admin_suspend_user: {
+        Args: { p_target_user_id: string; p_duration_days: number; p_reason?: string | null }
+        Returns: undefined
+      }
+      admin_unsuspend_user: {
+        Args: { p_target_user_id: string }
+        Returns: undefined
+      }
+      admin_user_stats: {
+        Args: { p_target_user_id: string }
+        Returns: AdminUserStats
+      }
+      admin_delete_user: {
+        Args: { p_target_user_id: string; p_confirm_username: string }
+        Returns: undefined
+      }
+      current_game_campaign: {
+        Args: Record<string, never>
+        Returns: CurrentGameCampaignRow[]
+      }
+      admin_list_campaigns: {
+        Args: Record<string, never>
+        Returns: Database['public']['Tables']['game_campaigns']['Row'][]
+      }
+      admin_start_campaign: {
+        Args: { p_name: string; p_xp_multiplier: number; p_starts_at: string; p_ends_at: string }
+        Returns: Database['public']['Tables']['game_campaigns']['Row']
+      }
+      admin_stop_campaign: {
+        Args: { p_campaign_id: string }
+        Returns: undefined
+      }
+      admin_list_user_pillars: {
+        Args: { p_target_user_id: string }
+        Returns: AdminUserPillarRow[]
+      }
+      admin_grant_xp: {
+        Args: { p_target_user_id: string; p_pillar_id: string; p_amount: number; p_reason: string }
+        Returns: Database['public']['Tables']['xp_grants']['Row']
+      }
+      acknowledge_xp_grant: {
+        Args: { p_grant_id: string }
+        Returns: undefined
+      }
     }
   }
+}
+
+export interface AdminLogRow {
+  id: string
+  admin_id: string | null
+  admin_username: string | null
+  action: string
+  target: string
+  created_at: string
+}
+
+export interface AdminStatsOverview {
+  totalSignups: number
+  dau: number
+  wau: number
+  mau: number
+  impactHours: number
+  signupsPerDay: { date: string; count: number }[]
+  retentionD1: number | null
+  retentionD7: number | null
+  pillarDistribution: { name: string; count: number }[]
+}
+
+export type AdminUserStatus = 'active' | 'suspended' | 'banned'
+
+export interface AdminUserRow {
+  id: string
+  email: string
+  username: string
+  display_name: string | null
+  created_at: string
+  last_active_at: string | null
+  role: UserRole
+  status: AdminUserStatus
+  marketing_consent: boolean
+  total_count: number
+}
+
+export interface AdminUserExportRow {
+  email: string
+  username: string
+  created_at: string
+  last_active_at: string | null
+  marketing_consent: boolean
+}
+
+export interface AdminUserStats {
+  totalFocusSeconds: number
+  dailyFocus: { dayStart: number; focusSeconds: number; sessionsCount: number }[]
+  pillars: { name: string; level: number; focusSeconds: number }[]
+  recentActivity: {
+    startedAt: string
+    kind: SessionKind
+    actualSeconds: number
+    pillarName: string | null
+  }[]
+}
+
+export interface AdminUserPillarRow {
+  id: string
+  name: string
+}
+
+export interface CurrentGameCampaignRow {
+  name: string
+  xp_multiplier: number
+  ends_at: string
 }
 
 export interface FriendProfilePreviewRow {

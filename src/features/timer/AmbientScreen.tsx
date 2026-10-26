@@ -3,7 +3,11 @@ import { useState } from 'react'
 
 import { AmbientSoundsPanel } from '@/features/ambient/components/AmbientSoundsPanel'
 import { useAmbientSounds } from '@/features/ambient/useAmbientSounds'
-import { CLOCK_SIZE_SCALE, CLOCK_STYLE_CSS, resolveClockColor } from '@/features/home/clock-settings'
+import {
+  CLOCK_SIZE_SCALE,
+  CLOCK_STYLE_CSS,
+  resolveClockColor,
+} from '@/features/home/clock-settings'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { BigDigits, GlassCard } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
@@ -119,14 +123,18 @@ export function AmbientScreen() {
             aria-label={strings.ambient.soundsButton}
             aria-expanded={isSoundsOpen}
             onClick={() => setIsSoundsOpen((prev) => !prev)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border text-[var(--text)] transition-colors duration-200 hover:bg-[var(--surface-2)]"
-            style={{
-              borderColor: 'var(--line)',
-              background: sounds.activeIds.length > 0 ? 'var(--accent)' : 'var(--surface)',
-              color: sounds.activeIds.length > 0 ? 'var(--on-accent)' : 'var(--text)',
-            }}
+            className={
+              sounds.activeIds.length > 0
+                ? 'inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--on-accent)] transition-transform duration-200 hover:scale-105'
+                : 'glass-pill inline-flex h-11 w-11 items-center justify-center rounded-full transition-transform duration-200 hover:scale-105'
+            }
           >
-            <Music size={18} strokeWidth={1.75} aria-hidden="true" />
+            <Music
+              size={18}
+              strokeWidth={1.75}
+              aria-hidden="true"
+              className={sounds.activeIds.length === 0 ? 'glass-pill-icon' : undefined}
+            />
           </button>
           <AmbientSoundsPanel
             open={isSoundsOpen}
@@ -138,7 +146,10 @@ export function AmbientScreen() {
         {isDeepFocusActive ? <DeepFocusIndicator /> : null}
       </div>
 
-      <KeyboardShortcutsHelp open={isShortcutsHelpOpen} onClose={() => setIsShortcutsHelpOpen(false)} />
+      <KeyboardShortcutsHelp
+        open={isShortcutsHelpOpen}
+        onClose={() => setIsShortcutsHelpOpen(false)}
+      />
     </div>
   )
 }

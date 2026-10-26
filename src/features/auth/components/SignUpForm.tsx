@@ -34,10 +34,15 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
   const [formError, setFormError] = useState<string | null>(null)
   const [confirmationSent, setConfirmationSent] = useState(false)
   const [isResending, setIsResending] = useState(false)
+  // Décochée par défaut (lot I1, §3) : jamais de consentement marketing implicite.
+  const [marketingConsent, setMarketingConsent] = useState(false)
   const resendCooldown = useCooldown(RESEND_COOLDOWN_SECONDS)
 
   const usernameFormatIssue = getUsernameFormatIssue(username)
-  const availability = useUsernameAvailability(username, username.length > 0 && !usernameFormatIssue)
+  const availability = useUsernameAvailability(
+    username,
+    username.length > 0 && !usernameFormatIssue,
+  )
 
   const usernameError =
     username.length === 0
@@ -75,7 +80,12 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
 
     setIsSubmitting(true)
     try {
-      const { needsEmailConfirmation } = await signUpWithEmail(email, password, username)
+      const { needsEmailConfirmation } = await signUpWithEmail(
+        email,
+        password,
+        username,
+        marketingConsent,
+      )
       if (needsEmailConfirmation) setConfirmationSent(true)
     } catch {
       // déjà notifié par le toast
@@ -150,6 +160,15 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
           {formError}
         </p>
       ) : null}
+      <label className="flex items-start gap-2 text-sm text-[var(--panel-muted)]">
+        <input
+          type="checkbox"
+          checked={marketingConsent}
+          onChange={(event) => setMarketingConsent(event.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
+        />
+        {strings.auth.marketingConsent}
+      </label>
       <button
         type="submit"
         disabled={isSubmitting}
@@ -157,6 +176,27 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
       >
         {isSubmitting ? strings.auth.signUp.submitting : strings.auth.signUp.submit}
       </button>
+      <p className="text-xs text-[var(--panel-muted)]">
+        {strings.auth.legalNotice.prefix}{' '}
+        <a
+          href="/conditions"
+          target="_blank"
+          rel="noreferrer"
+          className="underline-offset-2 hover:underline"
+        >
+          {strings.auth.legalNotice.terms}
+        </a>{' '}
+        {strings.auth.legalNotice.and}{' '}
+        <a
+          href="/confidentialite"
+          target="_blank"
+          rel="noreferrer"
+          className="underline-offset-2 hover:underline"
+        >
+          {strings.auth.legalNotice.privacy}
+        </a>
+        .
+      </p>
       <div className="flex items-center gap-3 text-xs text-[var(--panel-muted)]">
         <span className="h-px flex-1 bg-[var(--panel-line)]" />
         {strings.auth.signIn.orContinueWith}

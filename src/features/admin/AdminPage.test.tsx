@@ -3,42 +3,95 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/AuthProvider'
+import { ThemeProvider } from '@/shared/design-system'
 import { ToastProvider } from '@/shared/toast'
 
 import { AdminPage } from './AdminPage'
 
 function renderAdminPage() {
   return render(
-    <ToastProvider>
-      <AuthProvider>
-        <AdminPage />
-      </AuthProvider>
-    </ToastProvider>,
+    <ThemeProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AdminPage />
+        </AuthProvider>
+      </ToastProvider>
+    </ThemeProvider>,
   )
 }
 
-describe('AdminPage — panneau Admin (§12)', () => {
-  it('affiche l’onglet Citations par défaut', () => {
+describe('AdminPage — panneau Admin refait (lot I2)', () => {
+  it('affiche la section Vue d’ensemble par défaut', () => {
     renderAdminPage()
-    expect(screen.getByRole('tab', { name: 'Citations' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: 'Vue d’ensemble' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.getByRole('heading', { name: 'Vue d’ensemble', level: 1 })).toBeInTheDocument()
   })
 
-  it('bascule vers l’onglet Nouveautés au clic', async () => {
+  it('bascule vers Fonctionnalités au clic', async () => {
     const user = userEvent.setup()
     renderAdminPage()
 
-    await user.click(screen.getByRole('tab', { name: 'Nouveautés' }))
+    await user.click(screen.getByRole('tab', { name: 'Fonctionnalités' }))
 
-    expect(screen.getByRole('tab', { name: 'Nouveautés' })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByRole('tab', { name: 'Citations' })).toHaveAttribute('aria-selected', 'false')
+    expect(screen.getByRole('tab', { name: 'Fonctionnalités' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.getByRole('tab', { name: 'Vue d’ensemble' })).toHaveAttribute(
+      'aria-selected',
+      'false',
+    )
   })
 
-  it('bascule vers l’onglet Support au clic', async () => {
+  it('bascule vers Contenu puis affiche les sous-onglets Citations/Nouveautés', async () => {
+    const user = userEvent.setup()
+    renderAdminPage()
+
+    await user.click(screen.getByRole('tab', { name: 'Contenu' }))
+
+    expect(screen.getByRole('heading', { name: 'Contenu', level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Citations' })).toHaveAttribute('aria-selected', 'true')
+    await user.click(screen.getByRole('tab', { name: 'Nouveautés' }))
+    expect(screen.getByRole('tab', { name: 'Nouveautés' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('bascule vers Support et vers Journal au clic', async () => {
     const user = userEvent.setup()
     renderAdminPage()
 
     await user.click(screen.getByRole('tab', { name: 'Support' }))
-
     expect(screen.getByRole('tab', { name: 'Support' })).toHaveAttribute('aria-selected', 'true')
+
+    await user.click(screen.getByRole('tab', { name: 'Journal' }))
+    expect(screen.getByRole('tab', { name: 'Journal' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('bascule vers Utilisateurs (lot I3)', async () => {
+    const user = userEvent.setup()
+    renderAdminPage()
+
+    await user.click(screen.getByRole('tab', { name: 'Utilisateurs' }))
+
+    expect(screen.getByRole('tab', { name: 'Utilisateurs' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.getByRole('heading', { name: 'Utilisateurs', level: 1 })).toBeInTheDocument()
+  })
+
+  it('bascule vers Maître du jeu (lot I3)', async () => {
+    const user = userEvent.setup()
+    renderAdminPage()
+
+    await user.click(screen.getByRole('tab', { name: 'Maître du jeu' }))
+
+    expect(screen.getByRole('tab', { name: 'Maître du jeu' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.getByRole('heading', { name: 'Maître du jeu', level: 1 })).toBeInTheDocument()
   })
 })

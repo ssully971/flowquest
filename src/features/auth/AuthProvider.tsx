@@ -6,7 +6,13 @@ import { isSupabaseConfigured, supabase } from '@/shared/supabase/client'
 import { useToast } from '@/shared/toast'
 
 import { AuthContext } from './auth-context'
-import type { AuthStatus, Profile, ProfileState, ProfileUpdatableFields, SignUpResult } from './auth-context'
+import type {
+  AuthStatus,
+  Profile,
+  ProfileState,
+  ProfileUpdatableFields,
+  SignUpResult,
+} from './auth-context'
 import { translateAuthError } from './auth-errors'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -129,12 +135,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, loadProfile])
 
   const signUpWithEmail = useCallback(
-    async (email: string, password: string, username: string): Promise<SignUpResult> => {
+    async (
+      email: string,
+      password: string,
+      username: string,
+      marketingConsent: boolean,
+    ): Promise<SignUpResult> => {
       if (!supabase) throw new Error('Supabase non configuré')
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { username }, emailRedirectTo: window.location.origin },
+        options: {
+          data: { username, marketing_consent: marketingConsent },
+          emailRedirectTo: window.location.origin,
+        },
       })
       if (error) {
         showToast({ type: 'error', message: translateAuthError(error.message) })
