@@ -66,7 +66,9 @@ async function clearTimerState() {
   await db.delete('timerState', 'current')
 }
 
-function focusSession(overrides: Partial<FocusSessionRecord> & { startedAt: number }): FocusSessionRecord {
+function focusSession(
+  overrides: Partial<FocusSessionRecord> & { startedAt: number },
+): FocusSessionRecord {
   return {
     id: crypto.randomUUID(),
     kind: 'focus',
@@ -381,9 +383,12 @@ describe('useFocusTimer — réglage « Fin de cycle » (LOT E5)', () => {
     act(() => result.current.start())
     await waitFor(() => expect(result.current.segment).toBe('short_break'), { timeout: 3000 })
     await waitFor(() => expect(result.current.segment).toBe('focus'), { timeout: 3000 })
-    await waitFor(() => expect(result.current.cycle.completedFocusCount).toBeGreaterThanOrEqual(2), {
-      timeout: 3000,
-    })
+    await waitFor(
+      () => expect(result.current.cycle.completedFocusCount).toBeGreaterThanOrEqual(2),
+      {
+        timeout: 3000,
+      },
+    )
 
     expect(result.current.segment).not.toBe('long_break')
     expect(result.current.cycleEnded).toBe(false)

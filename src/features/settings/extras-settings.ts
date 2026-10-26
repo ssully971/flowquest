@@ -24,6 +24,11 @@ export interface ExtrasSettings {
   notesDisplayMode: PanelDisplayMode
   confirmTaskDeletion: boolean
   iconSize: IconSize
+  /** Piliers de Vie (lot 4, §5) : désactivé, plus de sélecteur de pilier, de radar ni de
+   * galaxie, plus de calcul d'XP affiché — les sessions continuent d'être enregistrées
+   * normalement, sans pilier. Les données des piliers ne sont jamais supprimées, elles
+   * réapparaissent telles quelles si ce réglage est réactivé. */
+  pillarsEnabled: boolean
 }
 
 export const DEFAULT_EXTRAS_SETTINGS: ExtrasSettings = {
@@ -39,4 +44,5 @@ export const DEFAULT_EXTRAS_SETTINGS: ExtrasSettings = {
   notesDisplayMode: 'panel',
   confirmTaskDeletion: true,
   iconSize: 'small',
+  pillarsEnabled: true,
 }

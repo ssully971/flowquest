@@ -39,7 +39,12 @@ describe('SessionEndScreen — confirmation de fin de session (LOT E6)', () => {
 
   it('affiche le détail chiffré quand le bilan est activé', () => {
     render(
-      <SessionEndScreen summary={SUMMARY} showSummary pillarLevelUp={null} onAcknowledge={vi.fn()} />,
+      <SessionEndScreen
+        summary={SUMMARY}
+        showSummary
+        pillarLevelUp={null}
+        onAcknowledge={vi.fn()}
+      />,
     )
     expect(screen.getByText('Temps de focus')).toBeInTheDocument()
     expect(screen.getByText('43 min')).toBeInTheDocument()
@@ -92,7 +97,12 @@ describe('SessionEndScreen — animation de niveau gagné (LOT G3)', () => {
 
   it('n’affiche aucun badge sans changement de niveau', () => {
     render(
-      <SessionEndScreen summary={SUMMARY} showSummary pillarLevelUp={null} onAcknowledge={vi.fn()} />,
+      <SessionEndScreen
+        summary={SUMMARY}
+        showSummary
+        pillarLevelUp={null}
+        onAcknowledge={vi.fn()}
+      />,
     )
     expect(screen.queryByText(/a atteint le niveau/)).not.toBeInTheDocument()
   })

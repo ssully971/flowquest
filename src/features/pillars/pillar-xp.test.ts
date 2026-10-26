@@ -108,7 +108,7 @@ describe('goalPace — rythme nécessaire pour atteindre l’objectif (lot 4, §
   it('sans date limite : XP et temps restants, mais aucun rythme quotidien', () => {
     const pace = goalPace(600, 3, null, NOW)
     expect(pace.xpRemaining).toBe(1200)
-    expect(pace.secondsRemaining).toBe(1200 / 10 * 60) // 10 XP/min, voir XP_PER_MINUTE.
+    expect(pace.secondsRemaining).toBe((1200 / 10) * 60) // 10 XP/min, voir XP_PER_MINUTE.
     expect(pace.daysUntilDeadline).toBeNull()
     expect(pace.averageSecondsPerDayNeeded).toBeNull()
   })

@@ -65,7 +65,20 @@ describe('ExtrasPage — nom affiché, thèmes animés, mode épuré, veille, ra
 
     expect(DEFAULT_EXTRAS_SETTINGS.confirmTaskDeletion).toBe(true)
     await user.click(screen.getByRole('switch', { name: 'Confirmer avant de supprimer une tâche' }))
-    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_EXTRAS_SETTINGS, confirmTaskDeletion: false })
+    expect(onChange).toHaveBeenCalledWith({
+      ...DEFAULT_EXTRAS_SETTINGS,
+      confirmTaskDeletion: false,
+    })
+  })
+
+  it('bascule l’activation des piliers de vie (lot 4, §5)', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<ExtrasPage settings={DEFAULT_EXTRAS_SETTINGS} onChange={onChange} />)
+
+    expect(DEFAULT_EXTRAS_SETTINGS.pillarsEnabled).toBe(true)
+    await user.click(screen.getByRole('switch', { name: 'Activer les piliers de vie' }))
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_EXTRAS_SETTINGS, pillarsEnabled: false })
   })
 
   it('change la taille des icônes, petite par défaut (LOT H2, §2)', async () => {

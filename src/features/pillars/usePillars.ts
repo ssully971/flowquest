@@ -178,16 +178,19 @@ export function usePillars(): UsePillarsResult {
   // Objectif de niveau (lot 4, §4) : niveau visé et date limite optionnelle. `setGoal`
   // remplace l'objectif précédent le cas échéant (un seul objectif actif par pilier,
   // jamais un historique).
-  const setGoal = useCallback(async (id: string, goalLevel: number, goalDeadline: number | null) => {
-    if (!Number.isFinite(goalLevel) || goalLevel < 1) return
-    const current = await repo.listAll()
-    const pillar = current.find((item) => item.id === id)
-    if (!pillar) return
-    const updated: PillarRecord = { ...pillar, goalLevel: Math.floor(goalLevel), goalDeadline }
-    await repo.put(updated)
-    pushIfAuthenticated(updated)
-    notifyPillarsChanged()
-  }, [])
+  const setGoal = useCallback(
+    async (id: string, goalLevel: number, goalDeadline: number | null) => {
+      if (!Number.isFinite(goalLevel) || goalLevel < 1) return
+      const current = await repo.listAll()
+      const pillar = current.find((item) => item.id === id)
+      if (!pillar) return
+      const updated: PillarRecord = { ...pillar, goalLevel: Math.floor(goalLevel), goalDeadline }
+      await repo.put(updated)
+      pushIfAuthenticated(updated)
+      notifyPillarsChanged()
+    },
+    [],
+  )
 
   const clearGoal = useCallback(async (id: string) => {
     const current = await repo.listAll()

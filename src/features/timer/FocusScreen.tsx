@@ -251,7 +251,9 @@ export function FocusScreen() {
             <p className="text-sm text-[var(--muted)]">
               {activeTask ? activeTask.title : strings.focus.noActiveTask}
             </p>
-            <PillarSelector disabled={timer.isSegmentSwitchBlocked} />
+            {extrasSettings.pillarsEnabled ? (
+              <PillarSelector disabled={timer.isSegmentSwitchBlocked} />
+            ) : null}
           </div>
         </div>
 

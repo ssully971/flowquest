@@ -5,6 +5,7 @@ import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
 import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
 import { ActivePillarProvider } from '@/features/pillars/ActivePillarProvider'
+import { DEFAULT_EXTRAS_SETTINGS } from '@/features/settings/extras-settings'
 import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
 import { ThemeProvider } from '@/shared/design-system'
@@ -274,5 +275,29 @@ describe('FocusScreen — mise en page Deep Focus (lot 3 bis, §6)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Terminer' }))
 
     expect(await screen.findByText('Session terminée')).toBeInTheDocument()
+  })
+})
+
+describe('FocusScreen — piliers de vie désactivés (lot 4, §5)', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('masque le sélecteur de pilier quand le réglage est désactivé', async () => {
+    window.localStorage.setItem(
+      'flowquest.extrasSettings',
+      JSON.stringify({ ...DEFAULT_EXTRAS_SETTINGS, pillarsEnabled: false }),
+    )
+    renderFocusScreen()
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
+
+    expect(screen.queryByRole('button', { name: /Pilier de la session/ })).not.toBeInTheDocument()
+  })
+
+  it('affiche le sélecteur de pilier quand le réglage est activé (comportement par défaut)', async () => {
+    renderFocusScreen()
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
+
+    expect(await screen.findByRole('button', { name: /Pilier de la session/ })).toBeInTheDocument()
   })
 })

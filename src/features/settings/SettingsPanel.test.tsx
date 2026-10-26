@@ -213,6 +213,27 @@ describe('SettingsPanel — onglet ouvert par défaut (§7.6 Extras)', () => {
   })
 })
 
+describe('SettingsPanel — piliers de vie désactivés (lot 4, §5)', () => {
+  it('masque l’entrée de navigation Piliers quand le réglage est désactivé', async () => {
+    renderPanel(true, { ...DEFAULT_EXTRAS_SETTINGS, pillarsEnabled: false })
+    await screen.findByRole('dialog')
+    expect(screen.queryByRole('button', { name: 'Piliers' })).not.toBeInTheDocument()
+  })
+
+  it('affiche l’entrée de navigation Piliers quand le réglage est activé', async () => {
+    renderPanel(true, { ...DEFAULT_EXTRAS_SETTINGS, pillarsEnabled: true })
+    await screen.findByRole('dialog')
+    expect(screen.getByRole('button', { name: 'Piliers' })).toBeInTheDocument()
+  })
+
+  it('retombe sur Thèmes si la page Piliers était la dernière ouverte et que le réglage est désactivé', async () => {
+    window.localStorage.setItem('flowquest.settingsLastPage', 'pillars')
+    renderPanel(true, { ...DEFAULT_EXTRAS_SETTINGS, pillarsEnabled: false })
+    await screen.findByRole('dialog')
+    expect(screen.getAllByText('Thèmes').length).toBeGreaterThan(0)
+  })
+})
+
 describe('SettingsPanel — côté du panneau (LOT B9)', () => {
   it('s’ancre à gauche par défaut', async () => {
     renderPanel(true)

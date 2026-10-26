@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.15.0',
+    date: '2026-11-04',
+    text: 'Sons en boucle sans coupure (fondu enchaîné), la galaxie rejoint les Piliers (sous le radar, disposée en spirale avec un bras par pilier), des objectifs de niveau par pilier (avec le rythme de focus nécessaire pour les atteindre à temps), et un réglage pour désactiver entièrement les piliers de vie si tu préfères t’en passer.',
+  },
+  {
     version: '0.14.0',
     date: '2026-11-03',
     text: 'Fonds d’écran, couleurs et Deep Focus : 11 nouvelles photos triées par catégorie (dont une catégorie Minimal avec Noir pur et Blanc pur), une bibliothèque repensée avec rangées par catégorie et « Tout voir », un fond différent pour chaque thème (avec option « même fond pour les deux »), une palette de couleurs d’horloge plus douce et propre à chaque thème, et un écran de session ultra-minimal quand Deep Focus est actif (fond noir ou blanc pur, rien d’autre que le temps et deux boutons).',

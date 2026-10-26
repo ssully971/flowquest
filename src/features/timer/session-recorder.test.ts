@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { setCurrentUserId } from '@/features/auth/current-user'
 import { setActivePillarIdRef } from '@/features/pillars/active-pillar-ref'
+import { setPillarsEnabledRef } from '@/features/settings/pillars-enabled-ref'
 import { IndexedDbPillarRepository } from '@/features/pillars/storage/indexed-db-pillar-repository'
 import { getDb } from '@/shared/storage/db'
 import type { PillarRecord } from '@/shared/storage/db'
@@ -66,10 +67,12 @@ describe('recordSession', () => {
     const pillarKeys = await db.getAllKeys('pillars')
     await Promise.all(pillarKeys.map((key) => db.delete('pillars', key)))
     setActivePillarIdRef(null)
+    setPillarsEnabledRef(true)
   })
 
   afterEach(() => {
     setActivePillarIdRef(null)
+    setPillarsEnabledRef(true)
   })
 
   it('n’enregistre rien pour un segment jamais démarré', async () => {
@@ -213,6 +216,22 @@ describe('recordSession', () => {
 
       const pauseState: TimerState = { ...RUNNING_STATE, segment: 'short_break' }
       const result = await recordSession(pauseState, pauseState.startedAt! + 5 * 60_000, true)
+
+      expect(result).toBeNull()
+      const db = await getDb()
+      const sessions = await db.getAll('focusSessions')
+      expect(sessions[0].pillarId).toBeNull()
+      const pillars = await db.getAll('pillars')
+      expect(pillars[0].currentXp).toBe(0)
+    })
+
+    it('piliers désactivés (lot 4, §5) : aucun pillar_id même avec un pilier actif', async () => {
+      await seedPillar()
+      setActivePillarIdRef('pillar-1')
+      setPillarsEnabledRef(false)
+      const { recordSession } = await import('./session-recorder')
+
+      const result = await recordSession(RUNNING_STATE, RUNNING_STATE.startedAt! + 60_000, true)
 
       expect(result).toBeNull()
       const db = await getDb()

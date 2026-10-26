@@ -35,7 +35,12 @@ export function SessionEndScreen({
       role="status"
       className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-8 py-10 text-center"
     >
-      <PartyPopper size={32} strokeWidth={1.75} className="text-[var(--accent)]" aria-hidden="true" />
+      <PartyPopper
+        size={32}
+        strokeWidth={1.75}
+        className="text-[var(--accent)]"
+        aria-hidden="true"
+      />
       <p
         className="text-2xl font-bold text-[var(--text)]"
         style={{ fontFamily: 'var(--font-display)' }}
@@ -54,7 +59,9 @@ export function SessionEndScreen({
           <dt className="text-[var(--muted)]">{s.pausesCount}</dt>
           <dd className="text-right font-medium text-[var(--text)]">{summary.pausesCount}</dd>
           <dt className="text-[var(--muted)]">{s.tasksCompleted}</dt>
-          <dd className="text-right font-medium text-[var(--text)]">{summary.completedTasksCount}</dd>
+          <dd className="text-right font-medium text-[var(--text)]">
+            {summary.completedTasksCount}
+          </dd>
         </dl>
       ) : null}
 
@@ -71,8 +78,8 @@ export function SessionEndScreen({
           ) : (
             <Sparkles size={16} strokeWidth={1.75} aria-hidden="true" />
           )}
-          {pillarLevelUp.pillarName}{' '}
-          {pillarLevelUp.goalReached ? s.goalReached : s.levelUpReached} {pillarLevelUp.newLevel}
+          {pillarLevelUp.pillarName} {pillarLevelUp.goalReached ? s.goalReached : s.levelUpReached}{' '}
+          {pillarLevelUp.newLevel}
         </p>
       ) : null}
 

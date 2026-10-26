@@ -52,12 +52,7 @@ export interface PillarRecord {
 }
 
 export type SyncTable =
-  | 'user_settings'
-  | 'timer_state'
-  | 'focus_sessions'
-  | 'tasks'
-  | 'notes'
-  | 'pillars'
+  'user_settings' | 'timer_state' | 'focus_sessions' | 'tasks' | 'notes' | 'pillars'
 
 export interface QueuedWrite {
   id: string

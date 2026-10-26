@@ -190,9 +190,9 @@ describe('usePillars — CRUD', () => {
       await result.current.unarchivePillar('archived-one')
     })
     expect(result.current.activePillars).toHaveLength(8)
-    expect(result.current.pillars.find((pillar) => pillar.id === 'archived-one')?.archivedAt).not.toBe(
-      null,
-    )
+    expect(
+      result.current.pillars.find((pillar) => pillar.id === 'archived-one')?.archivedAt,
+    ).not.toBe(null)
   })
 })
 

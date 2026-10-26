@@ -24,7 +24,10 @@ describe('BalanceCard — carte « Équilibre » (LOT G3)', () => {
   it('affiche un message clair avec moins de 3 piliers actifs', () => {
     render(
       <BalanceCard
-        activePillars={[makePillar({ id: '1', name: 'Travail' }), makePillar({ id: '2', name: 'Sport' })]}
+        activePillars={[
+          makePillar({ id: '1', name: 'Travail' }),
+          makePillar({ id: '2', name: 'Sport' }),
+        ]}
       />,
     )
     expect(

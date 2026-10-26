@@ -128,8 +128,7 @@ export function PillarGoal({ pillar, onSetGoal, onClearGoal }: PillarGoalProps) 
   const reached = pillar.level >= goalLevel
   const progress = goalProgressRatio(pillar.currentXp, goalLevel)
   const pace = goalPace(pillar.currentXp, goalLevel, pillar.goalDeadline, now)
-  const deadlinePassed =
-    !reached && pace.daysUntilDeadline !== null && pace.daysUntilDeadline <= 0
+  const deadlinePassed = !reached && pace.daysUntilDeadline !== null && pace.daysUntilDeadline <= 0
 
   return (
     <div className="flex flex-col gap-1.5 pl-9">

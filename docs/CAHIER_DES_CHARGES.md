@@ -417,6 +417,46 @@ Passe de relecture sur l'ensemble du Mode Amis (F1 à F4) avant de le considére
   le comportement de pause à la sortie de l'onglet, §9), pas pendant l'écran de fin de
   session ni le palier d'objectif atteint. Retour normal dès la fin de la session.
 
+### 10.9 Sons en boucle, Piliers et Galaxie (LOT H4)
+- **Boucle d'ambiance sans coupure** (`crossfade-loop.ts`) : chaque son d'ambiance
+  (rain/waves/forest/fire) ne boucle plus via `AudioBufferSourceNode.loop = true` (qui
+  recolle la fin au début à l'échantillon près, mais n'efface pas un défaut du fichier
+  source lui-même) mais via deux lectures en alternance, chevauchement d'1 s (retenu pour
+  les quatre fichiers du catalogue, mesurés entre 10,8 s et 30,2 s — voir
+  `sounds.ts`), enveloppe de gain à puissance égale (cos/sin, posée par
+  `AudioParam.setValueCurveAtTime`). Toute la planification (instants de lecture, courbes)
+  est calculée à l'avance en valeurs de `AudioContext.currentTime`, jamais déclenchée par
+  un `setTimeout` — la chaîne se poursuit au-delà des deux premières lectures par relais
+  via `onended` (évènement du moteur audio), avec plusieurs secondes de marge avant chaque
+  calcul suivant, pour rester fiable même si l'onglet passe en arrière-plan.
+- **Galaxie dans Piliers** : la galaxie et la carte « Équilibre » (radar) quittent l'onglet
+  Statistiques général pour la section Réglages > Piliers (sous le radar) — les deux
+  concernent les piliers, pas les statistiques générales de tâches/temps de focus.
+- **Disposition en spirale** (`galaxy-layout.ts`) : fini le placement pseudo-aléatoire par
+  hachage. Un bras par pilier, régulièrement répartis (angle stable, dérivé du rang du
+  pilier dans la liste complète du compte, pas du sous-ensemble filtré à l'écran), bras
+  gris pour les sessions sans pilier ou dont le pilier référencé n'existe plus. Chaque
+  étoile placée le long de son bras à rayon croissant selon l'ordre chronologique (la plus
+  ancienne au centre), avec une distance minimale garantie entre étoiles consécutives et
+  un léger décalage borné et déterministe (jamais `Math.random()`) pour un aspect naturel.
+  Limite assumée : au-delà d'environ un tour de spirale par bras (~45 sessions sur un même
+  pilier), deux étoiles de tours différents peuvent se rapprocher visuellement — contre
+  aucune garantie du tout avant ce lot.
+- **Objectifs de niveau par pilier** (`pillar-xp.ts`, colonnes `goal_level`/`goal_deadline`
+  sur `public.pillars`, migration `0037_pillar_goals.sql`) : niveau visé, date limite
+  optionnelle. Progression affichée (XP restante, barre) et, si une date limite est fixée,
+  le temps de focus moyen par jour nécessaire pour l'atteindre à temps. Notification
+  discrète et distincte d'un simple niveau gagné dans le bilan de session, à l'instant
+  précis où l'objectif est franchi. RLS propriétaire et GRANT déjà en place depuis la
+  migration 0034 (table entière), revalidés explicitement dans la nouvelle migration.
+- **Désactiver les piliers** (réglage « Activer les piliers de vie », Réglages > Extras,
+  synchronisé par compte comme le reste) : désactivé, plus de sélecteur de pilier sur
+  l'écran Focus, plus d'entrée de navigation Piliers dans Réglages (donc plus de radar, de
+  galaxie ni de calcul d'XP affiché — redirige vers Thèmes si on y était resté), et les
+  sessions enregistrées n'attachent plus de pilier même si un pilier était resté actif.
+  Les données des piliers ne sont jamais supprimées : tout réapparaît tel quel si le
+  réglage est réactivé.
+
 ## 11. Défis et succès (V3)
 
 ### 11.1 Défis quotidiens

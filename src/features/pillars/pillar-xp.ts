@@ -89,7 +89,12 @@ export function goalPace(
   const secondsRemaining = (xpRemaining / XP_PER_MINUTE) * 60
 
   if (deadlineMs === null) {
-    return { xpRemaining, secondsRemaining, daysUntilDeadline: null, averageSecondsPerDayNeeded: null }
+    return {
+      xpRemaining,
+      secondsRemaining,
+      daysUntilDeadline: null,
+      averageSecondsPerDayNeeded: null,
+    }
   }
 
   const daysUntilDeadline = (deadlineMs - nowMs) / DAY_MS

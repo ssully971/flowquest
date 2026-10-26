@@ -138,6 +138,17 @@ export function SettingsPanel({
     markChangelogSeen(latestChangelogVersion)
     setLastSeenChangelogVersion(latestChangelogVersion)
   }
+  // Piliers désactivés (lot 4, §5) : plus de page Piliers (ni son entrée de navigation,
+  // voir visibleNavItems plus bas) — si on y était resté (ex. désactivé depuis Extras
+  // pendant que ce panneau reste ouvert), on retombe sur Thèmes plutôt que de laisser
+  // affiché le radar/la galaxie/le calcul d'XP d'une page qui n'a plus d'entrée.
+  if (!extrasSettings.pillarsEnabled && activePage === 'pillars') {
+    setActivePage('themes')
+  }
+
+  const visibleNavItems = NAV_ITEMS.filter(
+    (item) => item.id !== 'pillars' || extrasSettings.pillarsEnabled,
+  )
 
   const handleSelectPage = (page: PageId) => {
     setActivePage(page)
@@ -242,7 +253,7 @@ export function SettingsPanel({
           <div className="hidden px-5 pb-4 sm:block">
             <ProfileCard onOpenSocial={onOpenSocial} />
           </div>
-          {NAV_ITEMS.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = item.id === activePage
             const Icon = item.icon
             return (

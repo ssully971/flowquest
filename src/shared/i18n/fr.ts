@@ -954,6 +954,9 @@ export const fr = {
       confirmTaskDeletion: 'Confirmer avant de supprimer une tâche',
       confirmTaskDeletionHint:
         'Désactivé : la tâche est supprimée tout de suite, avec 5 s pour annuler.',
+      pillarsEnabled: 'Activer les piliers de vie',
+      pillarsEnabledHint:
+        'Désactivé : plus de sélecteur de pilier, de radar ni de galaxie — les sessions continuent d’être enregistrées normalement, sans pilier. Rien n’est supprimé, tout réapparaît si tu réactives.',
       iconSize: 'Taille des icônes',
       iconSizeSmall: 'Petite',
       iconSizeMedium: 'Moyenne',
