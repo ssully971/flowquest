@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react'
 
 import { GuestImportPrompt } from '@/features/auth/components/GuestImportPrompt'
 import { useCurrentUserSync } from '@/features/auth/useCurrentUserSync'
+import { MaintenanceBanner } from '@/features/feature-flags/MaintenanceBanner'
 import { SocialPanel } from '@/features/friends/components/SocialPanel'
 import { useCheers } from '@/features/friends/useCheers'
 import { CheersBanner } from '@/features/friends/components/CheersBanner'
@@ -343,6 +344,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
       <GuestImportPrompt />
       <InstallPrompt />
       <CheersBanner cheers={cheers.cheers} onDismiss={cheers.dismiss} />
+      <MaintenanceBanner />
       {activeRoomId ? (
         <RoomScreen
           key={activeRoomId}

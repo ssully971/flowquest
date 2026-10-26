@@ -9,6 +9,7 @@ import type { PillarRecord } from '@/shared/storage/db'
 import { PillarsPage } from './PillarsPage'
 
 vi.mock('@/shared/supabase/client', () => ({
+  isSupabaseConfigured: false,
   supabase: { from: () => ({ upsert: vi.fn().mockResolvedValue({ error: null }) }) },
 }))
 

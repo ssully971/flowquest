@@ -2,6 +2,7 @@ import { Archive, ArchiveRestore } from 'lucide-react'
 import type { FormEvent } from 'react'
 import { useRef, useState } from 'react'
 
+import { FeatureGate } from '@/features/feature-flags/FeatureGate'
 import { GalaxyView } from '@/features/galaxy/components/GalaxyView'
 import { PillarGoal } from '@/features/pillars/components/PillarGoal'
 import { levelProgressForXp } from '@/features/pillars/pillar-xp'
@@ -242,10 +243,12 @@ export function PillarsPage() {
           spécifiquement, pas les statistiques générales (tâches/temps de focus). */}
       <BalanceCard activePillars={activePillars} />
 
-      <div className="flex flex-col gap-3">
-        <p className="text-sm font-medium text-[var(--panel-muted)]">{s.galaxyTitle}</p>
-        <GalaxyView />
-      </div>
+      <FeatureGate flag="galaxy">
+        <div className="flex flex-col gap-3">
+          <p className="text-sm font-medium text-[var(--panel-muted)]">{s.galaxyTitle}</p>
+          <GalaxyView />
+        </div>
+      </FeatureGate>
     </div>
   )
 }

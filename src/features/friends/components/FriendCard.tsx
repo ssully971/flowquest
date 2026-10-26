@@ -2,6 +2,7 @@ import { Flag, Flame, MoreVertical, UserMinus, UserX } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { Avatar } from '@/features/avatar/components/Avatar'
+import { FeatureGate } from '@/features/feature-flags/FeatureGate'
 import { strings } from '@/shared/i18n'
 import type { CheerEmoji } from '@/shared/supabase/database.types'
 
@@ -18,7 +19,14 @@ interface FriendCardProps {
   onCheer: (otherUserId: string, emoji: CheerEmoji) => void
 }
 
-export function FriendCard({ friend, streak, onRemove, onBlock, onReport, onCheer }: FriendCardProps) {
+export function FriendCard({
+  friend,
+  streak,
+  onRemove,
+  onBlock,
+  onReport,
+  onCheer,
+}: FriendCardProps) {
   const s = strings.friends
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -95,7 +103,9 @@ export function FriendCard({ friend, streak, onRemove, onBlock, onReport, onChee
         )}
       </div>
 
-      <CheerPicker onSend={(emoji) => onCheer(friend.id, emoji)} />
+      <FeatureGate flag="cheers">
+        <CheerPicker onSend={(emoji) => onCheer(friend.id, emoji)} />
+      </FeatureGate>
 
       <div ref={menuRef} className="relative">
         <button

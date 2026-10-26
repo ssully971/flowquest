@@ -2,6 +2,7 @@ import { Camera, Trash2 } from 'lucide-react'
 import type { ChangeEvent } from 'react'
 import { useRef } from 'react'
 
+import { FeatureGate } from '@/features/feature-flags/FeatureGate'
 import { strings } from '@/shared/i18n'
 
 import { useAvatarUpload } from '../useAvatarUpload'
@@ -33,7 +34,8 @@ export function AvatarEditor({
 }: AvatarEditorProps) {
   const s = strings.avatar
   const inputRef = useRef<HTMLInputElement>(null)
-  const { step, bitmap, error, selectFile, cancelCrop, confirmCrop, removeAvatar } = useAvatarUpload()
+  const { step, bitmap, error, selectFile, cancelCrop, confirmCrop, removeAvatar } =
+    useAvatarUpload()
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -56,14 +58,23 @@ export function AvatarEditor({
         size={size}
       />
       <div className="flex flex-col gap-1.5">
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className="inline-flex h-9 w-fit items-center gap-1.5 rounded-xl border border-[var(--panel-line)] px-3 text-xs font-medium text-[var(--panel-text)] transition-colors duration-200 hover:bg-[var(--panel-line)]"
-        >
-          <Camera size={14} strokeWidth={1.75} aria-hidden="true" />
-          {s.uploadLabel}
-        </button>
+        <FeatureGate flag="avatar_upload">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="inline-flex h-9 w-fit items-center gap-1.5 rounded-xl border border-[var(--panel-line)] px-3 text-xs font-medium text-[var(--panel-text)] transition-colors duration-200 hover:bg-[var(--panel-line)]"
+          >
+            <Camera size={14} strokeWidth={1.75} aria-hidden="true" />
+            {s.uploadLabel}
+          </button>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+        </FeatureGate>
         {avatarUrl ? (
           <button
             type="button"
@@ -74,13 +85,6 @@ export function AvatarEditor({
             {s.removeLabel}
           </button>
         ) : null}
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleFileChange}
-        />
       </div>
 
       {(step === 'cropping' || step === 'uploading') && bitmap ? (

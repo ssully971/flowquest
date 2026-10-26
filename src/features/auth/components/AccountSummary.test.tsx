@@ -33,6 +33,8 @@ vi.mock('@/shared/supabase/client', () => ({
         }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: vi.fn() } } }),
     },
+    channel: () => ({ on: vi.fn().mockReturnThis(), subscribe: vi.fn().mockReturnThis() }),
+    removeChannel: vi.fn(),
     from: () => ({
       select: () => ({
         eq: () => ({ single: () => Promise.resolve({ data: currentProfile, error: null }) }),

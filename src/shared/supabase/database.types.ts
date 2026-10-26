@@ -40,6 +40,7 @@ export interface Database {
           participate_leaderboard: boolean
           marketing_consent: boolean
           marketing_consent_at: string | null
+          last_active_at: string | null
           created_at: string
           updated_at: string
         }
@@ -66,7 +67,23 @@ export interface Database {
           participate_leaderboard?: boolean
           marketing_consent?: boolean
           marketing_consent_at?: string | null
+          last_active_at?: string | null
         }
+        Relationships: []
+      }
+      feature_flags: {
+        Row: {
+          key: string
+          enabled: boolean
+          label: string
+          description: string
+          updated_by: string | null
+          updated_at: string
+        }
+        // Aucune politique RLS INSERT/UPDATE/DELETE : toute mutation passe par la RPC
+        // admin_set_feature_flag(), jamais une écriture directe côté client.
+        Insert: Record<string, never>
+        Update: Record<string, never>
         Relationships: []
       }
       friendships: {
@@ -583,8 +600,36 @@ export interface Database {
         Args: Record<string, never>
         Returns: DuoStreakRow[]
       }
+      is_feature_enabled: {
+        Args: { flag_key: string }
+        Returns: boolean
+      }
+      admin_set_feature_flag: {
+        Args: { flag_key: string; new_enabled: boolean; new_description?: string | null }
+        Returns: Database['public']['Tables']['feature_flags']['Row']
+      }
+      touch_activity: {
+        Args: Record<string, never>
+        Returns: undefined
+      }
+      admin_stats_overview: {
+        Args: Record<string, never>
+        Returns: AdminStatsOverview
+      }
     }
   }
+}
+
+export interface AdminStatsOverview {
+  totalSignups: number
+  dau: number
+  wau: number
+  mau: number
+  impactHours: number
+  signupsPerDay: { date: string; count: number }[]
+  retentionD1: number | null
+  retentionD7: number | null
+  pillarDistribution: { name: string; count: number }[]
 }
 
 export interface FriendProfilePreviewRow {

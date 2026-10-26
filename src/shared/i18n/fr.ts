@@ -303,6 +303,10 @@ export const fr = {
     modeHome: 'Accueil',
     modeFocus: 'Focus',
     modeAmbient: 'Ambiant',
+    maintenanceBanner: {
+      label: 'Maintenance :',
+      dismiss: 'Fermer ce message',
+    },
   },
   social: {
     panelTitle: 'Amis et salons',
@@ -310,6 +314,7 @@ export const fr = {
     entryLabel: 'Amis, salons et classement',
     guestLabel: 'Invité',
     unreadBadge: 'Notifications non lues',
+    featureDisabled: 'Les fonctionnalités sociales sont temporairement indisponibles.',
     tabs: {
       rooms: 'Salons',
     },
@@ -556,6 +561,7 @@ export const fr = {
       resend: 'Renvoyer l’e-mail',
       resendCooldown: 'Renvoyer dans',
       resendSuccess: 'E-mail renvoyé.',
+      closed: 'Les inscriptions sont temporairement fermées. Réessaie plus tard.',
     },
     resetPassword: {
       requestTitle: 'Mot de passe oublié',

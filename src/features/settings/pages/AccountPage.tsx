@@ -7,6 +7,7 @@ import { SignInForm } from '@/features/auth/components/SignInForm'
 import { SignUpForm } from '@/features/auth/components/SignUpForm'
 import { useAuth } from '@/features/auth/useAuth'
 import { LocalBackupSection } from '@/features/backup/components/LocalBackupSection'
+import { useFeatureFlag } from '@/features/feature-flags/useFeatureFlag'
 import { strings } from '@/shared/i18n'
 
 export function AccountPage() {
@@ -20,6 +21,7 @@ export function AccountPage() {
     isPasswordRecovery,
   } = useAuth()
   const [tab, setTab] = useState<'signIn' | 'signUp' | 'forgotPassword'>('signIn')
+  const signupsEnabled = useFeatureFlag('signups')
 
   return (
     <div className="flex flex-col gap-6">
@@ -80,17 +82,19 @@ export function AccountPage() {
               >
                 {strings.auth.signIn.tab}
               </button>
-              <button
-                type="button"
-                onClick={() => setTab('signUp')}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-200 ${
-                  tab === 'signUp'
-                    ? 'bg-[var(--panel-surface-2)] text-[var(--panel-text)]'
-                    : 'text-[var(--panel-muted)]'
-                }`}
-              >
-                {strings.auth.signUp.tab}
-              </button>
+              {signupsEnabled ? (
+                <button
+                  type="button"
+                  onClick={() => setTab('signUp')}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-200 ${
+                    tab === 'signUp'
+                      ? 'bg-[var(--panel-surface-2)] text-[var(--panel-text)]'
+                      : 'text-[var(--panel-muted)]'
+                  }`}
+                >
+                  {strings.auth.signUp.tab}
+                </button>
+              ) : null}
             </div>
           ) : null}
           {tab === 'signIn' ? (
@@ -99,7 +103,13 @@ export function AccountPage() {
               onForgotPassword={() => setTab('forgotPassword')}
             />
           ) : tab === 'signUp' ? (
-            <SignUpForm onSwitchToSignIn={() => setTab('signIn')} />
+            signupsEnabled ? (
+              <SignUpForm onSwitchToSignIn={() => setTab('signIn')} />
+            ) : (
+              <p className="max-w-sm text-sm text-[var(--panel-muted)]">
+                {strings.auth.signUp.closed}
+              </p>
+            )
           ) : (
             <ForgotPasswordForm onBack={() => setTab('signIn')} />
           )}
