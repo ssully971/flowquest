@@ -5,6 +5,7 @@ import { DEFAULT_QUOTES_SETTINGS } from './quotes-settings'
 import type { QuotesSettings } from './quotes-settings'
 import { QuotesSettingsContext } from './quotes-settings-context'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const STORAGE_KEY = 'flowquest.quotesSettings'
 
 function isQuotesSettings(value: unknown): value is QuotesSettings {

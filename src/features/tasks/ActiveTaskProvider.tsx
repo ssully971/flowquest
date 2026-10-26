@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { ActiveTaskContext } from './active-task-context'
 import { setActiveTaskIdRef } from './active-task-ref'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const STORAGE_KEY = 'flowquest.activeTaskId'
 
 function readStored(): string | null {

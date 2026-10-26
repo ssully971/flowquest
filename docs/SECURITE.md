@@ -1,4 +1,4 @@
-# Sécurité — Flowquest
+# Sécurité — Fokitsu
 
 Référence des politiques RLS (Row Level Security) et des règles de sécurité appliquées
 côté base de données Supabase. Toute vérification d'accès vit ici, jamais seulement

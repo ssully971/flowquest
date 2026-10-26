@@ -1,6 +1,6 @@
 // Intégration Google Identity Services (GIS) : contrairement à l'OAuth redirigé
 // (signInWithOAuth), la fenêtre de consentement affiche ici le nom et le domaine de
-// Flowquest plutôt que l'URL technique du projet Supabase. Voir docs/GOOGLE_AUTH.md.
+// Fokitsu plutôt que l'URL technique du projet Supabase. Voir docs/GOOGLE_AUTH.md.
 
 export interface GoogleCredentialResponse {
   credential: string

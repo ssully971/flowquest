@@ -1,5 +1,6 @@
 import { deleteDB } from 'idb'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const INDEXED_DB_NAME = 'flowquest'
 
 /**

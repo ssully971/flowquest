@@ -1,6 +1,7 @@
 import type { SettingsPageId } from './page-id'
 import { SETTINGS_PAGE_IDS } from './page-id'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const STORAGE_KEY = 'flowquest.settingsLastPage'
 
 /** Dernière page des Réglages ouverte par la personne (lot 2 : le panneau se souvient

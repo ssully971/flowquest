@@ -1,10 +1,10 @@
-# Flowquest : cahier des charges
+# Fokitsu : cahier des charges
 
 > Document de référence pour la construction du projet (à placer à la racine du dépôt, par exemple `docs/CAHIER_DES_CHARGES.md`). Il sert de source de vérité pour Claude Code.
 
 ## 1. Vision
 
-Flowquest (« la quête du flow ») est un tableau de bord de concentration, 100 % gratuit, inspiré de **Flocus** (ambiance, horloge, thèmes, réglages) et de **Forest** (amis, classement, sessions de groupe, défis, succès). Il fonctionne dans le navigateur, sur ordinateur et sur iPad, et s'installe comme une application (PWA).
+Fokitsu (« la quête du flow ») est un tableau de bord de concentration, 100 % gratuit, inspiré de **Flocus** (ambiance, horloge, thèmes, réglages) et de **Forest** (amis, classement, sessions de groupe, défis, succès). Il fonctionne dans le navigateur, sur ordinateur et sur iPad, et s'installe comme une application (PWA).
 
 Public initial : étudiants (tutorat, amis de promo). Aucun paiement, aucune fonctionnalité verrouillée : tout ce qui est « Plus » chez Flocus est gratuit ici.
 
@@ -46,7 +46,7 @@ Public initial : étudiants (tutorat, amis de promo). Aucun paiement, aucune fon
 Trois modes, basculables en bas à droite. Le dernier mode utilisé est mémorisé.
 
 ### 5.1 Mode Home (accueil)
-- Haut gauche : **logo/nom « Flowquest »**.
+- Haut gauche : **logo/nom « Fokitsu »**.
 - Haut droite : **citation** qui change (à chaque chargement ou chaque jour, au choix de l'utilisateur).
 - Centre : **phrase de salutation** avec le prénom, puis **l'heure** en grand.
 - Salutations dynamiques : varient selon l'heure et le jour de la semaine (« La semaine commence, Sullivan »). Désactivées : « Bonjour » fixe. Option pour masquer complètement la salutation.
@@ -81,7 +81,7 @@ Principe : à chaque lancement, on enregistre `{état, started_at, durée, segme
 - L'état est écrit en local (IndexedDB) **et**, si connecté, en base, pour qu'un rechargement ou un autre appareil reprenne la session.
 - Au retour, si la fin est dépassée : la session est **validée avec sa vraie heure de fin** et la transition suivante est appliquée (pause, etc.).
 - **Notification de fin** : un navigateur ne peut pas jouer de son page fermée. On utilise le **Web Push** : à chaque lancement, l'app enregistre une notification programmée ; une Edge Function Supabase planifiée (pg_cron, toutes les minutes) envoie les push arrivés à échéance. Annulée si la session est mise en pause ou abandonnée.
-- **Installation PWA obligatoire pour le push sur iOS** (iOS 16.4+) : une **popup discrète** explique « Ajoute Flowquest à l'écran d'accueil pour recevoir l'alerte de fin », visible sur iOS et Android, une seule fois, avec « Plus tard ». Le son d'alerte ne joue que si l'app est ouverte ; en arrière-plan c'est la notification système qui prévient.
+- **Installation PWA obligatoire pour le push sur iOS** (iOS 16.4+) : une **popup discrète** explique « Ajoute Fokitsu à l'écran d'accueil pour recevoir l'alerte de fin », visible sur iOS et Android, une seule fois, avec « Plus tard ». Le son d'alerte ne joue que si l'app est ouverte ; en arrière-plan c'est la notification système qui prévient.
 
 ### 6.3 Picture-in-Picture
 Via Document Picture-in-Picture (Chrome/Edge ordinateur) ou, à défaut, une fenêtre vidéo/canvas en PiP classique, elle-même déclenchée via `requestPictureInPicture()` standard ou, en repli, l'API historique `webkitSetPresentationMode()` de WebKit. Option « Afficher la tâche dans le PiP ».
@@ -540,7 +540,7 @@ Les utilisateurs collectionneront des **éléments médicaux** (anatomie, moléc
 
 Page publique, accessible sans compte, dans l'esprit de Flocus et d'Outremed : une page d'accueil qui présente le produit puis envoie vers l'app.
 
-- **En-tête** : logo Flowquest, navigation (Fonctionnalités, Aide, Contact), bouton **« Ouvrir Flowquest »**.
+- **En-tête** : logo Fokitsu, navigation (Fonctionnalités, Aide, Contact), bouton **« Ouvrir Fokitsu »**.
 - **Héro** : slogan (à écrire), sous-titre « gratuit pour toujours », deux boutons (Ouvrir l'app, Créer un compte), capture de l'app.
 - **Sections de fonctionnalités**, chacune avec une capture : timer et modes, thèmes et ambiances, tâches, statistiques, séries, sessions de groupe, amis et classement, défis et succès.
 - Section **« Gratuit, vraiment »** : tout est inclus, sans offre payante.
@@ -605,7 +605,7 @@ Vues ou fonctions SQL pour les stats (agrégats par période), le classement ent
 
 ## 18. Décisions déjà prises (rappel)
 
-- Nom : **Flowquest**. Français seul au départ.
+- Nom : **Fokitsu**. Français seul au départ.
 - Un compte, un champ de rôle ; deux comptes réels (perso et admin).
 - Mode invité oui. Pas de vidéos. Sons d'ambiance fournis par Sullivan s'ils sont légers.
 - PWA + Web Push pour la fin de session ; popup discrète pour iOS et Android.
@@ -687,7 +687,7 @@ Contrastes : texte courant ≥ 4,5:1, grand texte ≥ 3:1 sur les deux thèmes (
 - **Icônes** : une seule famille, contour de **1,75 px**, extrémités arrondies, 20 à 22 px, couleur héritée (`currentColor`). Pas d'emoji ni d'icônes mélangées.
 - Animations : transitions de **150 à 300 ms**, liées à une action ; pas d'apparition décorative ni de parallaxe.
 
-### 20.5 Éléments signature (ce qui distingue Flowquest de Flocus)
+### 20.5 Éléments signature (ce qui distingue Fokitsu de Flocus)
 - **Motif « courbes de niveau »** : lignes ondulées en fond, couleur `--contour`, évoquant le flow.
 - **Fond par défaut « Horizon »** : lueur d'améthyste qui monte du bas de l'écran (`--horizon`), courbes de niveau par-dessus. Les autres fonds (Contours, Aubergine, Brume, Stries…) sont en CSS, dans la même teinte.
 - **Progression en « sentier »** : dans le mode Focus, le temps écoulé se lit le long d'une ligne ondulée (SVG, `pathLength="100"`, trait d'accent) ; un point avance dessus (CSS `offset-path` + `offset-distance` calculés depuis la progression réelle).

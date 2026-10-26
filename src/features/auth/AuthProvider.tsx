@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (ensureError) {
         // Le message affiché est traduit/générique ; la vraie erreur Supabase part en
         // console pour le diagnostic, jamais avalée silencieusement.
-        console.error('[Flowquest] Échec du chargement du profil (ensure_profile) :', ensureError)
+        console.error('[Fokitsu] Échec du chargement du profil (ensure_profile) :', ensureError)
       }
       const message = ensureError
         ? translateAuthError(ensureError.message)
@@ -192,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         nonce,
       })
       if (error) {
-        console.error('[Flowquest] Échec de la connexion Google (ID token) :', error)
+        console.error('[Fokitsu] Échec de la connexion Google (ID token) :', error)
         showToast({ type: 'error', message: translateAuthError(error.message) })
         throw error
       }
@@ -252,7 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) throw new Error('Supabase non configuré')
     const { error } = await supabase.rpc('delete_own_account')
     if (error) {
-      console.error('[Flowquest] Échec de la suppression du compte :', error)
+      console.error('[Fokitsu] Échec de la suppression du compte :', error)
       showToast({ type: 'error', message: translateAuthError(error.message) })
       throw error
     }

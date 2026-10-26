@@ -7,6 +7,7 @@ import { ExtrasSettingsContext } from './extras-settings-context'
 import { SETTINGS_PAGE_IDS } from './page-id'
 import { setPillarsEnabledRef } from './pillars-enabled-ref'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const STORAGE_KEY = 'flowquest.extrasSettings'
 
 function isExtrasSettings(value: unknown): value is ExtrasSettings {

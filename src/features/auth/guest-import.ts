@@ -84,6 +84,7 @@ export async function importGuestDataToAccount(userId: string): Promise<ImportSu
   return summary
 }
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const OFFERED_KEY_PREFIX = 'flowquest.importOffered.'
 
 export function hasOfferedImport(userId: string): boolean {

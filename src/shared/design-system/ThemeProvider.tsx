@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { ThemeContext } from './theme-context'
 import type { Appearance } from './theme-context'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const STORAGE_KEY = 'flowquest.appearance'
 
 function readStoredAppearance(): Appearance {

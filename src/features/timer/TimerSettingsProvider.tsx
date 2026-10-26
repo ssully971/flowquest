@@ -5,6 +5,7 @@ import { DEFAULT_TIMER_SETTINGS } from './timer-settings'
 import type { TimerSettings } from './timer-settings'
 import { TimerSettingsContext } from './timer-settings-context'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const STORAGE_KEY = 'flowquest.timerSettings'
 
 function isTimerSettings(value: unknown): value is TimerSettings {

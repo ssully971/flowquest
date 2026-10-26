@@ -27,7 +27,7 @@ describe('LocalBackupSection — export et import de la sauvegarde locale (LOT 1
     await waitFor(() => expect(exportSpy).toHaveBeenCalled())
   })
 
-  it('affiche une erreur quand le fichier importé n’est pas une sauvegarde Flowquest', async () => {
+  it('affiche une erreur quand le fichier importé n’est pas une sauvegarde Fokitsu', async () => {
     renderSection()
     const file = new File(['{ "app": "autre" }'], 'sauvegarde.json', { type: 'application/json' })
     const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -35,7 +35,7 @@ describe('LocalBackupSection — export et import de la sauvegarde locale (LOT 1
     fireEvent.change(input, { target: { files: [file] } })
 
     expect(
-      await screen.findByText('Ce fichier ne vient pas de Flowquest.'),
+      await screen.findByText('Ce fichier ne vient pas de Fokitsu.'),
     ).toBeInTheDocument()
   })
 

@@ -11,6 +11,7 @@ import { SignInForm } from './components/SignInForm'
 import { SignUpForm } from './components/SignUpForm'
 import { useAuth } from './useAuth'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const DISMISSED_KEY = 'flowquest.authGateDismissed'
 
 type GateView = 'choice' | 'signIn' | 'signUp' | 'forgotPassword'

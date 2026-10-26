@@ -18,7 +18,7 @@ export interface UseInstallPromptResult {
   dismiss: () => void
 }
 
-/** §6.2 du cahier des charges : popup discrète « Ajoute Flowquest à l'écran d'accueil »,
+/** §6.2 du cahier des charges : popup discrète « Ajoute Fokitsu à l'écran d'accueil »,
  * visible sur iOS et Android, une seule fois, avec « Plus tard ». iOS n'a pas d'API
  * d'installation (pas de `beforeinstallprompt`) : on y affiche juste les instructions. */
 export function useInstallPrompt(): UseInstallPromptResult {

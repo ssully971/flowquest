@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 
 import { DEFAULT_DAILY_GOAL_MINUTES } from './compute-stats'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const STORAGE_KEY = 'flowquest.dailyGoalMinutes'
 export const MIN_DAILY_GOAL_MINUTES = 15
 export const MAX_DAILY_GOAL_MINUTES = 480

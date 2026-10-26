@@ -6,7 +6,7 @@
  * l'image totalement net.
  *
  * Limite connue : ce voile est uniforme, pas adapté à la luminosité réelle de chaque photo.
- * Une image très sombre en thème clair (texte foncé) peut rester difficile à lire — Flowquest
+ * Une image très sombre en thème clair (texte foncé) peut rester difficile à lire — Fokitsu
  * ne fait pas d'analyse de luminance par image. Choisis plutôt une photo assez claire, ou
  * utilise le réglage de flou pour unifier le fond si besoin.
  */

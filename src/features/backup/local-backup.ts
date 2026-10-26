@@ -8,7 +8,12 @@ import { APP_NAME } from '@/shared/app-config'
 import type { FocusSessionRecord, TaskRecord } from '@/shared/storage/db'
 
 export const BACKUP_SCHEMA_VERSION = 1
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const BACKUP_APP_MARKER = 'flowquest'
+// À l'import, une sauvegarde portant l'ancien OU le nouveau marqueur est acceptée ; à l'export,
+// on garde l'ancien (phase 1 du renommage) pour que les sauvegardes restent lisibles par les
+// versions déjà installées.
+const ACCEPTED_BACKUP_MARKERS: readonly unknown[] = [BACKUP_APP_MARKER, 'fokitsu']
 
 export interface LocalBackup {
   app: typeof BACKUP_APP_MARKER
@@ -63,7 +68,7 @@ export function downloadBackup(backup: LocalBackup): void {
 
   const link = document.createElement('a')
   link.href = url
-  link.download = `flowquest-sauvegarde-${dateStamp}.json`
+  link.download = `fokitsu-sauvegarde-${dateStamp}.json`
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
@@ -100,7 +105,7 @@ export function parseBackupFile(raw: string): LocalBackup {
   }
   const candidate = parsed as Record<string, unknown>
 
-  if (candidate.app !== BACKUP_APP_MARKER) {
+  if (!ACCEPTED_BACKUP_MARKERS.includes(candidate.app)) {
     throw new BackupParseError(`Ce fichier ne vient pas de ${APP_NAME}.`)
   }
   if (typeof candidate.schemaVersion !== 'number') {

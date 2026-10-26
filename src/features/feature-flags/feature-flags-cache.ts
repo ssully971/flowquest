@@ -3,6 +3,7 @@ import { isSupabaseConfigured, supabase } from '@/shared/supabase/client'
 import { FLAG_DEFAULTS } from './flag-defaults'
 import type { FlagKey } from './flag-defaults'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const STORAGE_KEY = 'flowquest.featureFlags'
 
 /**

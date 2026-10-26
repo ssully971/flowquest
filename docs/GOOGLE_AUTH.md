@@ -1,12 +1,12 @@
-# Connexion Google — Flowquest
+# Connexion Google — Fokitsu
 
 Par défaut (OAuth redirigé via Supabase), la fenêtre de consentement Google affiche
 l'URL technique du projet Supabase (`xxxx.supabase.co`) plutôt que le nom et le
-domaine de Flowquest. Ce document explique la solution gratuite pour corriger ça :
+domaine de Fokitsu. Ce document explique la solution gratuite pour corriger ça :
 **Google Identity Services (GIS)**, qui envoie directement un jeton d'identité au
 navigateur (`supabase.auth.signInWithIdToken`), sans passer par une redirection vers
 Google puis retour. Rien de tout ça ne change le fonctionnement si tu ne configures
-rien : Flowquest retombe alors automatiquement sur l'OAuth redirigé déjà en place.
+rien : Fokitsu retombe alors automatiquement sur l'OAuth redirigé déjà en place.
 
 ## 1. Pourquoi deux mécanismes coexistent
 
@@ -24,14 +24,14 @@ rien : Flowquest retombe alors automatiquement sur l'OAuth redirigé déjà en p
    projet (ou réutilise celui éventuellement déjà créé pour l'OAuth Supabase
    existant).
 2. **Écran de consentement OAuth** (APIs & Services > OAuth consent screen) :
-   - Nom de l'application : `Flowquest`.
-   - Logo de l'application : le logo Flowquest (`public/brand/logo-icon.png`), pour
+   - Nom de l'application : `Fokitsu`.
+   - Logo de l'application : le logo Fokitsu (`public/brand/logo-icon.png`), pour
      qu'il apparaisse dans la fenêtre de consentement.
    - Domaine de l'application / domaines autorisés : `flowquestt.vercel.app` (et ton
      domaine personnalisé si tu en configures un plus tard).
 3. **Identifiants** (APIs & Services > Credentials) > Create Credentials > OAuth
    client ID > type **Web application** :
-   - Nom : `Flowquest — Google Identity Services`.
+   - Nom : `Fokitsu — Google Identity Services`.
    - **Authorized JavaScript origins** : ajoute `https://flowquestt.vercel.app` et, si
      tu testes en local, `http://localhost:5173` (port Vite par défaut).
    - Pas besoin d'« Authorized redirect URIs » pour ce client-ci : GIS ne redirige
@@ -43,7 +43,7 @@ rien : Flowquest retombe alors automatiquement sur l'OAuth redirigé déjà en p
 > de sécurité. Le nouveau Client ID ci-dessus est spécifique à Google Identity
 > Services.
 
-## 3. Côté Flowquest
+## 3. Côté Fokitsu
 
 Ajoute dans ton `.env` (jamais commité) :
 
@@ -51,7 +51,7 @@ Ajoute dans ton `.env` (jamais commité) :
 VITE_GOOGLE_CLIENT_ID=XXXXXXXXXXXX.apps.googleusercontent.com
 ```
 
-Puis redéploie (ou relance le serveur de dev). Sans cette variable, Flowquest
+Puis redéploie (ou relance le serveur de dev). Sans cette variable, Fokitsu
 continue de fonctionner exactement comme avant (bouton Google classique, OAuth
 redirigé via Supabase) — aucune régression si tu ne configures rien.
 

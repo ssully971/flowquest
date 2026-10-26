@@ -31,7 +31,7 @@ export function LocalBackupSection() {
     try {
       await exportLocalBackup()
     } catch (error) {
-      console.error('[Flowquest] Échec de l’export de la sauvegarde locale :', error)
+      console.error('[Fokitsu] Échec de l’export de la sauvegarde locale :', error)
       showToast({ type: 'error', message: strings.backup.exportError })
     } finally {
       setIsExporting(false)
@@ -53,7 +53,7 @@ export function LocalBackupSection() {
       if (error instanceof BackupParseError) {
         showToast({ type: 'error', message: error.message })
       } else {
-        console.error('[Flowquest] Échec de l’import de la sauvegarde locale :', error)
+        console.error('[Fokitsu] Échec de l’import de la sauvegarde locale :', error)
         showToast({ type: 'error', message: strings.backup.importError })
       }
     } finally {

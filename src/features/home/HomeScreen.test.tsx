@@ -31,9 +31,9 @@ function seedClockSettings(overrides: Partial<typeof DEFAULT_CLOCK_SETTINGS>) {
 }
 
 describe('HomeScreen — nom et citation agrandis, marges généreuses', () => {
-  it('le logo « flowquest » est affiché autour de 36-44px de haut avec de grandes marges', () => {
+  it('le logo « Fokitsu » est affiché autour de 36-44px de haut avec de grandes marges', () => {
     renderHomeScreen()
-    const logo = screen.getByAltText('Flowquest')
+    const logo = screen.getByAltText('Fokitsu')
     expect(logo.tagName).toBe('IMG')
     expect(logo.className).toContain('h-9')
     expect(logo.className).toContain('sm:h-11')

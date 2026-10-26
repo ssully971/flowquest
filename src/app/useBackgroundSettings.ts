@@ -7,6 +7,7 @@ import { normalizeBackgroundModeSelection } from './background-selection'
 import type { BackgroundModeSelection, BackgroundSelections } from './background-selection'
 import type { AppMode } from './useAppMode'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const STORAGE_KEY = 'flowquest.backgrounds'
 
 /**

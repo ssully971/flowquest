@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { ActivePillarContext } from './active-pillar-context'
 import { setActivePillarIdRef } from './active-pillar-ref'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const STORAGE_KEY = 'flowquest.activePillarId'
 
 function readStored(): string | null {

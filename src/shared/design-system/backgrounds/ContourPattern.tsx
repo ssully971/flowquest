@@ -5,7 +5,7 @@ interface ContourPatternProps {
 }
 
 export function ContourPattern({ opacity = 1 }: ContourPatternProps) {
-  const patternId = `flowquest-contour-${++nextPatternId}`
+  const patternId = `fokitsu-contour-${++nextPatternId}`
 
   return (
     <svg

@@ -6,7 +6,7 @@ export type LogoVariant = 'mark' | 'wordmark'
 export type LogoTone = 'auto' | 'panel'
 
 interface LogoProps {
-  /** `mark` : seule l'icône chronomètre. `wordmark` (défaut) : le texte « flowquest ». */
+  /** `mark` : seule l'icône chronomètre. `wordmark` (défaut) : le texte « Fokitsu ». */
   variant?: LogoVariant
   /**
    * `auto` (défaut) : blanc en thème sombre, noir en thème clair (fonds pleins, comme

@@ -5,6 +5,7 @@ import { strings } from '@/shared/i18n'
 
 import { useMaintenanceBanner } from './useMaintenanceBanner'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const DISMISSED_KEY = 'flowquest.maintenanceBannerDismissed'
 
 /**

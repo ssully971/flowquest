@@ -70,7 +70,7 @@ export interface CustomBackgroundRecord {
   updatedAt: number
 }
 
-interface FlowquestDB extends DBSchema {
+interface FokitsuDB extends DBSchema {
   timerState: {
     key: string
     value: StoredRecord<TimerState>
@@ -107,14 +107,15 @@ interface FlowquestDB extends DBSchema {
   }
 }
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const DB_NAME = 'flowquest'
 const DB_VERSION = 6
 
-let dbPromise: Promise<IDBPDatabase<FlowquestDB>> | null = null
+let dbPromise: Promise<IDBPDatabase<FokitsuDB>> | null = null
 
-export function getDb(): Promise<IDBPDatabase<FlowquestDB>> {
+export function getDb(): Promise<IDBPDatabase<FokitsuDB>> {
   if (!dbPromise) {
-    dbPromise = openDB<FlowquestDB>(DB_NAME, DB_VERSION, {
+    dbPromise = openDB<FokitsuDB>(DB_NAME, DB_VERSION, {
       upgrade(db) {
         if (!db.objectStoreNames.contains('timerState')) {
           db.createObjectStore('timerState')

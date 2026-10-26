@@ -43,7 +43,7 @@ describe('InstallPrompt — popup discrète d’ajout à l’écran d’accueil 
     act(() => dispatchBeforeInstallPrompt())
 
     expect(
-      screen.getByText('Ajoute Flowquest à l’écran d’accueil pour recevoir l’alerte de fin.'),
+      screen.getByText('Ajoute Fokitsu à l’écran d’accueil pour recevoir l’alerte de fin.'),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Installer' })).toBeInTheDocument()
 

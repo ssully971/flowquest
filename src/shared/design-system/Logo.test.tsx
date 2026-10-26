@@ -24,12 +24,12 @@ describe('Logo — variantes selon le thème (LOT 2)', () => {
 
   it('variant="mark" affiche toujours l’icône chronomètre, quel que soit le thème', () => {
     renderLogo('dark', { variant: 'mark' })
-    expect(screen.getByAltText('Flowquest')).toHaveAttribute('src', '/brand/logo-icon.webp')
+    expect(screen.getByAltText('Fokitsu')).toHaveAttribute('src', '/brand/logo-icon.webp')
   })
 
   it('tone="auto" (défaut) affiche la version blanche en thème sombre', () => {
     renderLogo('dark')
-    expect(screen.getByAltText('Flowquest')).toHaveAttribute(
+    expect(screen.getByAltText('Fokitsu')).toHaveAttribute(
       'src',
       '/brand/logo-wordmark-white.webp',
     )
@@ -37,7 +37,7 @@ describe('Logo — variantes selon le thème (LOT 2)', () => {
 
   it('tone="auto" (défaut) affiche la version noire en thème clair', () => {
     renderLogo('light')
-    expect(screen.getByAltText('Flowquest')).toHaveAttribute(
+    expect(screen.getByAltText('Fokitsu')).toHaveAttribute(
       'src',
       '/brand/logo-wordmark-black.webp',
     )
@@ -45,7 +45,7 @@ describe('Logo — variantes selon le thème (LOT 2)', () => {
 
   it('tone="panel" affiche la version colorée en thème sombre (contraste suffisant)', () => {
     renderLogo('dark', { tone: 'panel' })
-    expect(screen.getByAltText('Flowquest')).toHaveAttribute(
+    expect(screen.getByAltText('Fokitsu')).toHaveAttribute(
       'src',
       '/brand/logo-wordmark-color.webp',
     )
@@ -53,7 +53,7 @@ describe('Logo — variantes selon le thème (LOT 2)', () => {
 
   it('tone="panel" retombe sur la version noire en thème clair (la version colorée n’a pas assez de contraste sur un panneau clair)', () => {
     renderLogo('light', { tone: 'panel' })
-    expect(screen.getByAltText('Flowquest')).toHaveAttribute(
+    expect(screen.getByAltText('Fokitsu')).toHaveAttribute(
       'src',
       '/brand/logo-wordmark-black.webp',
     )

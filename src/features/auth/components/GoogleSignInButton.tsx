@@ -12,7 +12,7 @@ interface GoogleSignInButtonProps {
 
 /**
  * Affiche le bouton natif Google Identity Services (GIS) quand VITE_GOOGLE_CLIENT_ID est
- * configuré : la fenêtre de consentement montre alors le nom et le domaine de Flowquest,
+ * configuré : la fenêtre de consentement montre alors le nom et le domaine de Fokitsu,
  * pas l'URL technique du projet Supabase. Voir docs/GOOGLE_AUTH.md. Sans cette variable,
  * ou si GIS ne charge pas (réseau, bloqueur de script), on retombe sur l'OAuth redirigé
  * déjà en place.
@@ -51,7 +51,7 @@ export function GoogleSignInButton({ label }: GoogleSignInButtonProps) {
         if (!cancelled) setGisReady(true)
       } catch (error) {
         console.error(
-          '[Flowquest] Google Identity Services indisponible, repli sur la connexion redirigée :',
+          '[Fokitsu] Google Identity Services indisponible, repli sur la connexion redirigée :',
           error,
         )
       }

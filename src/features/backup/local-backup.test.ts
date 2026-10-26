@@ -113,8 +113,15 @@ describe('local-backup — parseBackupFile', () => {
     expect(() => parseBackupFile('{ pas du json')).toThrow(BackupParseError)
   })
 
-  it('refuse un fichier qui ne vient pas de Flowquest', () => {
+  it('refuse un fichier qui ne vient pas de Fokitsu', () => {
     expect(() => parseBackupFile(JSON.stringify({ app: 'autre-app' }))).toThrow(BackupParseError)
+  })
+
+  it('accepte une sauvegarde portant l’ancien marqueur « flowquest » ET le nouveau « fokitsu »', () => {
+    for (const app of ['flowquest', 'fokitsu']) {
+      const raw = JSON.stringify({ ...makeEmptyBackup(), app })
+      expect(parseBackupFile(raw).app).toBe('flowquest')
+    }
   })
 
   it('refuse une sauvegarde d’une version plus récente que celle supportée', () => {

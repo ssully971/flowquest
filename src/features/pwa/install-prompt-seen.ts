@@ -1,3 +1,4 @@
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const STORAGE_KEY = 'flowquest.installPromptSeen'
 
 /** §6.2 du cahier des charges : la popup d'installation ne doit s'afficher qu'une

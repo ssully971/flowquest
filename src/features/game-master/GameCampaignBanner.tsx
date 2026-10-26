@@ -8,6 +8,7 @@ import { strings } from '@/shared/i18n'
 
 import { useCurrentCampaign } from './useCurrentCampaign'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const DISMISSED_KEY_PREFIX = 'flowquest.campaignBannerDismissed:'
 
 const END_FORMATTER = new Intl.DateTimeFormat('fr-FR', {

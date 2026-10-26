@@ -1,4 +1,4 @@
-# Bêta fermée — Flowquest
+# Bêta fermée — Fokitsu
 
 Depuis `0047_invite_codes.sql`, créer un compte exige un **code d'invitation à usage
 unique**. Les comptes existants ne sont pas concernés (`profiles.invite_ok = true`).

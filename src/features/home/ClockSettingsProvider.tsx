@@ -5,6 +5,7 @@ import { ClockSettingsContext } from './clock-settings-context'
 import { CLOCK_SIZE_SCALE, CLOCK_STYLES, DEFAULT_CLOCK_SETTINGS } from './clock-settings'
 import type { ClockSettings } from './clock-settings'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const STORAGE_KEY = 'flowquest.clockSettings'
 const CLOCK_SIZES = Object.keys(CLOCK_SIZE_SCALE)
 

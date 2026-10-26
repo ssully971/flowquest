@@ -5,6 +5,7 @@ import { BackgroundDisplaySettingsContext } from './background-display-settings-
 import { DEFAULT_BACKGROUND_DISPLAY_SETTINGS } from './background-display-settings'
 import type { BackgroundDisplaySettings } from './background-display-settings'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const STORAGE_KEY = 'flowquest.backgroundDisplaySettings'
 
 function isBackgroundDisplaySettings(value: unknown): value is BackgroundDisplaySettings {

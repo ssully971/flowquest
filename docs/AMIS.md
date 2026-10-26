@@ -1,4 +1,4 @@
-# Mode Amis — Flowquest
+# Mode Amis — Fokitsu
 
 Document de référence du Mode Amis (profil social, amis, statut en direct, classement,
 salons de focus, série partagée — V2 du cahier des charges, §10). Mis à jour à chaque lot

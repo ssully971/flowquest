@@ -17,7 +17,9 @@ const RESERVED_USERNAMES = new Set([
   'null',
   'undefined',
   'support',
+  // Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
   'flowquest',
+  'fokitsu',
 ])
 
 export type UsernameFormatIssue = 'tooShort' | 'tooLong' | 'invalidChars' | 'reserved'

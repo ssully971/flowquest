@@ -1,10 +1,10 @@
-# E-mail — Flowquest
+# E-mail — Fokitsu
 
 Le service d'envoi d'e-mail par défaut de Supabase (confirmation d'inscription,
 réinitialisation de mot de passe) est très limité en volume et en fiabilité de
 livraison (délais, spam) : il est fait pour des tests, pas pour un vrai site. Ce
 document explique comment le remplacer par **Brevo** (ex-Sendinblue), dont l'offre
-gratuite (300 e-mails/jour) suffit largement pour Flowquest, et quelles étapes manuelles
+gratuite (300 e-mails/jour) suffit largement pour Fokitsu, et quelles étapes manuelles
 tu dois faire — rien de tout ça ne se configure depuis le code.
 
 ## 1. Côté Brevo
@@ -39,7 +39,7 @@ varier légèrement selon la version de l'interface) :
 |---|---|
 | Enable Custom SMTP | activé |
 | Sender email | l'adresse validée dans Brevo (Senders) à l'étape 1 (ex. `bonjour@flowquestt.vercel.app`) |
-| Sender name | `Flowquest` |
+| Sender name | `Fokitsu` |
 | Host | `smtp-relay.brevo.com` |
 | Port | `587` |
 | Username | ton identifiant Brevo (visible sur la page SMTP) |
@@ -51,14 +51,14 @@ l'option (sinon, teste directement via une inscription).
 ## 3. Modèles d'e-mail (recommandé)
 
 `supabase/email-templates/` contient 4 modèles HTML prêts à coller, en français, aux
-couleurs de Flowquest (carte blanche arrondie sur fond `#F2EAFF`, mot « flowquest » en
+couleurs de Fokitsu (carte blanche arrondie sur fond `#F2EAFF`, mot « Fokitsu » en
 `#5A1FD1`, bouton pilule) : compatibles clients mail (tableaux, styles en ligne, pas de
 CSS externe).
 
 **Authentication > Emails > Templates**, un modèle à la fois : ouvre le fichier
 correspondant, copie tout son contenu HTML, colle-le dans le champ « Message body » du
 bon modèle Supabase, choisis un sujet en français (ex. « Confirme ton inscription sur
-flowquest »), enregistre.
+Fokitsu »), enregistre.
 
 | Fichier | Modèle Supabase |
 |---|---|
@@ -77,7 +77,7 @@ Chaque modèle garde la variable `{{ .ConfirmationURL }}` (le lien d'action) tel
 front) ne contrôlent que *quel projet Supabase* l'app utilise — jamais comment ce
 projet envoie ses e-mails. Le SMTP est un réglage du projet Supabase lui-même, donc
 exclusivement dans son dashboard. Il n'y a pas de clé SMTP à ajouter en variable
-d'environnement côté Flowquest.
+d'environnement côté Fokitsu.
 
 ## 5. Ce que l'interface fait déjà, de son côté
 
@@ -93,7 +93,7 @@ d'environnement côté Flowquest.
   réinitialisation ; le message de confirmation est volontairement le même, que
   l'adresse corresponde à un compte ou non (ne révèle jamais si une adresse est
   inscrite).
-- Le lien reçu ramène sur Flowquest en « mode récupération » (détecté via l'évènement
+- Le lien reçu ramène sur Fokitsu en « mode récupération » (détecté via l'évènement
   `PASSWORD_RECOVERY` de Supabase) : la seule action possible est alors de choisir un
   nouveau mot de passe, pas d'accéder au compte normalement.
 

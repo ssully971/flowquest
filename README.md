@@ -1,4 +1,4 @@
-# Flowquest
+# Fokitsu
 
 Application web gratuite de concentration (minuteur Pomodoro, chronomètre). Voir [`docs/CAHIER_DES_CHARGES.md`](docs/CAHIER_DES_CHARGES.md) pour la spécification complète.
 

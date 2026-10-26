@@ -1,4 +1,4 @@
-# Notifications Push — Flowquest (§6.2 du cahier des charges)
+# Notifications Push — Fokitsu (§6.2 du cahier des charges)
 
 Document de conception, **non implémenté**. Décision prise avec Sullivan : cette brique
 touche à des secrets réels (clés VAPID), à une fonction serveur déployée et à une
@@ -152,7 +152,7 @@ faudra passer à la stratégie **`injectManifest`** :
   self.addEventListener('push', (event) => {
     const data = event.data?.json() ?? {}
     event.waitUntil(
-      self.registration.showNotification(data.title ?? 'Flowquest', {
+      self.registration.showNotification(data.title ?? 'Fokitsu', {
         body: data.body,
         icon: '/icon-192.png',
         badge: '/icon-192.png',

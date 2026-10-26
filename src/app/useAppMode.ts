@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 
 export type AppMode = 'home' | 'focus' | 'ambient'
 
+// Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const STORAGE_KEY = 'flowquest.mode'
 
 function readStoredMode(): AppMode {
