@@ -11,6 +11,8 @@ import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
 import { LegalNoticePage } from '@/features/legal/pages/LegalNoticePage'
 import { PrivacyPage } from '@/features/legal/pages/PrivacyPage'
 import { TermsPage } from '@/features/legal/pages/TermsPage'
+import { ActiveRoomProvider } from '@/features/rooms/ActiveRoomProvider'
+import { GroupSessionFab } from '@/features/rooms/components/GroupSessionFab'
 import { ActivePillarProvider } from '@/features/pillars/ActivePillarProvider'
 import { BackgroundDisplaySettingsProvider } from '@/features/settings/BackgroundDisplaySettingsProvider'
 import { CustomBackgroundProvider } from '@/features/settings/CustomBackgroundProvider'
@@ -35,6 +37,15 @@ export function App() {
   const isTermsRoute = pathname === '/conditions'
   const isPrivacyRoute = pathname === '/confidentialite'
   const isLegalNoticeRoute = pathname === '/mentions-legales'
+  const isMainRoute =
+    !isTermsRoute && !isPrivacyRoute && !isLegalNoticeRoute && !isDiagnosticRoute && !isAdminRoute
+
+  // Retour à l'horloge de groupe : sur l'application, bascule en mode Focus ; depuis une autre
+  // page (conditions, admin...), le mode est mémorisé puis on retourne à l'application.
+  const returnToGroupClock = () => {
+    setMode('focus')
+    if (!isMainRoute) window.location.assign('/')
+  }
 
   return (
     <ThemeProvider>
@@ -48,35 +59,42 @@ export function App() {
                     <ExtrasSettingsProvider>
                       <BackgroundDisplaySettingsProvider>
                         <CustomBackgroundProvider>
-                          {isTermsRoute ? (
-                            <TermsPage />
-                          ) : isPrivacyRoute ? (
-                            <PrivacyPage />
-                          ) : isLegalNoticeRoute ? (
-                            <LegalNoticePage />
-                          ) : isDiagnosticRoute ? (
-                            <DiagnosticPage />
-                          ) : isAdminRoute ? (
-                            <AdminGate />
-                          ) : (
-                            <AuthGateRequestProvider>
-                              <AuthGate>
-                                <InviteCodeGate>
-                                  <SuspensionGate>
-                                    <AppShell mode={mode} onModeChange={setMode}>
-                                      {mode === 'home' ? (
-                                        <HomeScreen />
-                                      ) : mode === 'focus' ? (
-                                        <FocusScreen />
-                                      ) : (
-                                        <AmbientScreen />
-                                      )}
-                                    </AppShell>
-                                  </SuspensionGate>
-                                </InviteCodeGate>
-                              </AuthGate>
-                            </AuthGateRequestProvider>
-                          )}
+                          <ActiveRoomProvider>
+                            {isTermsRoute ? (
+                              <TermsPage />
+                            ) : isPrivacyRoute ? (
+                              <PrivacyPage />
+                            ) : isLegalNoticeRoute ? (
+                              <LegalNoticePage />
+                            ) : isDiagnosticRoute ? (
+                              <DiagnosticPage />
+                            ) : isAdminRoute ? (
+                              <AdminGate />
+                            ) : (
+                              <AuthGateRequestProvider>
+                                <AuthGate>
+                                  <InviteCodeGate>
+                                    <SuspensionGate>
+                                      <AppShell mode={mode} onModeChange={setMode}>
+                                        {mode === 'home' ? (
+                                          <HomeScreen />
+                                        ) : mode === 'focus' ? (
+                                          <FocusScreen />
+                                        ) : (
+                                          <AmbientScreen />
+                                        )}
+                                      </AppShell>
+                                    </SuspensionGate>
+                                  </InviteCodeGate>
+                                </AuthGate>
+                              </AuthGateRequestProvider>
+                            )}
+                            {/* Bouton flottant « Session en cours » (LOT M3) : sur toutes les pages
+                              sauf l'horloge elle-même (Focus et Ambiant l'affichent déjà). */}
+                            {isMainRoute && mode !== 'home' ? null : (
+                              <GroupSessionFab onReturn={returnToGroupClock} />
+                            )}
+                          </ActiveRoomProvider>
                         </CustomBackgroundProvider>
                       </BackgroundDisplaySettingsProvider>
                     </ExtrasSettingsProvider>

@@ -138,3 +138,21 @@ export function computeRoomView(room: ViewFields, now: number): RoomClockView {
     isOver,
   }
 }
+
+/**
+ * Repères du cycle Pomodoro d'un salon : nombre de focus terminés dans le cycle en cours
+ * (pour les pastilles, de 0 à N) et au total depuis le démarrage (pour l'objectif de
+ * session). Déduit du numéro de phase : le focus n°k est la phase 2(k−1).
+ */
+export function groupCycleProgress(
+  phaseIndex: number,
+  phase: RoomPhase,
+  sessionsBeforeLongBreak: number | null,
+): { completedInCycle: number; completedTotal: number } {
+  const sessions = Math.max(sessionsBeforeLongBreak ?? 4, 1)
+  // Focus entièrement terminés : avant un focus de rang pair k/2, après une pause (k+1)/2.
+  const completedTotal = phase === 'focus' ? phaseIndex / 2 : (phaseIndex + 1) / 2
+  const completedInCycle =
+    phase === 'long_break' ? sessions : completedTotal % sessions
+  return { completedInCycle, completedTotal }
+}

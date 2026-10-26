@@ -63,7 +63,9 @@ test('deux navigateurs voient le même salon se synchroniser', async ({ browser 
   await hostPage.getByText(MEMBER.username).click()
   await hostPage.getByRole('button', { name: 'Créer le salon' }).click()
 
-  await expect(hostPage.getByRole('button', { name: 'Démarrer' })).toBeVisible()
+  // LOT M3 : la session de groupe prend la place de l'horloge solo (plus de fenêtre séparée).
+  await expect(hostPage.getByText('Démarre dès que tu es prêt.')).toBeVisible()
+  await expect(hostPage.getByRole('button', { name: 'Lancer' })).toBeVisible()
 
   // 2. Le membre voit l'invitation dans SON navigateur et l'accepte. La notification
   // temps réel (LOT H1, §2) se déclenche ici : ouvrir le panneau rafraîchit la liste des
@@ -76,22 +78,16 @@ test('deux navigateurs voient le même salon se synchroniser', async ({ browser 
   // Scopé au dialogue : le toast (LOT H2, §1) a lui aussi un bouton « Accepter » depuis
   // qu'il agit directement, ambigu avec celui de la carte de salon dans le panneau.
   await memberPage.getByRole('dialog').getByRole('button', { name: 'Accepter' }).click()
-  await expect(memberPage.getByText('En attente du démarrage par l’hôte.')).toBeVisible()
+  await expect(memberPage.getByText('En attente de l’hôte')).toBeVisible()
 
   // 3. L'hôte démarre le minuteur partagé.
-  await hostPage.getByRole('button', { name: 'Démarrer' }).click()
+  await hostPage.getByRole('button', { name: 'Lancer' }).click()
   await expect(hostPage.getByRole('button', { name: 'Mettre en pause' })).toBeVisible()
 
-  // 4. Le membre, en rouvrant le salon, voit bien le compte à rebours démarré — preuve
-  // que l'état vient du même serveur partagé, pas d'un état local à chaque navigateur —
-  // et n'a aucun contrôle hôte (gating vérifié aussi côté interface, en plus de la RPC).
-  // `exact: true` : sans lui, ce nom nu est ambigu avec le bouton « Fermer la
-  // notification » du toast d'invitation (LOT H1, temps réel) encore affiché quelques
-  // secondes après l'avoir reçue.
-  await memberPage.getByRole('button', { name: 'Fermer', exact: true }).click()
-  await openRoomsTab(memberPage)
-  await memberPage.getByRole('button', { name: 'Rejoindre' }).click()
-  await expect(memberPage.getByText('En attente du démarrage par l’hôte.')).toHaveCount(0)
+  // 4. Le membre voit l'horloge démarrer SANS rien rafraîchir (Realtime, repli à 4 s) — preuve
+  // que l'état vient du même serveur partagé — en lecture seule : aucun contrôle hôte.
+  await expect(memberPage.getByText('Seul l’hôte contrôle l’horloge.')).toBeVisible()
+  await expect(memberPage.getByText('En attente de l’hôte')).toHaveCount(0)
   await expect(memberPage.getByRole('button', { name: 'Mettre en pause' })).not.toBeVisible()
 
   // 5. L'hôte transfère son rôle au membre : son propre écran perd aussitôt les
@@ -99,22 +95,17 @@ test('deux navigateurs voient le même salon se synchroniser', async ({ browser 
   await hostPage.getByRole('button', { name: 'Nommer hôte' }).click()
   await expect(hostPage.getByRole('button', { name: 'Mettre en pause' })).not.toBeVisible()
 
-  // 6. Le membre, en rouvrant à son tour, voit qu'il est désormais hôte et peut
-  // contrôler le salon — le transfert a bien traversé les deux navigateurs.
-  // `exact: true` : même ambiguïté qu'à l'étape 4 avec le toast d'invitation.
-  await memberPage.getByRole('button', { name: 'Fermer', exact: true }).click()
-  await openRoomsTab(memberPage)
-  await memberPage.getByRole('button', { name: 'Rejoindre' }).click()
+  // 6. Le membre devient hôte en direct (aucun rechargement) et peut contrôler le salon.
   await expect(memberPage.getByRole('button', { name: 'Mettre en pause' })).toBeVisible()
 
-  // 7. Le nouvel hôte (le membre) termine le salon.
+  // 7. Le nouvel hôte (le membre) termine la session pour tout le monde.
   await memberPage.getByRole('button', { name: 'Terminer' }).click()
-  await expect(memberPage.getByText('Salon terminé')).toBeVisible()
+  await expect(memberPage.getByText('Session terminée')).toBeVisible()
+  await expect(hostPage.getByText('Session terminée')).toBeVisible()
 
   // 8. Un salon terminé disparaît de « Mes salons » (list_my_rooms() exclut `status =
-  // 'ended'`) : l'ancien hôte, en rouvrant le panneau, ne voit plus ce salon du tout —
-  // plutôt qu'un bouton « Rejoindre » vers un salon qui ne tourne plus.
-  // `exact: true` : même ambiguïté qu'à l'étape 4 avec le toast d'invitation.
+  // 'ended'`) : l'ancien hôte ferme l'écran de fin, rouvre le panneau et ne voit plus ce
+  // salon du tout — plutôt qu'un bouton « Rejoindre » vers un salon qui ne tourne plus.
   await hostPage.getByRole('button', { name: 'Fermer', exact: true }).click()
   await openRoomsTab(hostPage)
   await hostPage.getByRole('tab', { name: 'Mes salons' }).click()

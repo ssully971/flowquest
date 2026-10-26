@@ -115,3 +115,5 @@ export function useRooms() {
 
   return { rooms, isLoading, loadError, refresh, create, respond }
 }
+
+export type RoomsState = ReturnType<typeof useRooms>

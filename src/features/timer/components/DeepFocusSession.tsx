@@ -21,6 +21,8 @@ interface DeepFocusSessionProps {
   status: TimerStatus
   onPrimary: () => void
   onEndSession: () => void
+  /** Session de groupe, participant non hôte : l'horloge n'est pas la sienne, aucun bouton. */
+  readOnly?: boolean
 }
 
 /**
@@ -28,7 +30,7 @@ interface DeepFocusSessionProps {
  * un vrai noir/blanc pur (pas les jetons --bg du thème, souvent teintés) — aucune citation,
  * aucune barre du bas, aucun fond d'écran. `fixed inset-0` + z-index élevé pour recouvrir
  * entièrement AppShell, y compris sa barre du bas (même principe de prise d'écran complète
- * que RoomScreen).
+ * que l’ancien écran de salon).
  */
 export function DeepFocusSession({
   theme,
@@ -40,6 +42,7 @@ export function DeepFocusSession({
   status,
   onPrimary,
   onEndSession,
+  readOnly = false,
 }: DeepFocusSessionProps) {
   const [controlsVisible, setControlsVisible] = useState(true)
   const timeoutRef = useRef<number | null>(null)
@@ -93,37 +96,39 @@ export function DeepFocusSession({
         />
       </div>
 
-      <div
-        className="flex items-center gap-6 transition-opacity duration-500"
-        style={{
-          opacity: controlsVisible ? 1 : 0,
-          pointerEvents: controlsVisible ? 'auto' : 'none',
-        }}
-      >
-        <button
-          type="button"
-          aria-label={primaryLabel}
-          onClick={onPrimary}
-          className="inline-flex h-16 w-16 items-center justify-center rounded-full border transition-transform duration-200 hover:scale-105"
-          style={{ borderColor: fg, color: fg }}
+      {readOnly ? null : (
+        <div
+          className="flex items-center gap-6 transition-opacity duration-500"
+          style={{
+            opacity: controlsVisible ? 1 : 0,
+            pointerEvents: controlsVisible ? 'auto' : 'none',
+          }}
         >
-          <PrimaryIcon
-            size={26}
-            strokeWidth={1.75}
-            aria-hidden="true"
-            fill={isRunning ? 'none' : 'currentColor'}
-          />
-        </button>
-        <button
-          type="button"
-          aria-label={strings.focus.controls.endSession}
-          onClick={onEndSession}
-          className="inline-flex h-16 w-16 items-center justify-center rounded-full border transition-transform duration-200 hover:scale-105"
-          style={{ borderColor: fg, color: fg }}
-        >
-          <Square size={22} strokeWidth={1.75} aria-hidden="true" />
-        </button>
-      </div>
+          <button
+            type="button"
+            aria-label={primaryLabel}
+            onClick={onPrimary}
+            className="inline-flex h-16 w-16 items-center justify-center rounded-full border transition-transform duration-200 hover:scale-105"
+            style={{ borderColor: fg, color: fg }}
+          >
+            <PrimaryIcon
+              size={26}
+              strokeWidth={1.75}
+              aria-hidden="true"
+              fill={isRunning ? 'none' : 'currentColor'}
+            />
+          </button>
+          <button
+            type="button"
+            aria-label={strings.focus.controls.endSession}
+            onClick={onEndSession}
+            className="inline-flex h-16 w-16 items-center justify-center rounded-full border transition-transform duration-200 hover:scale-105"
+            style={{ borderColor: fg, color: fg }}
+          >
+            <Square size={22} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

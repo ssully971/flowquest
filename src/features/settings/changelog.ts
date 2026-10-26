@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.22.0',
+    date: '2026-11-11',
+    text: 'Les sessions de groupe prennent la place de l’horloge : quand tu rejoins un salon, l’écran Focus affiche l’horloge du groupe, avec les participants en direct. Un petit bouton « Session en cours » te ramène à l’horloge depuis les autres pages.',
+  },
+  {
     version: '0.21.0',
     date: '2026-11-10',
     text: 'Les salons de focus ont maintenant trois modes : Pomodoro (focus et pauses qui s’enchaînent), Chrono et Minuteur. Tes sessions de groupe comptent dans tes statistiques et font monter ton pilier.',

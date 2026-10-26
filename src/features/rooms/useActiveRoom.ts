@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { useAuth } from '@/features/auth/useAuth'
 import { useToast } from '@/shared/toast'
@@ -13,6 +13,7 @@ import {
   startRoom,
   transferHost,
 } from './rooms-repository'
+import { computeRoomView } from './room-timer'
 import type { RoomState } from './types'
 import { useRoomRealtime } from './useRoomRealtime'
 
@@ -30,30 +31,30 @@ function errorMessage(err: unknown): string {
 export function useActiveRoom(roomId: string | null) {
   const { status, user } = useAuth()
   const { showToast } = useToast()
-  const [room, setRoom] = useState<RoomState | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
+  // L'état est rangé AVEC l'identifiant du salon qui l'a produit : si `roomId` change (je
+  // quitte un salon et j'en rejoins un autre), une réponse tardive de l'ancien salon est
+  // ignorée et l'ancien état n'est jamais affiché pour le nouveau — plus besoin de remonter
+  // le composant (`key`) comme avant, ce qui permet d'héberger ce hook au niveau de l'app.
+  const [snapshot, setSnapshot] = useState<{ roomId: string; room: RoomState } | null>(null)
+  const [failure, setFailure] = useState<{ roomId: string; message: string } | null>(null)
   const [nowMs, setNowMs] = useState(() => Date.now())
+
+  const room = snapshot && snapshot.roomId === roomId ? snapshot.room : null
+  const loadError = failure && failure.roomId === roomId ? failure.message : null
+  const isLoading = roomId !== null && room === null && loadError === null
 
   const refresh = useCallback(() => {
     if (!roomId) return Promise.resolve()
     return getRoomState(roomId)
       .then((next) => {
-        setRoom(next)
-        setLoadError(null)
+        if (next) setSnapshot({ roomId, room: next })
+        setFailure(null)
       })
       .catch((err: unknown) => {
-        setLoadError(errorMessage(err))
-      })
-      .finally(() => {
-        setIsLoading(false)
+        setFailure({ roomId, message: errorMessage(err) })
       })
   }, [roomId])
 
-  // Pas de remise à `true` de isLoading ici en cas de changement de roomId (appellerait
-  // setState de façon synchrone dans l'effet) : le composant appelant doit monter un
-  // <RoomScreen key={roomId}> frais pour changer de salon, ce qui réinitialise le hook
-  // entièrement plutôt que de réutiliser un état obsolète.
   useEffect(() => {
     if (!roomId || status !== 'authenticated') return
     void refresh()
@@ -67,6 +68,8 @@ export function useActiveRoom(roomId: string | null) {
     const interval = window.setInterval(() => setNowMs(Date.now()), 1000)
     return () => window.clearInterval(interval)
   }, [isRunning])
+
+  const view = useMemo(() => (room ? computeRoomView(room, nowMs) : null), [room, nowMs])
 
   const withFeedback = useCallback(
     async (action: () => Promise<void>) => {
@@ -109,6 +112,7 @@ export function useActiveRoom(roomId: string | null) {
 
   return {
     room,
+    view,
     isLoading,
     loadError,
     nowMs,

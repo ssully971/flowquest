@@ -27,9 +27,7 @@ import { usePillarSync } from '@/features/pillars/usePillarSync'
 import { useXpGrantNotice } from '@/features/pillars/useXpGrantNotice'
 import { GameCampaignBanner } from '@/features/game-master/GameCampaignBanner'
 import { InstallPrompt } from '@/features/pwa/InstallPrompt'
-import { RoomScreen } from '@/features/rooms/components/RoomScreen'
-import { useRoomPresence } from '@/features/rooms/useRoomPresence'
-import { useRooms } from '@/features/rooms/useRooms'
+import { useActiveGroupRoom } from '@/features/rooms/active-room-context'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
 import { blurPercentToPx } from '@/features/settings/background-display-settings'
@@ -91,7 +89,6 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const [isTasksOpen, setIsTasksOpen] = useState(false)
   const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [isSocialOpen, setIsSocialOpen] = useState(false)
-  const [activeRoomId, setActiveRoomId] = useState<string | null>(null)
   const [isStreakOpen, setIsStreakOpen] = useState(false)
   const [previousMode, setPreviousMode] = useState(mode)
 
@@ -116,9 +113,9 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   // ouvrir un second canal temps réel par état (useFriendsRealtime, useRoomInvitesRealtime...
   // supportent plusieurs montages, mais doubler les abonnements serait du gaspillage).
   const friendsState = useFriends()
-  const roomsState = useRooms()
-  // Battement de cœur global des salons (LOT M1) : fermer l'écran d'un salon ne le quitte jamais.
-  useRoomPresence(roomsState.rooms.length > 0)
+  // Mes salons (liste + invitations) viennent du fournisseur de session de groupe (LOT M3),
+  // monté une fois à la racine : battement de cœur, temps réel et horloge de groupe y vivent.
+  const { roomsState } = useActiveGroupRoom()
   const leaderboardState = useLeaderboard()
   const duoStreaksState = useDuoStreaks()
   const hasUnreadSocial =
@@ -311,9 +308,10 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
       <SocialPanel
         open={isSocialOpen}
         onClose={() => setIsSocialOpen(false)}
-        onOpenRoom={(roomId) => {
+        onOpenRoom={() => {
+          // La session de groupe prend la place de l'horloge solo : on y va directement.
           setIsSocialOpen(false)
-          setActiveRoomId(roomId)
+          onModeChange('focus')
         }}
         friendsState={friendsState}
         leaderboardState={leaderboardState}
@@ -352,13 +350,6 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
       <CheersBanner cheers={cheers.cheers} onDismiss={cheers.dismiss} />
       <MaintenanceBanner />
       <GameCampaignBanner />
-      {activeRoomId ? (
-        <RoomScreen
-          key={activeRoomId}
-          roomId={activeRoomId}
-          onClose={() => setActiveRoomId(null)}
-        />
-      ) : null}
     </div>
   )
 }

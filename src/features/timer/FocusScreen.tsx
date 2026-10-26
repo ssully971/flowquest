@@ -12,8 +12,13 @@ import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
 import { useQuotePool } from '@/features/home/useQuotePool'
 import { PillarSelector } from '@/features/pillars/components/PillarSelector'
+import { useActiveGroupRoom } from '@/features/rooms/active-room-context'
+import { GroupEndedPanel } from '@/features/rooms/components/GroupEndedPanel'
+import { GroupSessionBody } from '@/features/rooms/components/GroupSessionBody'
+import { groupCycleProgress } from '@/features/rooms/room-timer'
 import { isIOSDevice } from '@/features/pwa/platform'
 import { useExtrasSettings } from '@/features/settings/extras-settings-context'
+import { useAuth } from '@/features/auth/useAuth'
 import { useActiveTask } from '@/features/tasks/active-task-context'
 import { useTasks } from '@/features/tasks/useTasks'
 import { Logo, SegmentedControl, useResolvedTheme } from '@/shared/design-system'
@@ -33,8 +38,7 @@ import { SessionTally } from './components/SessionTally'
 import { TimerControls } from './components/TimerControls'
 import { TimerFace } from './components/TimerFace'
 import { useDeepFocus } from './useDeepFocus'
-import { getDurationMsForMode } from './durations'
-import { formatCountdown, formatElapsed } from './format'
+import { buildGroupClockSource, buildSoloClockSource } from './clock-source'
 import { fireSessionEndConfetti } from './session-end-confetti'
 import { getGoalFocusSessions } from './session-goal'
 import { toDurationsMs } from './timer-settings'
@@ -68,6 +72,8 @@ function getSegmentLabel(segment: SegmentKind): string {
 
 export function FocusScreen() {
   const timer = useFocusTimer()
+  const group = useActiveGroupRoom()
+  const { user } = useAuth()
   const { activeTaskId } = useActiveTask()
   const { tasks } = useTasks()
   const { settings: timerSettings } = useTimerSettings()
@@ -75,27 +81,45 @@ export function FocusScreen() {
   const { settings: quotesSettings } = useQuotesSettings()
   const { settings: extrasSettings } = useExtrasSettings()
   const quotePool = useQuotePool()
-  const phaseKey = timer.startedAt !== null ? `${timer.segment}:${timer.startedAt}` : null
-  const quote = usePhaseQuote(quotesSettings.category, quotePool, phaseKey)
+
+  // Une seule horloge à l'écran (LOT M3) : pendant une session de groupe, c'est l'état du
+  // salon (source serveur) qui prend la place du minuteur personnel — même emplacement,
+  // même style. Tout ce qui suit (citations, titre d'onglet, image dans l'image, Deep
+  // Focus...) ne lit que `source`, donc fonctionne à l'identique dans les deux cas.
+  const groupSource = buildGroupClockSource(group)
+  const isGroup = groupSource !== null
+  const source = groupSource ?? buildSoloClockSource(timer, timerSettings)
+
+  const quote = usePhaseQuote(quotesSettings.category, quotePool, source.phaseKey)
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
   const { showToast } = useToast()
   const resolvedTheme = useResolvedTheme()
-  useWakeLock(extrasSettings.preventSleep && timer.snapshot?.status === 'running')
+  useWakeLock(extrasSettings.preventSleep && source.status === 'running')
   const activeTask = tasks.find((task) => task.id === activeTaskId) ?? null
+
+  // Le minuteur personnel ne tourne jamais en parallèle d'une session de groupe : s'il
+  // tournait, il est mis en pause (il reprendra à la main quand la session sera finie).
+  const soloStatus = timer.snapshot?.status
+  const pauseSolo = timer.pause
+  useEffect(() => {
+    if (isGroup && soloStatus === 'running') pauseSolo()
+  }, [isGroup, soloStatus, pauseSolo])
 
   // Deep Focus (LOT G2) : jamais sur le chronomètre libre — seulement une phase de FOCUS
   // du Pomodoro. Volontairement indépendant du statut running/paused (voir
   // useDeepFocus.ts) : sinon la pause déclenchée par ce hook désinstallerait son propre
-  // écouteur avant que le toast de reprise n'ait pu se déclencher au retour.
+  // écouteur avant que le toast de reprise n'ait pu se déclencher au retour. Session de
+  // groupe : même mise en page minimale, mais jamais de pause automatique (l'horloge est
+  // celle de tout le groupe, seul l'hôte peut la mettre en pause).
   const deepFocusFlagEnabled = useFeatureFlag('deep_focus')
   const isDeepFocusEligible =
     timerSettings.deepFocusEnabled &&
     deepFocusFlagEnabled &&
-    timer.mode === 'pomodoro' &&
-    timer.segment === 'focus'
+    source.mode === 'pomodoro' &&
+    source.segment === 'focus'
 
   useDeepFocus({
-    enabled: isDeepFocusEligible,
+    enabled: isDeepFocusEligible && !isGroup,
     graceMs: timerSettings.deepFocusGraceSeconds * 1000,
     isRunning: () => timer.snapshot?.status === 'running',
     onPause: (hiddenAt) => timer.pause(hiddenAt),
@@ -112,49 +136,35 @@ export function FocusScreen() {
     if (timer.cycleEnded && timerSettings.confettiEnabled) fireSessionEndConfetti()
   }, [timer.cycleEnded, timerSettings.confettiEnabled])
 
-  const isStopwatch = timer.mode === 'stopwatch'
-  const displayLabel = isStopwatch
-    ? formatElapsed(timer.snapshot?.elapsedMs ?? 0)
-    : formatCountdown(timer.snapshot?.remainingMs ?? 0)
-  useLiveTabTitle(displayLabel, timer.snapshot?.status === 'running')
+  const isStopwatch = source.isStopwatch
+  const displayLabel = source.displayLabel
+  useLiveTabTitle(displayLabel, source.status === 'running')
   const pip = usePictureInPicture({
-    segmentLabel: getSegmentLabel(timer.segment),
+    segmentLabel: getSegmentLabel(source.segment),
     timeLabel: displayLabel,
     taskLabel: timerSettings.showTaskInPip ? activeTask?.title : null,
   })
 
-  const handlePrimary = () => {
-    const status = timer.snapshot?.status
-    if (status === 'running') timer.pause()
-    else if (status === 'paused') timer.resume()
-    else timer.start()
-  }
+  const handlePrimary = source.onPrimary
 
   useKeyboardShortcuts(
     {
       onPrimary: handlePrimary,
-      onNext: timer.skip,
-      onReset: timer.reset,
+      onNext: isGroup ? () => undefined : timer.skip,
+      onReset: isGroup ? () => undefined : timer.reset,
       onOpenHelp: () => setIsShortcutsHelpOpen(true),
     },
     timerSettings.keyboardShortcutsEnabled,
   )
 
-  if (!timer.isReady || !timer.snapshot) {
+  if (!isGroup && !source.isReady) {
     return <div className="h-full" />
   }
 
-  const { snapshot } = timer
-  const durationMs = getDurationMsForMode(
-    timer.mode,
-    timer.segment,
-    toDurationsMs(timerSettings),
-    timerSettings.countdownMinutes * 60_000,
-  )
-  const progress =
-    durationMs !== null && durationMs > 0 ? Math.min(1, snapshot.elapsedMs / durationMs) : 0
+  const progress = source.progress
+  const snapshot = { status: source.status }
   const goalTarget =
-    timer.mode === 'pomodoro'
+    source.mode === 'pomodoro'
       ? getGoalFocusSessions({
           goalType: timerSettings.sessionGoalType,
           goalCount: timerSettings.sessionGoalCount,
@@ -179,7 +189,7 @@ export function FocusScreen() {
             gap: 4,
           }}
         >
-          <div style={{ fontSize: 14, opacity: 0.7 }}>{getSegmentLabel(timer.segment)}</div>
+          <div style={{ fontSize: 14, opacity: 0.7 }}>{getSegmentLabel(source.segment)}</div>
           <div style={{ fontSize: 40, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
             {displayLabel}
           </div>
@@ -203,8 +213,7 @@ export function FocusScreen() {
   const isDeepFocusLayoutActive =
     isDeepFocusEligible &&
     (snapshot.status === 'running' || snapshot.status === 'paused') &&
-    !timer.cycleEnded &&
-    !timer.goalReached
+    (isGroup || (!timer.cycleEnded && !timer.goalReached))
 
   if (isDeepFocusLayoutActive) {
     return (
@@ -218,7 +227,8 @@ export function FocusScreen() {
           clockStyle={clockSettings.style}
           status={snapshot.status}
           onPrimary={handlePrimary}
-          onEndSession={timer.endSession}
+          onEndSession={isGroup ? () => void group.actions.end() : timer.endSession}
+          readOnly={source.readOnly}
         />
         {pipPortal}
         <KeyboardShortcutsHelp
@@ -228,6 +238,46 @@ export function FocusScreen() {
       </>
     )
   }
+
+  const face = (
+    <div
+      role="timer"
+      aria-label={`${isStopwatch ? strings.focus.timeElapsed : strings.focus.timeRemaining} : ${displayLabel}`}
+    >
+      <TimerFace
+        style={timerSettings.displayStyle}
+        label={displayLabel}
+        progress={progress}
+        sizeScale={CLOCK_SIZE_SCALE[clockSettings.size]}
+        color={resolveClockColor(clockSettings.color)}
+        styleCss={CLOCK_STYLE_CSS[clockSettings.style]}
+      />
+    </div>
+  )
+
+  // Repères du cycle Pomodoro d'un salon (pastilles + objectif), dérivés de la phase.
+  const groupRoom = group.room
+  const groupView = group.view
+  const groupCycle =
+    groupRoom && groupView
+      ? groupCycleProgress(groupView.phaseIndex, groupView.phase, groupRoom.sessionsBeforeLongBreak)
+      : null
+  const cycleNode =
+    groupRoom && groupView && groupCycle ? (
+      <>
+        <SessionTally
+          total={groupRoom.sessionsBeforeLongBreak ?? 4}
+          completed={groupCycle.completedInCycle}
+          currentIsFocus={groupView.phase === 'focus'}
+          iconSet={timerSettings.tallyIconSet}
+        />
+        {goalTarget > 0 ? (
+          <div className="hidden sm:block">
+            <GoalProgress completed={groupCycle.completedTotal} target={goalTarget} />
+          </div>
+        ) : null}
+      </>
+    ) : null
 
   return (
     <div className="relative h-full overflow-y-auto">
@@ -259,7 +309,7 @@ export function FocusScreen() {
             </p>
             {extrasSettings.pillarsEnabled ? (
               <FeatureGate flag="pillars">
-                <PillarSelector disabled={timer.isSegmentSwitchBlocked} />
+                <PillarSelector disabled={isGroup ? false : timer.isSegmentSwitchBlocked} />
               </FeatureGate>
             ) : null}
           </div>
@@ -271,17 +321,29 @@ export function FocusScreen() {
           </div>
         ) : null}
 
-        <div className="hidden sm:block">
-          <SegmentedControl
-            ariaLabel={strings.focus.mode}
-            value={timer.mode}
-            onChange={timer.selectMode}
-            options={MODE_OPTIONS}
-            variant="glass"
-          />
-        </div>
+        {isGroup ? null : (
+          <div className="hidden sm:block">
+            <SegmentedControl
+              ariaLabel={strings.focus.mode}
+              value={timer.mode}
+              onChange={timer.selectMode}
+              options={MODE_OPTIONS}
+              variant="glass"
+            />
+          </div>
+        )}
 
-        {timer.mode === 'pomodoro' && timer.cycleEnded ? (
+        {isGroup ? (
+          <GroupSessionBody
+            group={group}
+            currentUserId={user?.id ?? null}
+            face={face}
+            cycle={cycleNode}
+            pip={{ toggle: pip.toggle, isSupported: pip.isSupported, show: !isIOSDevice() }}
+          />
+        ) : group.endedRoom ? (
+          <GroupEndedPanel onClose={group.dismissEnded} />
+        ) : timer.mode === 'pomodoro' && timer.cycleEnded ? (
           <SessionEndScreen
             summary={timer.sessionSummary}
             showSummary={timerSettings.sessionSummaryEnabled}
@@ -320,19 +382,7 @@ export function FocusScreen() {
               />
             ) : (
               <>
-                <div
-                  role="timer"
-                  aria-label={`${isStopwatch ? strings.focus.timeElapsed : strings.focus.timeRemaining} : ${displayLabel}`}
-                >
-                  <TimerFace
-                    style={timerSettings.displayStyle}
-                    label={displayLabel}
-                    progress={progress}
-                    sizeScale={CLOCK_SIZE_SCALE[clockSettings.size]}
-                    color={resolveClockColor(clockSettings.color)}
-                    styleCss={CLOCK_STYLE_CSS[clockSettings.style]}
-                  />
-                </div>
+                {face}
 
                 <TimerControls
                   status={snapshot.status}

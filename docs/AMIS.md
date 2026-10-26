@@ -358,3 +358,46 @@ Départ anticipé (`leave_room`) et fin par l'hôte (`end_room`) enregistrent la
 (non terminée).
 
 Test SQL : `supabase/tests/rooms_modes.sql`.
+
+## La session de groupe remplace l'horloge solo (LOT M3)
+
+Il n'y a **qu'une horloge à l'écran**. Dès que je suis dans un salon actif (en attente, en
+cours ou en pause), l'écran **Focus** (et l'écran **Ambiant**) affiche la session de groupe
+à la place du minuteur personnel — même emplacement, même plein écran, mêmes thèmes d'horloge —
+pilotée par l'état du salon côté serveur. L'ancienne fenêtre « salon » (`RoomScreen`) n'existe plus.
+
+- **Source de vérité unique** : `ActiveRoomProvider` (monté une fois à la racine, `App.tsx`) =
+  `useRooms` (liste, invitations) + `useActiveRoom` (état du salon, Realtime, battement de
+  cœur). Les écrans ne font que le lire (`useActiveGroupRoom`). Aucun état local concurrent.
+- **Interface commune** `ClockSource` (`src/features/timer/clock-source.ts`) : temps affiché,
+  segment/phase, statut, avancement, clé de début de phase, action principale, lecture seule.
+  `buildSoloClockSource` (moteur local) et `buildGroupClockSource` (salon) la produisent ; le
+  titre d'onglet live, l'image dans l'image, les citations de phase, les raccourcis clavier, le
+  verrou d'écran et le Deep Focus ne lisent que cette interface → comportement identique.
+  Deep Focus en groupe : même mise en page minimale pendant le focus Pomodoro, mais **jamais de
+  pause automatique** (l'horloge est celle de tout le groupe).
+- **Contrôles** : l'hôte voit démarrer / pause / reprendre / terminer pour tous ; les autres ont
+  l'horloge en **lecture seule** et « Quitter la session ». Le serveur contrôle aussi que seul
+  l'hôte peut agir (RPC), pas seulement l'interface.
+- **Participants** avec statut en direct : concentré, en pause (salon en pause ou pause
+  Pomodoro), parti (plus de signe de vie depuis 2 min, ou quitté), prêt, invité, a refusé
+  (`participantLiveStatus`, `group-status.ts`).
+- **Minuteur solo** : mis en pause quand la session de groupe devient active (par l'écran Focus /
+  Ambiant s'il est monté, sinon par `pauseStoredSoloTimerIfRunning`), aucun contrôle solo pendant
+  la session (message « Ton minuteur personnel est en pause »), il revient (en pause) à la fin.
+- **Autres pages** : bouton flottant « Session en cours » (`GroupSessionFab`, haut droite,
+  zone de sécurité respectée, temps restant ou écoulé + nombre de participants) sur l'accueil et
+  sur les pages hors application (conditions, admin…) ; masqué sur Focus/Ambiant qui affichent
+  déjà l'horloge. Un toucher ramène à l'horloge.
+- **Alertes** : son/notification à chaque changement de phase, alerte + confettis (si activés)
+  à la fin ; les `focus_sessions` enregistrées par le serveur sont rapatriées (statistiques,
+  pilier) après chaque changement de phase, départ et fin.
+- **Statut en direct des amis** (`useGlobalTimerState`) : calculé depuis la session de groupe
+  pendant qu'elle est active (concentré / en pause / inactif).
+- **Resynchronisation** : au retour d'un onglet suspendu ou du réseau (`visibilitychange`,
+  `pageshow`, `focus`, `online`) l'état complet du salon est rechargé ; en plus, dès que
+  l'horloge locale franchit une frontière de phase, un rechargement immédiat est déclenché.
+- **Écran de fin** « Session terminée » conservé jusqu'à fermeture, même si la liste de mes
+  salons (qui exclut les salons terminés) s'est rafraîchie entre-temps (identifiant « collant »).
+
+Test e2e à deux navigateurs mis à jour : `e2e/rooms-two-contexts.spec.ts` (`npx playwright test`).

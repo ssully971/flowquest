@@ -31,6 +31,7 @@ interface FakeRoom {
   hostId: string
   status: 'lobby' | 'running' | 'paused' | 'ended'
   focusMinutes: number
+  mode: 'pomodoro' | 'countdown' | 'stopwatch'
   startedAt: string | null
   durationMs: number | null
   elapsedMsAtPause: number | null
@@ -93,6 +94,13 @@ export function createFakeBackend(): FakeBackend {
         host_id: room.hostId,
         status: room.status,
         focus_minutes: room.focusMinutes,
+        mode: room.mode,
+        phase: 'focus',
+        phase_index: 0,
+        short_break_minutes: 5,
+        long_break_minutes: 15,
+        sessions_before_long_break: 4,
+        server_now: new Date().toISOString(),
         started_at: room.startedAt,
         duration_ms: room.durationMs,
         elapsed_ms_at_pause: room.elapsedMsAtPause,
@@ -114,11 +122,13 @@ export function createFakeBackend(): FakeBackend {
     create_room(userId, params) {
       const roomId = newId('room')
       const focusMinutes = Number(params.p_focus_minutes)
+      const mode = (params.p_mode as 'pomodoro' | 'countdown' | 'stopwatch' | undefined) ?? 'countdown'
       rooms.set(roomId, {
         id: roomId,
         hostId: userId,
         status: 'lobby',
         focusMinutes,
+        mode,
         startedAt: null,
         durationMs: null,
         elapsedMsAtPause: null,
@@ -147,7 +157,7 @@ export function createFakeBackend(): FakeBackend {
       if (room.status !== 'lobby') throw new Error('Le salon a déjà démarré')
       room.status = 'running'
       room.startedAt = new Date().toISOString()
-      room.durationMs = room.focusMinutes * 60_000
+      room.durationMs = room.mode === 'stopwatch' ? null : room.focusMinutes * 60_000
       return null
     },
     pause_room(userId, params) {
@@ -211,6 +221,11 @@ export function createFakeBackend(): FakeBackend {
             my_status: p.status,
             participant_count: participantsOf(room.id).filter((x) => x.status === 'joined').length,
             created_at: room.createdAt,
+            mode: room.mode,
+            phase: 'focus',
+            started_at: room.startedAt,
+            duration_ms: room.durationMs,
+            elapsed_ms_at_pause: room.elapsedMsAtPause,
           }
         })
         .filter((row): row is NonNullable<typeof row> => row !== null)

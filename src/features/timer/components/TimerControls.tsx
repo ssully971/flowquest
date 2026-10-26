@@ -16,6 +16,8 @@ interface TimerControlsProps {
   onPictureInPicture: () => void
   pipAvailable: boolean
   showPip?: boolean
+  /** Masque « Réinitialiser » (session de groupe : l'horloge est celle du salon). */
+  showReset?: boolean
 }
 
 export function TimerControls({
@@ -29,6 +31,7 @@ export function TimerControls({
   onPictureInPicture,
   pipAvailable,
   showPip = true,
+  showReset = true,
 }: TimerControlsProps) {
   const isRunning = status === 'running'
   const isIdle = status === 'idle'
@@ -46,7 +49,9 @@ export function TimerControls({
 
   return (
     <div className="flex items-center gap-4">
-      <IconButton icon={RotateCcw} label={strings.focus.controls.reset} onClick={onReset} />
+      {showReset ? (
+        <IconButton icon={RotateCcw} label={strings.focus.controls.reset} onClick={onReset} />
+      ) : null}
       <button
         type="button"
         aria-label={primaryLabel}

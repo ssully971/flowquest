@@ -1,5 +1,5 @@
 import { Music, Pause, Play } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { AmbientSoundsPanel } from '@/features/ambient/components/AmbientSoundsPanel'
 import { useAmbientSounds } from '@/features/ambient/useAmbientSounds'
@@ -9,6 +9,7 @@ import {
   resolveClockColor,
 } from '@/features/home/clock-settings'
 import { useClockSettings } from '@/features/home/clock-settings-context'
+import { useActiveGroupRoom } from '@/features/rooms/active-room-context'
 import { BigDigits, GlassCard } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 import { useToast } from '@/shared/toast'
@@ -16,7 +17,7 @@ import { useToast } from '@/shared/toast'
 import { DeepFocusIndicator } from './components/DeepFocusIndicator'
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp'
 import { useDeepFocus } from './useDeepFocus'
-import { formatCountdown } from './format'
+import { buildGroupClockSource, buildSoloClockSource } from './clock-source'
 import { useFocusTimer } from './useFocusTimer'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import { useTimerSettings } from './timer-settings-context'
@@ -29,6 +30,7 @@ const AMBIENT_CLOCK_BASE_PX = 72
  * l'horloge suivent Réglages > Horloge, comme sur l'accueil et le Focus. */
 export function AmbientScreen() {
   const timer = useFocusTimer()
+  const group = useActiveGroupRoom()
   const sounds = useAmbientSounds()
   const { settings: clockSettings } = useClockSettings()
   const { settings: timerSettings } = useTimerSettings()
@@ -36,18 +38,24 @@ export function AmbientScreen() {
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
   const { showToast } = useToast()
 
-  const handlePrimary = () => {
-    const status = timer.snapshot?.status
-    if (status === 'running') timer.pause()
-    else if (status === 'paused') timer.resume()
-    else timer.start()
-  }
+  // Une seule horloge (LOT M3) : pendant une session de groupe, l'écran Ambiant affiche
+  // l'horloge du salon, comme l'écran Focus (voir clock-source.ts).
+  const groupSource = buildGroupClockSource(group)
+  const isGroup = groupSource !== null
+  const source = groupSource ?? buildSoloClockSource(timer, timerSettings)
+  const handlePrimary = source.onPrimary
+
+  const soloStatus = timer.snapshot?.status
+  const pauseSolo = timer.pause
+  useEffect(() => {
+    if (isGroup && soloStatus === 'running') pauseSolo()
+  }, [isGroup, soloStatus, pauseSolo])
 
   useKeyboardShortcuts(
     {
       onPrimary: handlePrimary,
-      onNext: timer.skip,
-      onReset: timer.reset,
+      onNext: isGroup ? () => undefined : timer.skip,
+      onReset: isGroup ? () => undefined : timer.reset,
       onToggleMute: sounds.toggleMute,
       onOpenHelp: () => setIsShortcutsHelpOpen(true),
     },
@@ -57,11 +65,11 @@ export function AmbientScreen() {
   // Deep Focus (LOT G2) : mêmes conditions que sur l'écran Focus (voir son commentaire
   // pour le choix de garder `enabled` indépendant du statut running/paused).
   const isDeepFocusEligible =
-    timerSettings.deepFocusEnabled && timer.mode === 'pomodoro' && timer.segment === 'focus'
-  const isDeepFocusActive = isDeepFocusEligible && timer.snapshot?.status === 'running'
+    timerSettings.deepFocusEnabled && source.mode === 'pomodoro' && source.segment === 'focus'
+  const isDeepFocusActive = isDeepFocusEligible && source.status === 'running'
 
   useDeepFocus({
-    enabled: isDeepFocusEligible,
+    enabled: isDeepFocusEligible && !isGroup,
     graceMs: timerSettings.deepFocusGraceSeconds * 1000,
     isRunning: () => timer.snapshot?.status === 'running',
     onPause: (hiddenAt) => timer.pause(hiddenAt),
@@ -74,17 +82,16 @@ export function AmbientScreen() {
     },
   })
 
-  if (!timer.isReady || !timer.snapshot) {
+  if (!isGroup && !source.isReady) {
     return <div className="h-full" />
   }
 
-  const { snapshot } = timer
-  const displayLabel = formatCountdown(snapshot.remainingMs ?? 0)
-  const isRunning = snapshot.status === 'running'
+  const displayLabel = source.displayLabel
+  const isRunning = source.status === 'running'
   const PrimaryIcon = isRunning ? Pause : Play
   const primaryLabel = isRunning
     ? strings.focus.controls.pause
-    : snapshot.status === 'paused'
+    : source.status === 'paused'
       ? strings.focus.controls.resume
       : strings.focus.controls.start
 
@@ -102,19 +109,21 @@ export function AmbientScreen() {
             letterSpacing={CLOCK_STYLE_CSS[clockSettings.style].letterSpacing}
             fontStyle={CLOCK_STYLE_CSS[clockSettings.style].fontStyle}
           />
-          <button
-            type="button"
-            aria-label={primaryLabel}
-            onClick={handlePrimary}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--on-accent)] transition-transform duration-200 hover:scale-105"
-          >
-            <PrimaryIcon
-              size={18}
-              strokeWidth={1.75}
-              aria-hidden="true"
-              fill={isRunning ? 'none' : 'currentColor'}
-            />
-          </button>
+          {source.readOnly ? null : (
+            <button
+              type="button"
+              aria-label={primaryLabel}
+              onClick={handlePrimary}
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--on-accent)] transition-transform duration-200 hover:scale-105"
+            >
+              <PrimaryIcon
+                size={18}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                fill={isRunning ? 'none' : 'currentColor'}
+              />
+            </button>
+          )}
         </GlassCard>
 
         <div className="relative">

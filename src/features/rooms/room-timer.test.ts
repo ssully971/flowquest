@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { computeRoomElapsedMs, computeRoomRemainingMs, computeRoomView, phaseForIndex } from './room-timer'
+import {
+  computeRoomElapsedMs,
+  computeRoomRemainingMs,
+  computeRoomView,
+  groupCycleProgress,
+  phaseForIndex,
+} from './room-timer'
 
 describe('computeRoomElapsedMs — LOT F3', () => {
   it('renvoie elapsedMsAtPause tel quel en pause', () => {
@@ -162,5 +168,16 @@ describe('computeRoomView — horloge du salon, 3 modes (LOT M2)', () => {
     const view = computeRoomView(room, NOW)
     expect(view.remainingMs).toBe(25 * 60_000)
     expect(view.elapsedMs).toBe(0)
+  })
+})
+
+describe('groupCycleProgress — pastilles et objectif d’un salon Pomodoro (LOT M3)', () => {
+  it('compte les focus terminés dans le cycle, N complets pendant la pause longue', () => {
+    // N = 2 : focus(0) pause(1) focus(2) PAUSE LONGUE(3) focus(4)
+    expect(groupCycleProgress(0, 'focus', 2)).toEqual({ completedInCycle: 0, completedTotal: 0 })
+    expect(groupCycleProgress(1, 'short_break', 2)).toEqual({ completedInCycle: 1, completedTotal: 1 })
+    expect(groupCycleProgress(2, 'focus', 2)).toEqual({ completedInCycle: 1, completedTotal: 1 })
+    expect(groupCycleProgress(3, 'long_break', 2)).toEqual({ completedInCycle: 2, completedTotal: 2 })
+    expect(groupCycleProgress(4, 'focus', 2)).toEqual({ completedInCycle: 0, completedTotal: 2 })
   })
 })
