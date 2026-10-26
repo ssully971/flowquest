@@ -14,6 +14,11 @@ const BASE_ROOM = {
   myStatus: 'invited' as const,
   participantCount: 2,
   createdAt: '2026-01-01T00:00:00Z',
+  mode: 'countdown' as const,
+  phase: 'focus' as const,
+  startedAt: null,
+  durationMs: null,
+  elapsedMsAtPause: null,
 }
 
 describe('RoomCard — LOT F3', () => {

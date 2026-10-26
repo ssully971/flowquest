@@ -2,12 +2,12 @@ import { Crown, X } from 'lucide-react'
 import { useState } from 'react'
 
 import { Avatar } from '@/features/avatar/components/Avatar'
-import { formatCountdown } from '@/features/timer/format'
+import { formatCountdown, formatElapsed } from '@/features/timer/format'
 import { formatPlanDuration } from '@/features/timer/session-goal'
 import { GlassCard } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
-import { computeRoomRemainingMs } from '../room-timer'
+import { computeRoomView } from '../room-timer'
 import { useActiveRoom } from '../useActiveRoom'
 
 interface RoomScreenProps {
@@ -22,6 +22,7 @@ export function RoomScreen({ roomId, onClose }: RoomScreenProps) {
   const { room, isLoading, loadError, nowMs, isHost, start, pause, resume, end, leave, transfer } =
     useActiveRoom(roomId)
   const [isActing, setIsActing] = useState(false)
+  const view = room ? computeRoomView(room, nowMs) : null
 
   const runAction = async (action: () => Promise<boolean>) => {
     setIsActing(true)
@@ -74,15 +75,20 @@ export function RoomScreen({ roomId, onClose }: RoomScreenProps) {
             <div className="flex flex-col items-center gap-1 py-4">
               {room.status === 'lobby' ? (
                 <>
-                  <p className="text-4xl font-semibold text-[var(--text)]">{formatPlanDuration(room.focusMinutes * 60_000)}</p>
+                  <p className="text-4xl font-semibold text-[var(--text)]">{room.focusMinutes !== null ? formatPlanDuration(room.focusMinutes * 60_000) : strings.rooms.modes.stopwatch}</p>
                   <p className="text-sm text-[var(--muted)]">{isHost ? s.lobbyHintHost : s.lobbyHint}</p>
                 </>
               ) : room.status === 'ended' ? (
                 <p className="text-2xl font-semibold text-[var(--text)]">{s.ended}</p>
               ) : (
-                <p className="font-mono text-5xl font-semibold tabular-nums text-[var(--text)]">
-                  {formatCountdown(computeRoomRemainingMs(room, nowMs))}
-                </p>
+                <>
+                  <p className="text-xs text-[var(--muted)]">{strings.rooms.phase[view?.phase ?? 'focus']}</p>
+                  <p className="font-mono text-5xl font-semibold tabular-nums text-[var(--text)]">
+                    {view && view.remainingMs !== null
+                      ? formatCountdown(view.remainingMs)
+                      : formatElapsed(view?.elapsedMs ?? 0)}
+                  </p>
+                </>
               )}
             </div>
 

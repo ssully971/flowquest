@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { SignInPrompt } from '@/features/auth/components/SignInPrompt'
 import { useAuth } from '@/features/auth/useAuth'
+import { useTimerSettings } from '@/features/timer/timer-settings-context'
 import { useFeatureFlag } from '@/features/feature-flags/useFeatureFlag'
 import { CreateRoomForm } from '@/features/rooms/components/CreateRoomForm'
 import { RoomCard } from '@/features/rooms/components/RoomCard'
@@ -55,6 +56,7 @@ export function SocialPanel({
   const sf = strings.friends
   const sr = strings.rooms
   const { status, isSupabaseConfigured, profile } = useAuth()
+  const { settings: timerSettings } = useTimerSettings()
   const panelRef = useRef<HTMLDivElement>(null)
   const [tab, setTab] = useState<Tab>('friends')
   const [roomsTab, setRoomsTab] = useState<RoomsTab>('mine')
@@ -202,6 +204,12 @@ export function SocialPanel({
 
                   {roomsTab === 'create' ? (
                     <CreateRoomForm
+                      defaults={{
+                        focusMinutes: timerSettings.focusMinutes,
+                        shortBreakMinutes: timerSettings.shortBreakMinutes,
+                        longBreakMinutes: timerSettings.longBreakMinutes,
+                        sessionsBeforeLongBreak: timerSettings.sessionsBeforeLongBreak,
+                      }}
                       friends={friendsState.friends}
                       friendsLoading={friendsState.isLoading}
                       onCreate={roomsState.create}

@@ -16,6 +16,8 @@ export type FriendRequestDirection = 'incoming' | 'outgoing'
 export type LiveState = 'focus' | 'pause' | 'inactive'
 export type CheerEmoji = '💪' | '🔥' | '👏' | '❤️' | '☕'
 export type RoomStatus = 'lobby' | 'running' | 'paused' | 'ended'
+export type RoomMode = 'pomodoro' | 'countdown' | 'stopwatch'
+export type RoomPhase = 'focus' | 'short_break' | 'long_break'
 export type RoomParticipantRole = 'host' | 'member'
 export type RoomParticipantStatus = 'invited' | 'joined' | 'declined' | 'left' | 'abandoned'
 
@@ -199,7 +201,15 @@ export interface Database {
           id: string
           host_id: string
           status: RoomStatus
-          focus_minutes: number
+          /** null en mode Chrono (aucune durée) ; 5-120 sinon. */
+          focus_minutes: number | null
+          mode: RoomMode
+          short_break_minutes: number | null
+          long_break_minutes: number | null
+          sessions_before_long_break: number | null
+          /** Phase courante (toujours 'focus' en Chrono et Minuteur) et son numéro. */
+          phase: RoomPhase
+          phase_index: number
           started_at: string | null
           duration_ms: number | null
           elapsed_ms_at_pause: number | null
@@ -647,11 +657,23 @@ export interface Database {
         Returns: LeaderboardRow[]
       }
       create_room: {
-        Args: { p_focus_minutes: number; p_friend_ids: string[] }
+        Args: {
+          p_focus_minutes: number | null
+          p_friend_ids: string[]
+          p_mode?: RoomMode
+          p_short_break_minutes?: number
+          p_long_break_minutes?: number
+          p_sessions_before_long_break?: number
+          p_pillar_id?: string | null
+        }
         Returns: string
       }
       respond_room_invite: {
-        Args: { p_room_id: string; p_accept: boolean }
+        Args: { p_room_id: string; p_accept: boolean; p_pillar_id?: string | null }
+        Returns: undefined
+      }
+      set_room_pillar: {
+        Args: { p_room_id: string; p_pillar_id: string | null }
         Returns: undefined
       }
       start_room: {
@@ -935,17 +957,22 @@ export interface MyRoomRow {
   host_username: string
   host_display_name: string | null
   status: RoomStatus
-  focus_minutes: number
+  focus_minutes: number | null
   my_status: RoomParticipantStatus
   participant_count: number
   created_at: string
+  mode: RoomMode
+  phase: RoomPhase
+  started_at: string | null
+  duration_ms: number | null
+  elapsed_ms_at_pause: number | null
 }
 
 export interface RoomStateRow {
   room_id: string
   host_id: string
   status: RoomStatus
-  focus_minutes: number
+  focus_minutes: number | null
   started_at: string | null
   duration_ms: number | null
   elapsed_ms_at_pause: number | null
@@ -959,6 +986,14 @@ export interface RoomStateRow {
   participant_role: RoomParticipantRole
   participant_status: RoomParticipantStatus
   participant_is_present: boolean
+  mode: RoomMode
+  phase: RoomPhase
+  phase_index: number
+  short_break_minutes: number | null
+  long_break_minutes: number | null
+  sessions_before_long_break: number | null
+  /** Heure du serveur au moment de la réponse : sert à corriger l'écart d'horloge. */
+  server_now: string
 }
 
 export interface DuoStreakRow {

@@ -7,6 +7,16 @@ import { SocialPanel } from './SocialPanel'
 const useAuthMock = vi.fn()
 const requestSignInMock = vi.fn()
 
+vi.mock('@/features/timer/timer-settings-context', () => ({
+  useTimerSettings: () => ({
+    settings: {
+      focusMinutes: 25,
+      shortBreakMinutes: 5,
+      longBreakMinutes: 15,
+      sessionsBeforeLongBreak: 4,
+    },
+  }),
+}))
 vi.mock('@/features/auth/useAuth', () => ({ useAuth: () => useAuthMock() }))
 vi.mock('@/features/auth/useAuthGateRequest', () => ({
   useAuthGateRequest: () => ({ signInRequested: false, requestSignIn: requestSignInMock, clearSignInRequest: vi.fn() }),

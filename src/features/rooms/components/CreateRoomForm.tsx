@@ -7,19 +7,73 @@ import { useEditableNumber } from '@/features/settings/pages/useEditableNumber'
 import { strings } from '@/shared/i18n'
 
 import { ROOM_MAX_INVITEES, ROOM_MAX_FOCUS_MINUTES, ROOM_MIN_FOCUS_MINUTES } from '../types'
+import type { RoomMode } from '../types'
+
+/** Réglages du salon choisis dans le formulaire (le pilier et les invités sont ajoutés par
+ * l'appelant). Chrono : `focusMinutes` est ignoré. */
+export interface RoomDraft {
+  mode: RoomMode
+  focusMinutes: number
+  shortBreakMinutes: number
+  longBreakMinutes: number
+  sessionsBeforeLongBreak: number
+}
 
 interface CreateRoomFormProps {
   friends: Friend[]
   friendsLoading?: boolean
-  onCreate: (focusMinutes: number, friendIds: string[]) => Promise<string | null>
+  /** Valeurs de départ des champs Pomodoro (réglages du minuteur personnel). */
+  defaults?: Partial<RoomDraft>
+  onCreate: (draft: RoomDraft, friendIds: string[]) => Promise<string | null>
   onCreated: (roomId: string) => void
 }
 
 const DURATION_PRESETS = [15, 25, 45, 60]
+const MODES: RoomMode[] = ['pomodoro', 'countdown', 'stopwatch']
 
-export function CreateRoomForm({ friends, friendsLoading, onCreate, onCreated }: CreateRoomFormProps) {
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, Math.round(value)))
+}
+
+function SmallNumberField({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string
+  value: number
+  min: number
+  max: number
+  onChange: (value: number) => void
+}) {
+  return (
+    <label className="flex items-center justify-between gap-3 text-sm text-[var(--text)]">
+      <span>{label}</span>
+      <input
+        type="number"
+        inputMode="numeric"
+        min={min}
+        max={max}
+        value={value}
+        aria-label={label}
+        onChange={(event) => onChange(clamp(Number(event.target.value) || min, min, max))}
+        className="h-9 w-16 rounded-lg border border-[var(--line)] bg-transparent px-2 text-center text-sm text-[var(--text)] outline-none focus:border-[var(--accent)] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+      />
+    </label>
+  )
+}
+
+export function CreateRoomForm({ friends, friendsLoading, defaults, onCreate, onCreated }: CreateRoomFormProps) {
   const s = strings.rooms.create
-  const [focusMinutes, setFocusMinutes] = useState(25)
+  const [mode, setMode] = useState<RoomMode>(defaults?.mode ?? 'pomodoro')
+  const [focusMinutes, setFocusMinutes] = useState(defaults?.focusMinutes ?? 25)
+  const [shortBreakMinutes, setShortBreakMinutes] = useState(defaults?.shortBreakMinutes ?? 5)
+  const [longBreakMinutes, setLongBreakMinutes] = useState(defaults?.longBreakMinutes ?? 15)
+  const [sessionsBeforeLongBreak, setSessionsBeforeLongBreak] = useState(
+    defaults?.sessionsBeforeLongBreak ?? 4,
+  )
   const [selected, setSelected] = useState<string[]>([])
   const [isCreating, setIsCreating] = useState(false)
   const { draft, error, onDraftChange, onCommit } = useEditableNumber(
@@ -46,7 +100,10 @@ export function CreateRoomForm({ friends, friendsLoading, onCreate, onCreated }:
 
   const handleSubmit = async () => {
     setIsCreating(true)
-    const roomId = await onCreate(focusMinutes, selected)
+    const roomId = await onCreate(
+      { mode, focusMinutes, shortBreakMinutes, longBreakMinutes, sessionsBeforeLongBreak },
+      selected,
+    )
     setIsCreating(false)
     if (roomId) onCreated(roomId)
   }
@@ -56,8 +113,36 @@ export function CreateRoomForm({ friends, friendsLoading, onCreate, onCreated }:
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium text-[var(--text)]">{s.modeLabel}</span>
+        <div
+          role="radiogroup"
+          aria-label={s.modeLabel}
+          className="inline-flex w-fit items-center gap-1 rounded-full border border-[var(--line)] p-1"
+        >
+          {MODES.map((value) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={mode === value}
+              onClick={() => setMode(value)}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors duration-200 ${
+                mode === value ? 'bg-[var(--surface-2)] text-[var(--text)]' : 'text-[var(--muted)]'
+              }`}
+            >
+              {strings.rooms.modes[value]}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-[var(--muted)]">{s.modeHints[mode]}</p>
+      </div>
+
+      {mode !== 'stopwatch' ? (
+      <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium text-[var(--text)]">{s.durationLabel}</span>
+          <span className="text-sm font-medium text-[var(--text)]">
+            {mode === 'pomodoro' ? s.pomodoroFocusLabel : s.durationLabel}
+          </span>
           <span aria-live="polite" className="text-sm font-semibold text-[var(--text)]">
             {focusMinutes} {s.minutesUnit}
           </span>
@@ -109,6 +194,15 @@ export function CreateRoomForm({ friends, friendsLoading, onCreate, onCreated }:
           </p>
         ) : null}
       </div>
+      ) : null}
+
+      {mode === 'pomodoro' ? (
+        <div className="flex flex-col gap-2">
+          <SmallNumberField label={s.shortBreakLabel} value={shortBreakMinutes} min={1} max={30} onChange={setShortBreakMinutes} />
+          <SmallNumberField label={s.longBreakLabel} value={longBreakMinutes} min={5} max={60} onChange={setLongBreakMinutes} />
+          <SmallNumberField label={s.sessionsLabel} value={sessionsBeforeLongBreak} min={2} max={8} onChange={setSessionsBeforeLongBreak} />
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-2">
         <span className="text-sm font-medium text-[var(--text)]">{s.friendsLabel}</span>

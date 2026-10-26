@@ -26,6 +26,19 @@ const MY_ROOM = {
   myStatus: 'invited' as const,
   participantCount: 1,
   createdAt: '2026-01-01T00:00:00Z',
+  mode: 'countdown' as const,
+  phase: 'focus' as const,
+  startedAt: null,
+  durationMs: null,
+  elapsedMsAtPause: null,
+}
+
+const DRAFT = {
+  mode: 'countdown' as const,
+  focusMinutes: 25,
+  shortBreakMinutes: 5,
+  longBreakMinutes: 15,
+  sessionsBeforeLongBreak: 4,
 }
 
 beforeEach(() => {
@@ -71,10 +84,10 @@ describe('useRooms — mes salons (LOT F3)', () => {
 
     let roomId: string | null = null
     await act(async () => {
-      roomId = await result.current.create(25, ['f1'])
+      roomId = await result.current.create(DRAFT, ['f1'])
     })
 
-    expect(createRoomMock).toHaveBeenCalledWith(25, ['f1'])
+    expect(createRoomMock).toHaveBeenCalledWith({ ...DRAFT, friendIds: ['f1'], pillarId: null })
     expect(roomId).toBe('new-room-id')
     expect(listMyRoomsMock).toHaveBeenCalled()
   })
@@ -88,7 +101,7 @@ describe('useRooms — mes salons (LOT F3)', () => {
 
     let roomId: string | null = 'unset'
     await act(async () => {
-      roomId = await result.current.create(25, [])
+      roomId = await result.current.create(DRAFT, [])
     })
 
     expect(roomId).toBeNull()
@@ -106,7 +119,7 @@ describe('useRooms — mes salons (LOT F3)', () => {
       accepted = await result.current.respond('r1', true)
     })
 
-    expect(respondRoomInviteMock).toHaveBeenCalledWith('r1', true)
+    expect(respondRoomInviteMock).toHaveBeenCalledWith('r1', true, null)
     expect(accepted).toBe(true)
     expect(listMyRoomsMock).toHaveBeenCalled()
   })
@@ -169,6 +182,6 @@ describe('useRooms — nouvelles invitations en temps réel (LOT H1)', () => {
       await toastCall?.[0].action.onClick()
     })
 
-    expect(respondRoomInviteMock).toHaveBeenCalledWith('r2', true)
+    expect(respondRoomInviteMock).toHaveBeenCalledWith('r2', true, null)
   })
 })

@@ -1,7 +1,7 @@
 import { supabase } from '@/shared/supabase/client'
 import type { MyRoomRow, RoomStateRow } from '@/shared/supabase/database.types'
 
-import type { MyRoom, RoomState } from './types'
+import type { MyRoom, RoomMode, RoomState } from './types'
 
 export class RoomsError extends Error {}
 
@@ -27,17 +27,30 @@ function mapMyRoom(row: MyRoomRow): MyRoom {
     myStatus: row.my_status,
     participantCount: row.participant_count,
     createdAt: row.created_at,
+    mode: row.mode,
+    phase: row.phase,
+    startedAt: row.started_at,
+    durationMs: row.duration_ms,
+    elapsedMsAtPause: row.elapsed_ms_at_pause,
   }
 }
 
-function mapRoomState(rows: RoomStateRow[]): RoomState | null {
+function mapRoomState(rows: RoomStateRow[], receivedAt: number = Date.now()): RoomState | null {
   const first = rows[0]
   if (!first) return null
+  const serverNow = new Date(first.server_now).getTime()
   return {
     roomId: first.room_id,
     hostId: first.host_id,
     status: first.status,
     focusMinutes: first.focus_minutes,
+    mode: first.mode,
+    shortBreakMinutes: first.short_break_minutes,
+    longBreakMinutes: first.long_break_minutes,
+    sessionsBeforeLongBreak: first.sessions_before_long_break,
+    phase: first.phase,
+    phaseIndex: first.phase_index,
+    clockOffsetMs: Number.isNaN(serverNow) ? 0 : receivedAt - serverNow,
     startedAt: first.started_at,
     durationMs: first.duration_ms,
     elapsedMsAtPause: first.elapsed_ms_at_pause,
@@ -63,19 +76,54 @@ export async function listMyRooms(): Promise<MyRoom[]> {
   return (data ?? []).map(mapMyRoom)
 }
 
-export async function createRoom(focusMinutes: number, friendIds: string[]): Promise<string> {
+export interface CreateRoomParams {
+  mode: RoomMode
+  /** Durée de focus (Pomodoro) ou du minuteur (Minuteur) ; ignorée en Chrono. */
+  focusMinutes: number
+  shortBreakMinutes?: number
+  longBreakMinutes?: number
+  sessionsBeforeLongBreak?: number
+  friendIds: string[]
+  /** Pilier rattaché à mes sessions de ce salon (XP via les focus_sessions). */
+  pillarId?: string | null
+}
+
+export async function createRoom(params: CreateRoomParams): Promise<string> {
   const client = requireClient()
   const { data, error } = await client.rpc('create_room', {
-    p_focus_minutes: focusMinutes,
-    p_friend_ids: friendIds,
+    p_focus_minutes: params.mode === 'stopwatch' ? null : params.focusMinutes,
+    p_friend_ids: params.friendIds,
+    p_mode: params.mode,
+    ...(params.mode === 'pomodoro'
+      ? {
+          p_short_break_minutes: params.shortBreakMinutes,
+          p_long_break_minutes: params.longBreakMinutes,
+          p_sessions_before_long_break: params.sessionsBeforeLongBreak,
+        }
+      : {}),
+    p_pillar_id: params.pillarId ?? null,
   })
   if (error) throw new RoomsError(translateRpcError(error.message))
   return data
 }
 
-export async function respondRoomInvite(roomId: string, accept: boolean): Promise<void> {
+export async function respondRoomInvite(
+  roomId: string,
+  accept: boolean,
+  pillarId: string | null = null,
+): Promise<void> {
   const client = requireClient()
-  const { error } = await client.rpc('respond_room_invite', { p_room_id: roomId, p_accept: accept })
+  const { error } = await client.rpc('respond_room_invite', {
+    p_room_id: roomId,
+    p_accept: accept,
+    p_pillar_id: pillarId,
+  })
+  if (error) throw new RoomsError(translateRpcError(error.message))
+}
+
+export async function setRoomPillar(roomId: string, pillarId: string | null): Promise<void> {
+  const client = requireClient()
+  const { error } = await client.rpc('set_room_pillar', { p_room_id: roomId, p_pillar_id: pillarId })
   if (error) throw new RoomsError(translateRpcError(error.message))
 }
 

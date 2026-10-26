@@ -335,6 +335,15 @@ Points d'attention :
   (par utilisateur) lèvent `too_many_attempts` ; l'espace de codes (31^8) rend l'énumération
   irréaliste.
 
+**Modes de salon (LOT M2, `0049_rooms_modes.sql`)** : aucune nouvelle politique (les colonnes
+héritent de la lecture « participant » ci-dessus). Les fonctions `create_room`,
+`respond_room_invite`, `set_room_pillar`, `start_room`, `pause_room`, `end_room`, `leave_room`
+sont `SECURITY DEFINER` avec `search_path` verrouillé et vérifient côté serveur : durées et
+nombres bornés, mode connu, **hôte seulement** pour démarrer / pause / reprise / fin, pilier
+appartenant à l'utilisateur (sinon ignoré). Les `focus_sessions` de groupe sont écrites par des
+fonctions internes (`_room_record_*`, aucun `grant` client) : un client ne peut ni s'octroyer
+du temps de groupe ni en créer pour un autre.
+
 ### `admin_log`
 
 | Opération | Règle |

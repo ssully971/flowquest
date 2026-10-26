@@ -21,7 +21,9 @@ export function RoomCard({ room, onAccept, onDecline, onJoin }: RoomCardProps) {
             {hostLabel} {s.invitedBy}
           </span>
           <span className="text-xs text-[var(--muted)]">
-            {room.focusMinutes} min · {room.participantCount} {s.participants} · {s.status[room.status]}
+            {s.modes[room.mode]}
+            {room.focusMinutes !== null ? ` · ${room.focusMinutes} min` : ''} · {room.participantCount}{' '}
+            {s.participants} · {s.status[room.status]}
           </span>
         </div>
       </div>

@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.21.0',
+    date: '2026-11-10',
+    text: 'Les salons de focus ont maintenant trois modes : Pomodoro (focus et pauses qui s’enchaînent), Chrono et Minuteur. Tes sessions de groupe comptent dans tes statistiques et font monter ton pilier.',
+  },
+  {
     version: '0.20.0',
     date: '2026-11-09',
     text: 'Mode Amis en direct : invitations, création et démarrage d’un salon, pause, arrivées et départs apparaissent chez les autres sans rien rafraîchir. Fermer l’écran du salon ou mettre l’appareil en veille ne te fait plus quitter le salon.',

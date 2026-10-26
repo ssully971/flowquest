@@ -1,12 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useAuth } from '@/features/auth/useAuth'
+import { getActivePillarId } from '@/features/pillars/active-pillar-ref'
+import { getPillarsEnabled } from '@/features/settings/pillars-enabled-ref'
 import { strings } from '@/shared/i18n'
 import { useToast } from '@/shared/toast'
 
 import { RoomsError, createRoom, listMyRooms, respondRoomInvite } from './rooms-repository'
+import type { RoomDraft } from './components/CreateRoomForm'
 import type { MyRoom } from './types'
 import { useRoomInvitesRealtime } from './useRoomInvitesRealtime'
+
+/** Pilier rattaché à mes sessions de groupe : le pilier actif, si les piliers sont activés. */
+function currentPillarId(): string | null {
+  return getPillarsEnabled() ? getActivePillarId() : null
+}
 
 function errorMessage(err: unknown): string {
   return err instanceof RoomsError ? err.message : 'Une erreur est survenue. Réessaie.'
@@ -75,9 +83,9 @@ export function useRooms() {
   useRoomInvitesRealtime(refresh, status === 'authenticated')
 
   const create = useCallback(
-    async (focusMinutes: number, friendIds: string[]): Promise<string | null> => {
+    async (draft: RoomDraft, friendIds: string[]): Promise<string | null> => {
       try {
-        const roomId = await createRoom(focusMinutes, friendIds)
+        const roomId = await createRoom({ ...draft, friendIds, pillarId: currentPillarId() })
         await refresh()
         return roomId
       } catch (err) {
@@ -91,7 +99,7 @@ export function useRooms() {
   const respond = useCallback(
     async (roomId: string, accept: boolean): Promise<boolean> => {
       try {
-        await respondRoomInvite(roomId, accept)
+        await respondRoomInvite(roomId, accept, accept ? currentPillarId() : null)
         await refresh()
         return true
       } catch (err) {

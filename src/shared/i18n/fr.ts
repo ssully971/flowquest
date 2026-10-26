@@ -620,8 +620,28 @@ export const fr = {
     accept: 'Accepter',
     decline: 'Refuser',
     join: 'Rejoindre',
+    modes: {
+      pomodoro: 'Pomodoro',
+      stopwatch: 'Chrono',
+      countdown: 'Minuteur',
+    },
+    phase: {
+      focus: 'Focus',
+      short_break: 'Pause courte',
+      long_break: 'Pause longue',
+    },
     create: {
       title: 'Créer un salon',
+      modeLabel: 'Mode',
+      modeHints: {
+        pomodoro: 'Des cycles focus / pause qui s’enchaînent tout seuls, jusqu’à ce que l’hôte termine.',
+        stopwatch: 'Un chronomètre partagé, sans durée : l’hôte termine quand le groupe a fini.',
+        countdown: 'Une durée fixe : le salon se termine à la fin du décompte.',
+      },
+      pomodoroFocusLabel: 'Durée d’un focus',
+      shortBreakLabel: 'Pause courte',
+      longBreakLabel: 'Pause longue',
+      sessionsLabel: 'Focus avant la pause longue',
       durationLabel: 'Durée de la session',
       durationFieldLabel: 'Durée exacte, en minutes',
       minutesUnit: 'min',

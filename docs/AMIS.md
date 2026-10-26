@@ -324,3 +324,37 @@ démarrage/pause. Causes (migration `0048_rooms_realtime_fix.sql`) :
 5. `REPLICA IDENTITY FULL` sur `rooms`, `room_participants`, `live_status`.
 
 Test SQL : `supabase/tests/rooms_realtime.sql`.
+
+## Modes du salon (LOT M2, migration `0049_rooms_modes.sql`)
+
+L'hôte choisit le mode à la création :
+
+| Mode | Comportement |
+|---|---|
+| **Pomodoro** | Focus / pause courte / … / pause longue après N focus (réglages de départ repris du minuteur personnel). Les phases s'enchaînent **toutes seules sur le serveur** (`_room_tick`), à l'instant exact où la précédente se termine, même si personne n'était connecté ; l'hôte termine quand il veut. |
+| **Minuteur** (`countdown`) | Durée fixe de 5 à 120 min ; le salon se termine à la fin du décompte (comportement historique). |
+| **Chrono** (`stopwatch`) | Compte vers le haut, sans durée ; l'hôte termine. |
+
+Colonnes ajoutées à `rooms` : `mode`, `short_break_minutes`, `long_break_minutes`,
+`sessions_before_long_break`, `phase` (focus / short_break / long_break), `phase_index`.
+`duration_ms` = durée de la phase **courante** (null en Chrono) ; `focus_minutes` est null en
+Chrono. À `room_participants` : `pillar_id`, `phase_index_joined`, `elapsed_ms_at_join`.
+
+**Temps** : toujours dérivé d'horodatages serveur — `started_at` (début de la phase courante)
+et `elapsed_ms_at_pause` en pause. `get_room_state()` renvoie aussi `server_now` : le client
+mesure l'écart d'horloge de son appareil et l'applique (`computeRoomView`, `room-timer.ts`),
+puis déduit localement les phases enchaînées depuis la dernière réponse (miroir exact de la
+règle SQL, `phaseForIndex`) : le changement de phase est instantané, jamais lié à un compteur
+local, et reste exact après suspension d'onglet.
+
+**Enregistrement** : le **serveur** crée les `focus_sessions` de chaque participant `joined`
+(même onglet fermé, iPad en veille) : une session par phase (`kind` focus / short_break /
+long_break ; Chrono et Minuteur = `focus`), temps réel passé dans la phase (une arrivée
+tardive n'est créditée que de ce qu'elle a vécu), pilier choisi (`create_room`,
+`respond_room_invite` ou `set_room_pillar`), `id` déterministe (salon, phase, utilisateur) donc
+jamais de doublon. Le trigger existant (0034) recalcule l'XP du pilier ; le client rapatrie les
+sessions (`pullRemoteFocusSessions`) pour les statistiques locales.
+Départ anticipé (`leave_room`) et fin par l'hôte (`end_room`) enregistrent la phase en cours
+(non terminée).
+
+Test SQL : `supabase/tests/rooms_modes.sql`.

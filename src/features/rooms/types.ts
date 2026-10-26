@@ -1,6 +1,12 @@
-import type { RoomParticipantRole, RoomParticipantStatus, RoomStatus } from '@/shared/supabase/database.types'
+import type {
+  RoomMode,
+  RoomParticipantRole,
+  RoomParticipantStatus,
+  RoomPhase,
+  RoomStatus,
+} from '@/shared/supabase/database.types'
 
-export type { RoomParticipantRole, RoomParticipantStatus, RoomStatus }
+export type { RoomMode, RoomParticipantRole, RoomParticipantStatus, RoomPhase, RoomStatus }
 
 export interface MyRoom {
   roomId: string
@@ -8,10 +14,15 @@ export interface MyRoom {
   hostUsername: string
   hostDisplayName: string | null
   status: RoomStatus
-  focusMinutes: number
+  focusMinutes: number | null
   myStatus: RoomParticipantStatus
   participantCount: number
   createdAt: string
+  mode: RoomMode
+  phase: RoomPhase
+  startedAt: string | null
+  durationMs: number | null
+  elapsedMsAtPause: number | null
 }
 
 export interface RoomParticipant {
@@ -29,12 +40,24 @@ export interface RoomState {
   roomId: string
   hostId: string
   status: RoomStatus
-  focusMinutes: number
+  /** null en mode Chrono. */
+  focusMinutes: number | null
+  mode: RoomMode
+  shortBreakMinutes: number | null
+  longBreakMinutes: number | null
+  sessionsBeforeLongBreak: number | null
+  /** Phase courante et son numéro (Pomodoro : focus, pause courte, focus... pause longue). */
+  phase: RoomPhase
+  phaseIndex: number
+  /** Début de la phase courante (heure du SERVEUR) — jamais un compteur local. */
   startedAt: string | null
   durationMs: number | null
   elapsedMsAtPause: number | null
   createdAt: string
   endedAt: string | null
+  /** Écart d'horloge appareil − serveur (ms) mesuré à la dernière réponse : `Date.now() -
+   * clockOffsetMs` ≈ heure serveur, même sur un appareil à l'heure fausse. */
+  clockOffsetMs: number
   participants: RoomParticipant[]
 }
 

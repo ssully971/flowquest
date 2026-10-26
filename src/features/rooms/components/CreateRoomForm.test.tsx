@@ -52,7 +52,10 @@ describe('CreateRoomForm — LOT F3', () => {
     await user.click(screen.getByText('ami1'))
     await user.click(screen.getByRole('button', { name: 'Créer le salon' }))
 
-    expect(onCreate).toHaveBeenCalledWith(45, ['u1'])
+    expect(onCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: 'pomodoro', focusMinutes: 45 }),
+      ['u1'],
+    )
     expect(onCreated).toHaveBeenCalledWith('new-room')
   })
 
@@ -80,7 +83,10 @@ describe('CreateRoomForm — LOT F3', () => {
 
     await user.click(screen.getByText('ami1'))
     await user.click(screen.getByRole('button', { name: 'Créer le salon' }))
-    expect(onCreate).toHaveBeenCalledWith(50, ['u1'])
+    expect(onCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: 'pomodoro', focusMinutes: 50 }),
+      ['u1'],
+    )
   })
 
   it('ajuste une durée saisie hors bornes, avec un message explicite (LOT H1, §4)', async () => {
@@ -108,5 +114,39 @@ describe('CreateRoomForm — LOT F3', () => {
 
     const checkboxes = screen.getAllByRole('checkbox')
     expect(checkboxes[5]).toBeDisabled()
+  })
+
+  it('choisit le mode : Minuteur, Chrono (sans durée) ou Pomodoro (durées de pauses)', async () => {
+    const user = userEvent.setup()
+    const onCreate = vi.fn().mockResolvedValue('new-room')
+    render(
+      <CreateRoomForm
+        friends={[FRIEND('u1', 'ami1')]}
+        defaults={{ focusMinutes: 50, shortBreakMinutes: 10, longBreakMinutes: 30, sessionsBeforeLongBreak: 3 }}
+        onCreate={onCreate}
+        onCreated={vi.fn()}
+      />,
+    )
+
+    // Pomodoro par défaut, avec les réglages du minuteur personnel.
+    expect(screen.getByRole('radio', { name: 'Pomodoro' })).toBeChecked()
+    expect(screen.getByLabelText('Pause courte')).toHaveValue(10)
+    expect(screen.getByLabelText('Focus avant la pause longue')).toHaveValue(3)
+
+    await user.click(screen.getByRole('radio', { name: 'Chrono' }))
+    expect(screen.queryByLabelText('Durée exacte, en minutes')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Pause courte')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('radio', { name: 'Minuteur' }))
+    expect(screen.getByLabelText('Durée exacte, en minutes')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Pause courte')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('radio', { name: 'Pomodoro' }))
+    await user.click(screen.getByText('ami1'))
+    await user.click(screen.getByRole('button', { name: 'Créer le salon' }))
+    expect(onCreate).toHaveBeenCalledWith(
+      { mode: 'pomodoro', focusMinutes: 50, shortBreakMinutes: 10, longBreakMinutes: 30, sessionsBeforeLongBreak: 3 },
+      ['u1'],
+    )
   })
 })
