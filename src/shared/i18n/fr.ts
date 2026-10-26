@@ -662,7 +662,7 @@ export const fr = {
     notConfigured: `Les comptes ne sont pas encore configurés sur ce déploiement. ${APP_NAME} reste utilisable en mode invité : tes données restent sur cet appareil.`,
     loading: 'Vérification de ta session…',
     gate: {
-      title: APP_NAME.toLowerCase(),
+      title: APP_NAME,
       subtitle: 'Connecte-toi pour retrouver tes réglages et tes données sur tous tes appareils.',
       signIn: 'Se connecter',
       signUp: 'Créer un compte',

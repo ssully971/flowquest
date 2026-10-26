@@ -52,3 +52,24 @@ Sans l'implémenter ici :
 3. **Sauvegardes** : exporter avec `fokitsu` une fois la migration déployée (l'import
    accepte déjà les deux).
 4. **Domaine, e-mail de contact, nom de projet Supabase** : à traiter avec le domaine.
+
+## Choix notables
+
+- Le logotype « bleu nuit » (`logo-wordmark-color.webp`) n'offre que ≈ 1,7:1 de contraste sur
+  le panneau Réglages sombre (≈ 10:1 sur le clair). `Logo` en `tone="panel"` affiche donc la
+  version blanche en sombre et la version bleu nuit en clair (l'ancien dégradé clair n'existe
+  plus).
+- Icônes PWA/iOS sur fond uni `#0C0719` (thème sombre, couleur déjà présente) : les parties
+  crème de la tête (oreilles, joues, bout de queue) y contrastent à ≈ 19:1 ; sur `#F1EAFF`
+  elles tomberaient à ≈ 1,1:1. La version maskable garde la tête dans ≈ 60 % central.
+- Le titre d'écran de connexion n'est plus mis en minuscules (l'ancien logotype l'était).
+- Tagline du manifest (« La quête du flow… ») inchangée : à revoir avec la suite de l'identité.
+
+## Actions manuelles hors dépôt
+
+- **Supabase** : nom du projet, nom de l'expéditeur des e-mails, gabarits à recoller
+  (Authentication > Email Templates, depuis `supabase/email-templates/*.html`). Site URL inchangée.
+- **Google Cloud** : nom de l'application sur l'écran de consentement OAuth.
+- **PWA** : les écrans d'accueil iOS/Android déjà installés gardent l'ancien nom et l'ancienne
+  icône jusqu'à désinstallation puis réinstallation.
+- **E-mail de contact** : `flowquestt@gmail.com` reste affiché dans les pages légales.
