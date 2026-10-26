@@ -48,6 +48,59 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
+describe('SignUpForm — consentement marketing (lot I1, §3)', () => {
+  it('décochée par défaut : marketing_consent=false transmis à l’inscription', async () => {
+    signUpMock.mockResolvedValue({ data: { session: null }, error: null })
+    const user = userEvent.setup()
+    renderForm()
+
+    await user.type(screen.getByLabelText('Pseudo'), 'sullivan_97')
+    await user.type(screen.getByLabelText('E-mail'), 'sullivan@exemple.com')
+    await user.type(screen.getByLabelText('Mot de passe'), 'Secret123')
+    expect(screen.getByText('Je souhaite recevoir les nouveautés par e-mail')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Créer mon compte' }))
+
+    await screen.findByText('Compte créé ! Un e-mail de confirmation vient de partir.')
+    expect(signUpMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          data: expect.objectContaining({ marketing_consent: false }),
+        }),
+      }),
+    )
+  })
+
+  it('cochée explicitement : marketing_consent=true transmis à l’inscription', async () => {
+    signUpMock.mockResolvedValue({ data: { session: null }, error: null })
+    const user = userEvent.setup()
+    renderForm()
+
+    await user.type(screen.getByLabelText('Pseudo'), 'sullivan_97')
+    await user.type(screen.getByLabelText('E-mail'), 'sullivan@exemple.com')
+    await user.type(screen.getByLabelText('Mot de passe'), 'Secret123')
+    await user.click(screen.getByText('Je souhaite recevoir les nouveautés par e-mail'))
+    await user.click(screen.getByRole('button', { name: 'Créer mon compte' }))
+
+    await screen.findByText('Compte créé ! Un e-mail de confirmation vient de partir.')
+    expect(signUpMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          data: expect.objectContaining({ marketing_consent: true }),
+        }),
+      }),
+    )
+  })
+
+  it('affiche un lien vers les conditions et la politique de confidentialité', () => {
+    renderForm()
+    expect(screen.getByRole('link', { name: 'conditions' })).toHaveAttribute('href', '/conditions')
+    expect(screen.getByRole('link', { name: 'politique de confidentialité' })).toHaveAttribute(
+      'href',
+      '/confidentialite',
+    )
+  })
+})
+
 describe('SignUpForm — renvoi de l’e-mail de confirmation avec délai (LOT 1)', () => {
   it('affiche le message honnête et un bouton de renvoi après inscription', async () => {
     signUpMock.mockResolvedValue({ data: { session: null }, error: null })

@@ -457,6 +457,38 @@ Passe de relecture sur l'ensemble du Mode Amis (F1 à F4) avant de le considére
   Les données des piliers ne sont jamais supprimées : tout réapparaît tel quel si le
   réglage est réactivé.
 
+### 10.10 Fonds d'écran, boutons en verre et pages légales (LOT I1)
+- **8 nouveaux fonds photo** ajoutés à la bibliothèque (Pixabay — `aalmeidah`, `decster1`,
+  `ievali`, `jozefm84`, `nnnhi` — voir `docs/CREDITS.md`) : Lac bleu, Chalet enneigé, Cerf
+  des neiges, Crête mauve, Veillée au lac, Pleine lune (catégorie Paysages), Forêt
+  d'aquarelle (Nature), Ardoise (Urbain, nouvelle catégorie photo). Convertis en WebP
+  (≤ 1920 px, < 400 Ko) avec vignette 480 px. Deux images laissées de côté par prudence
+  sur les droits (une réinterprétation retravaillée de *La Grande Vague de Kanagawa*, une
+  scène très proche de l'illustration promotionnelle du jeu *Firewatch*) — détail et
+  raisons dans `docs/CREDITS.md`.
+- **Boutons en verre dépoli** (`.glass-pill`, `global.css`) : barre du bas, sélecteur de
+  mode (Accueil/Focus/Ambiant et Pomodoro/Compte à rebours/Chronomètre, `variant="glass"`
+  sur `SegmentedControl`) et contrôles du minuteur (`IconButton`) — fond gris/blanc
+  translucide (~12 %) identique dans les deux thèmes, flou d'arrière-plan 20 px, bordure à
+  peine visible, icônes `--glass-icon` (gris clair ~70 % en thème sombre, gris foncé en
+  thème clair, plus claires/foncées au survol), jamais d'aplat de couleur — sauf la
+  pastille active (accent, inchangé) et le bouton lecture/pause principal. Repli
+  `prefers-reduced-transparency` : fond opaque `--surface`, sans flou.
+- **Pages légales** en français, accessibles sans connexion sur des URL propres
+  (`/conditions`, `/confidentialite`, `/mentions-legales`, routées comme `/admin` et
+  `/diagnostic` dans `App.tsx`) : conditions d'utilisation, politique de confidentialité
+  et mentions légales, sommaire, date de mise à jour, textes originaux fidèles au code
+  (sous-traitants réels, données réellement traitées, aucun traceur). Informations que
+  seul l'éditeur peut fournir marquées « [À COMPLÉTER] », jamais inventées. Liens en pied
+  d'écran d'inscription et dans Réglages > À propos.
+- **Consentement marketing** (`profiles.marketing_consent`/`marketing_consent_at`,
+  migration `0038_marketing_consent.sql`) : case décochée par défaut à l'inscription,
+  modifiable dans Réglages > Compte, même politique RLS propriétaire que le reste du
+  profil.
+- **Réglages > À propos** : version, liens légaux, lien vers le journal des changements,
+  section Crédits (dérivée du registre des fonds — jamais de liste dupliquée — et des
+  sons, marqués « à compléter » faute de métadonnées d'origine exploitables).
+
 ## 11. Défis et succès (V3)
 
 ### 11.1 Défis quotidiens

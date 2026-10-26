@@ -21,7 +21,12 @@ export interface AuthContextValue {
   profileError: string | null
   profileErrorDetails: string | null
   retryLoadProfile: () => void
-  signUpWithEmail: (email: string, password: string, username: string) => Promise<SignUpResult>
+  signUpWithEmail: (
+    email: string,
+    password: string,
+    username: string,
+    marketingConsent: boolean,
+  ) => Promise<SignUpResult>
   signInWithEmail: (email: string, password: string) => Promise<void>
   signInWithGoogle: () => Promise<void>
   signInWithGoogleIdToken: (idToken: string, nonce: string) => Promise<void>
@@ -47,6 +52,8 @@ export type ProfileUpdatableFields = Pick<
   | 'show_live_status'
   | 'show_total_time_score'
   | 'participate_leaderboard'
+  | 'marketing_consent'
+  | 'marketing_consent_at'
 >
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

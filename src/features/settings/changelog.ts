@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.16.0',
+    date: '2026-11-05',
+    text: 'Huit nouveaux fonds d\'écran, des boutons qui se fondent dans le fond choisi (barre du bas, sélecteur de mode, contrôles du minuteur), les conditions d\'utilisation, la politique de confidentialité et les mentions légales (accessibles sans connexion), une case pour recevoir les nouveautés par e-mail (décochée par défaut), et une page À propos avec les crédits des photos et sons utilisés.',
+  },
+  {
     version: '0.15.0',
     date: '2026-11-04',
     text: 'Sons en boucle sans coupure (fondu enchaîné), la galaxie rejoint les Piliers (sous le radar, disposée en spirale avec un bras par pilier), des objectifs de niveau par pilier (avec le rythme de focus nécessaire pour les atteindre à temps), et un réglage pour désactiver entièrement les piliers de vie si tu préfères t’en passer.',

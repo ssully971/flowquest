@@ -334,3 +334,21 @@ describe('SettingsPanel — badge « nouveau » sur Nouveautés (§7.9)', () => 
     ).toBeNull()
   })
 })
+
+describe('SettingsPanel — page À propos (lot I1, §4)', () => {
+  it('affiche la page et permet de rejoindre le journal des changements depuis son lien', async () => {
+    const user = userEvent.setup()
+    renderPanel(true)
+    await screen.findByRole('dialog')
+
+    await user.click(screen.getByRole('button', { name: 'À propos' }))
+    expect(screen.getByRole('heading', { name: 'À propos' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Conditions d’utilisation' })).toHaveAttribute(
+      'href',
+      '/conditions',
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Journal des changements' }))
+    expect(screen.getByRole('heading', { name: 'Nouveautés' })).toBeInTheDocument()
+  })
+})

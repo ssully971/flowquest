@@ -40,6 +40,20 @@ describe('IconButton — taille des icônes (LOT H2, §2)', () => {
   })
 })
 
+describe('IconButton — verre dépoli sans aplat de couleur (lot I1, §2)', () => {
+  it('porte la classe .glass-pill (fond translucide) et jamais un aplat --surface', () => {
+    render(
+      <ExtrasSettingsProvider>
+        <IconButton icon={Settings} label="Réglages" />
+      </ExtrasSettingsProvider>,
+    )
+    const button = screen.getByRole('button', { name: 'Réglages' })
+    expect(button.className).toContain('glass-pill')
+    expect(button.className).not.toContain('bg-[var(--surface)]')
+    expect(button.querySelector('svg')).toHaveClass('glass-pill-icon')
+  })
+})
+
 describe('IconButton — infobulle au survol (LOT H2, §4)', () => {
   it('affiche le nom de l’icône au survol (révélé après un délai, jamais pendant le clic)', async () => {
     const user = userEvent.setup()

@@ -44,9 +44,9 @@ describe('backgrounds registry — bibliothèque par catégories (§7.1 du cahie
 })
 
 describe('backgrounds registry — fonds photo du lot 3', () => {
-  it('ajoute 25 fonds photo (dégradés sombres/clairs, paysages, abstrait, intérieur — lot 3 bis)', () => {
+  it('ajoute 33 fonds photo (dégradés sombres/clairs, paysages, abstrait, intérieur, nature, urbain — lots 3 bis et I1)', () => {
     const photoBackgrounds = BACKGROUNDS.filter((bg) => bg.id.startsWith('photo-'))
-    expect(photoBackgrounds.length).toBe(25)
+    expect(photoBackgrounds.length).toBe(33)
   })
 
   it('chaque fond photo fournit une vignette légère distincte du rendu plein écran', () => {

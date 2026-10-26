@@ -73,6 +73,54 @@ h3 {
   }
 }
 
+/*
+ * Boutons en verre dépoli (lot I1, §2 — référence docs/reference/flocus-boutons-verre.jpeg) :
+ * barre du bas, sélecteurs de mode et contrôles du minuteur. Volontairement distinct de
+ * .glass-panel ci-dessus : un fond gris/blanc neutre très translucide (~12%), identique
+ * dans les deux thèmes, sans aplat de couleur — ces boutons flottent sur n'importe quel
+ * fond (photo, dégradé) et doivent s'y fondre, pas porter la couleur de marque. Seule la
+ * couleur des icônes (--glass-icon, voir tokens.css) s'adapte au thème pour rester
+ * lisible ; seule la pastille active d'un SegmentedControl garde --accent (inchangé).
+ * Mêmes replis que .glass-panel : @supports (navigateur sans backdrop-filter) et
+ * prefers-reduced-transparency (fond opaque légèrement teinté, repris de --surface).
+ */
+.glass-pill {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-pill-icon {
+  color: var(--glass-icon);
+  transition: color 150ms ease;
+}
+
+@media (hover: hover) {
+  .glass-pill:hover .glass-pill-icon {
+    color: var(--glass-icon-hover);
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-pill {
+    background: rgba(255, 255, 255, 0.28);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-pill {
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-color: var(--line);
+  }
+
+  .glass-pill-icon {
+    color: var(--text);
+  }
+}
+
 @keyframes clock-flip {
   from {
     transform: rotateX(90deg);

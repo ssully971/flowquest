@@ -269,6 +269,7 @@ export function FocusScreen() {
             value={timer.mode}
             onChange={timer.selectMode}
             options={MODE_OPTIONS}
+            variant="glass"
           />
         </div>
 

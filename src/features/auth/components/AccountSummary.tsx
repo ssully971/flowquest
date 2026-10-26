@@ -2,6 +2,7 @@ import type { FormEvent } from 'react'
 import { useState } from 'react'
 
 import { AvatarEditor } from '@/features/avatar/components/AvatarEditor'
+import { SettingsToggleRow } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import { useAuth } from '../useAuth'
@@ -17,7 +18,7 @@ const USERNAME_FORMAT_ERRORS = {
 }
 
 export function AccountSummary() {
-  const { user, profile, signOut, updateUsername } = useAuth()
+  const { user, profile, signOut, updateUsername, updateProfile } = useAuth()
   const [username, setUsername] = useState(profile?.username ?? '')
   const [isSavingUsername, setIsSavingUsername] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -135,6 +136,21 @@ export function AccountSummary() {
           </p>
         ) : null}
       </form>
+
+      {/* Consentement marketing (lot I1, §3) : décoché par défaut à l'inscription,
+          modifiable ici à tout moment — même écriture générique profiles_update_own que
+          le reste du profil (voir updateProfile), pas de RPC dédiée. */}
+      <SettingsToggleRow
+        label={strings.auth.account.marketingConsentLabel}
+        hint={strings.auth.account.marketingConsentHint}
+        checked={profile.marketing_consent}
+        onToggle={() =>
+          void updateProfile({
+            marketing_consent: !profile.marketing_consent,
+            marketing_consent_at: !profile.marketing_consent ? new Date().toISOString() : null,
+          })
+        }
+      />
 
       <button
         type="button"

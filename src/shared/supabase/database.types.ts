@@ -38,6 +38,8 @@ export interface Database {
           show_live_status: boolean
           show_total_time_score: boolean
           participate_leaderboard: boolean
+          marketing_consent: boolean
+          marketing_consent_at: string | null
           created_at: string
           updated_at: string
         }
@@ -48,6 +50,8 @@ export interface Database {
           avatar_url?: string | null
           timezone?: string
           stats_visibility?: StatsVisibility
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
         }
         Update: {
           username?: string
@@ -60,6 +64,8 @@ export interface Database {
           show_live_status?: boolean
           show_total_time_score?: boolean
           participate_leaderboard?: boolean
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
         }
         Relationships: []
       }

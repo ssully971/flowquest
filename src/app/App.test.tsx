@@ -97,4 +97,38 @@ describe('App', () => {
 
     window.history.pushState({}, '', '/')
   })
+
+  describe('pages légales, accessibles sans connexion (lot I1, §3)', () => {
+    it('/conditions affiche les conditions d’utilisation', () => {
+      window.history.pushState({}, '', '/conditions')
+      render(<App />)
+
+      expect(screen.getByRole('heading', { name: 'Conditions d’utilisation' })).toBeInTheDocument()
+      expect(screen.queryByRole('radio', { name: 'Accueil' })).not.toBeInTheDocument()
+
+      window.history.pushState({}, '', '/')
+    })
+
+    it('/confidentialite affiche la politique de confidentialité', () => {
+      window.history.pushState({}, '', '/confidentialite')
+      render(<App />)
+
+      expect(
+        screen.getByRole('heading', { name: 'Politique de confidentialité' }),
+      ).toBeInTheDocument()
+      expect(screen.queryByRole('radio', { name: 'Accueil' })).not.toBeInTheDocument()
+
+      window.history.pushState({}, '', '/')
+    })
+
+    it('/mentions-legales affiche les mentions légales', () => {
+      window.history.pushState({}, '', '/mentions-legales')
+      render(<App />)
+
+      expect(screen.getByRole('heading', { name: 'Mentions légales' })).toBeInTheDocument()
+      expect(screen.queryByRole('radio', { name: 'Accueil' })).not.toBeInTheDocument()
+
+      window.history.pushState({}, '', '/')
+    })
+  })
 })

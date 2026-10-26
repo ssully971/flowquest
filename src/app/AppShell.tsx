@@ -1,4 +1,14 @@
-import { Flame, Home, ListTodo, Maximize2, Minimize2, Moon, NotebookPen, Settings, Timer } from 'lucide-react'
+import {
+  Flame,
+  Home,
+  ListTodo,
+  Maximize2,
+  Minimize2,
+  Moon,
+  NotebookPen,
+  Settings,
+  Timer,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
@@ -180,13 +190,15 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
     <div className="relative h-dvh overflow-hidden">
       <div
         className="absolute inset-0 -z-10 overflow-hidden"
-        style={
-          blurPx > 0 ? { filter: `blur(${blurPx}px)`, transform: 'scale(1.1)' } : undefined
-        }
+        style={blurPx > 0 ? { filter: `blur(${blurPx}px)`, transform: 'scale(1.1)' } : undefined}
       >
         <CurrentBackground />
       </div>
-      <div key={mode} className="absolute inset-0" style={{ animation: 'screen-fade-in 200ms ease-out' }}>
+      <div
+        key={mode}
+        className="absolute inset-0"
+        style={{ animation: 'screen-fade-in 200ms ease-out' }}
+      >
         {children}
       </div>
 
@@ -211,7 +223,9 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
             {
               key: 'fullscreen',
               icon: fullscreen.isFullscreen ? Minimize2 : Maximize2,
-              label: fullscreen.isFullscreen ? strings.common.exitFullscreen : strings.common.fullscreen,
+              label: fullscreen.isFullscreen
+                ? strings.common.exitFullscreen
+                : strings.common.fullscreen,
               onClick: fullscreen.toggle,
             },
           ]}
@@ -232,7 +246,9 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
           data-testid="right-button-group"
           className="flex flex-wrap items-center justify-center gap-3"
         >
-          <div className="hidden sm:contents">{extrasSettings.settingsPanelSide === 'right' ? settingsButton : null}</div>
+          <div className="hidden sm:contents">
+            {extrasSettings.settingsPanelSide === 'right' ? settingsButton : null}
+          </div>
           {extrasSettings.showStreak ? (
             <div className="relative">
               <button
@@ -240,12 +256,16 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
                 onClick={() => setIsStreakOpen((prev) => !prev)}
                 aria-expanded={isStreakOpen}
                 aria-label={`${strings.common.streak} : ${stats?.currentStreakDays ?? 0}`}
-                className="flex h-12 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
+                className="glass-pill flex h-12 items-center gap-1.5 rounded-full px-4 text-sm text-[var(--glass-icon)] transition-colors duration-200 hover:text-[var(--glass-icon-hover)]"
               >
                 <Flame size={18} strokeWidth={1.75} aria-hidden="true" />
                 <span>{stats?.currentStreakDays ?? 0}</span>
               </button>
-              <StreakPanel open={isStreakOpen} onClose={() => setIsStreakOpen(false)} stats={stats} />
+              <StreakPanel
+                open={isStreakOpen}
+                onClose={() => setIsStreakOpen(false)}
+                stats={stats}
+              />
             </div>
           ) : null}
           <SegmentedControl
@@ -254,6 +274,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
             onChange={onModeChange}
             options={MODE_OPTIONS}
             iconSize={extrasSettings.iconSize}
+            variant="glass"
           />
           {mode !== 'ambient' ? (
             <div className="relative">
@@ -323,7 +344,11 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
       <InstallPrompt />
       <CheersBanner cheers={cheers.cheers} onDismiss={cheers.dismiss} />
       {activeRoomId ? (
-        <RoomScreen key={activeRoomId} roomId={activeRoomId} onClose={() => setActiveRoomId(null)} />
+        <RoomScreen
+          key={activeRoomId}
+          roomId={activeRoomId}
+          onClose={() => setActiveRoomId(null)}
+        />
       ) : null}
     </div>
   )

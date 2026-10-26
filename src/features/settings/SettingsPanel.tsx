@@ -2,6 +2,7 @@ import {
   BarChart3,
   Clock,
   Compass,
+  Info,
   LifeBuoy,
   Megaphone,
   Palette,
@@ -29,6 +30,7 @@ import { getLastSeenChangelogVersion, markChangelogSeen } from './changelog-seen
 import type { ExtrasSettings } from './extras-settings'
 import { getLastSettingsPage, setLastSettingsPage } from './last-page'
 import type { SettingsPageId } from './page-id'
+import { AboutPage } from './pages/AboutPage'
 import { AccountPage } from './pages/AccountPage'
 import { ChangelogPage } from './pages/ChangelogPage'
 import { ClockPage } from './pages/ClockPage'
@@ -58,6 +60,7 @@ const NAV_ITEMS: { id: PageId; label: string; icon: LucideIcon }[] = [
   { id: 'friends', label: strings.settings.nav.friends, icon: UserCog },
   { id: 'support', label: strings.settings.nav.support, icon: LifeBuoy },
   { id: 'changelog', label: strings.settings.nav.changelog, icon: Megaphone },
+  { id: 'about', label: strings.settings.nav.about, icon: Info },
 ]
 
 interface SettingsPanelProps {
@@ -332,6 +335,8 @@ export function SettingsPanel({
               <SupportPage />
             ) : activePage === 'changelog' ? (
               <ChangelogPage />
+            ) : activePage === 'about' ? (
+              <AboutPage onOpenChangelog={() => handleSelectPage('changelog')} />
             ) : (
               <PlaceholderPage
                 title={NAV_ITEMS.find((item) => item.id === activePage)?.label ?? ''}

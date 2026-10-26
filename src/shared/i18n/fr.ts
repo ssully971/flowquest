@@ -1,6 +1,8 @@
+import { APP_NAME } from '@/shared/app-config'
+
 export const fr = {
   app: {
-    name: 'Flowquest',
+    name: APP_NAME,
     tagline: 'La quête du flow.',
   },
   avatar: {
@@ -485,7 +487,7 @@ export const fr = {
     empty: 'Termine ta première session de focus pour démarrer ta série.',
   },
   pwa: {
-    installMessage: 'Ajoute Flowquest à l’écran d’accueil pour recevoir l’alerte de fin.',
+    installMessage: `Ajoute ${APP_NAME} à l’écran d’accueil pour recevoir l’alerte de fin.`,
     iosInstructions: 'Appuie sur Partager, puis « Sur l’écran d’accueil ».',
     installAction: 'Installer',
     later: 'Plus tard',
@@ -501,11 +503,10 @@ export const fr = {
     close: 'Fermer les sons d’ambiance',
   },
   auth: {
-    notConfigured:
-      'Les comptes ne sont pas encore configurés sur ce déploiement. Flowquest reste utilisable en mode invité : tes données restent sur cet appareil.',
+    notConfigured: `Les comptes ne sont pas encore configurés sur ce déploiement. ${APP_NAME} reste utilisable en mode invité : tes données restent sur cet appareil.`,
     loading: 'Vérification de ta session…',
     gate: {
-      title: 'flowquest',
+      title: APP_NAME.toLowerCase(),
       subtitle: 'Connecte-toi pour retrouver tes réglages et tes données sur tous tes appareils.',
       signIn: 'Se connecter',
       signUp: 'Créer un compte',
@@ -580,6 +581,8 @@ export const fr = {
       usernameLabel: 'Pseudo',
       usernameSave: 'Enregistrer',
       usernameSaving: 'Enregistrement…',
+      marketingConsentLabel: 'Recevoir les nouveautés par e-mail',
+      marketingConsentHint: 'Occasionnel, jamais partagé. Tu peux changer d’avis à tout moment.',
       signOut: 'Se déconnecter',
       signingOut: 'Déconnexion…',
       deleteAccount: 'Supprimer mon compte',
@@ -602,7 +605,7 @@ export const fr = {
     },
     importPrompt: {
       title: 'Importer tes données locales ?',
-      body: 'Tu avais déjà utilisé Flowquest en mode invité sur cet appareil. Veux-tu importer ce qui s’y trouve (réglages, minuteur en cours) dans ton nouveau compte ?',
+      body: `Tu avais déjà utilisé ${APP_NAME} en mode invité sur cet appareil. Veux-tu importer ce qui s’y trouve (réglages, minuteur en cours) dans ton nouveau compte ?`,
       confirm: 'Importer',
       skip: 'Ignorer',
       importing: 'Import en cours…',
@@ -610,6 +613,21 @@ export const fr = {
       error:
         'L’import a échoué. Tes données locales restent disponibles, réessaie plus tard depuis Compte.',
     },
+    marketingConsent: 'Je souhaite recevoir les nouveautés par e-mail',
+    legalNotice: {
+      prefix: 'En créant un compte, tu acceptes les',
+      terms: 'conditions',
+      and: 'et la',
+      privacy: 'politique de confidentialité',
+    },
+  },
+  legal: {
+    lastUpdated: 'Dernière mise à jour le',
+    tocLabel: 'Sommaire',
+    backHome: `Retour à ${APP_NAME}`,
+    termsTitle: 'Conditions d’utilisation',
+    privacyTitle: 'Politique de confidentialité',
+    noticeTitle: 'Mentions légales',
   },
   settings: {
     title: 'Réglages',
@@ -626,6 +644,7 @@ export const fr = {
       friends: 'Amis et confidentialité',
       support: 'Support',
       changelog: 'Nouveautés',
+      about: 'À propos',
     },
     placeholder: 'Bientôt disponible.',
     themes: {
@@ -992,6 +1011,23 @@ export const fr = {
       title: 'Nouveautés',
       empty: 'Aucune nouveauté pour l’instant.',
       unreadBadge: 'Nouveau',
+    },
+    about: {
+      title: 'À propos',
+      version: 'Version',
+      linksTitle: 'Textes légaux',
+      terms: 'Conditions d’utilisation',
+      privacy: 'Politique de confidentialité',
+      legalNotice: 'Mentions légales',
+      changelogLink: 'Journal des changements',
+      creditsTitle: 'Crédits',
+      creditsIntro:
+        'Photos, illustrations et sons utilisés dans l’application, avec leurs auteurs.',
+      creditsPhotosTitle: 'Photos et illustrations',
+      creditsSoundsTitle: 'Sons d’ambiance',
+      creditsSource: 'Source',
+      creditsLicense: 'Licence',
+      toComplete: 'À compléter',
     },
   },
 } as const

@@ -42,10 +42,15 @@ export function IconButton({ icon: Icon, label, className = '', ...props }: Icon
       <button
         type="button"
         aria-label={label}
-        className={`inline-flex shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--text)] transition-colors duration-150 hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-40 ${BUTTON_SIZE_CLASSES[size]} ${className}`}
+        className={`glass-pill inline-flex shrink-0 items-center justify-center rounded-full transition-transform duration-150 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${BUTTON_SIZE_CLASSES[size]} ${className}`}
         {...props}
       >
-        <Icon size={ICON_SIZE_PX[size]} strokeWidth={ICON_STROKE_WIDTH[size]} aria-hidden="true" />
+        <Icon
+          size={ICON_SIZE_PX[size]}
+          strokeWidth={ICON_STROKE_WIDTH[size]}
+          aria-hidden="true"
+          className="glass-pill-icon"
+        />
       </button>
       {/* Infobulle avec le nom de l'icône (LOT H2, §4) : souris uniquement (`hover:`
           compile en `@media (hover: hover)` avec Tailwind v4 — jamais de survol « collé »
