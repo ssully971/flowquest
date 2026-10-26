@@ -1,6 +1,24 @@
+import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 
 import { HOST, MEMBER, createFakeBackend, signInAs } from './fixtures/fake-supabase'
+
+/**
+ * Ouvre l'onglet Salons du panneau social (LOT H2, §1) : plus de bouton dédié en bas à
+ * droite de l'accueil — point d'entrée unique désormais la carte profil en haut de
+ * Réglages, qui ouvre le panneau social (Amis/Demandes/Classement/Salons/Ajouter).
+ * `.filter({ visible: true })` : la carte profil est rendue deux fois (mobile et bureau,
+ * une seule visible par CSS selon la largeur — voir SettingsPanel), sans ça le mode
+ * strict de Playwright échoue sur les deux correspondances.
+ */
+async function openRoomsTab(page: Page) {
+  await page.getByLabel('Réglages', { exact: true }).click()
+  await page
+    .getByRole('button', { name: /Amis, salons et classement/ })
+    .filter({ visible: true })
+    .click()
+  await page.getByRole('tab', { name: /Salons/ }).click()
+}
 
 /**
  * Test à deux contextes de navigateur pour les salons de focus (LOT F3, règle
@@ -39,7 +57,7 @@ test('deux navigateurs voient le même salon se synchroniser', async ({ browser 
   await memberPage.goto('/')
 
   // 1. L'hôte crée un salon de 15 min et invite le membre.
-  await hostPage.getByLabel('Salons', { exact: true }).click()
+  await openRoomsTab(hostPage)
   await hostPage.getByRole('tab', { name: 'Créer' }).click()
   await hostPage.getByRole('button', { name: '15 min' }).click()
   await hostPage.getByText(MEMBER.username).click()
@@ -49,13 +67,15 @@ test('deux navigateurs voient le même salon se synchroniser', async ({ browser 
 
   // 2. Le membre voit l'invitation dans SON navigateur et l'accepte. La notification
   // temps réel (LOT H1, §2) se déclenche ici : ouvrir le panneau rafraîchit la liste des
-  // salons (voir le commentaire dans RoomsPanel) et le nouvel item détecté par diff
+  // salons (voir le commentaire dans SocialPanel) et le nouvel item détecté par diff
   // déclenche le toast — pas de vrai canal Realtime dans cet environnement (voir
   // l'en-tête de ce fichier), mais la logique de détection et d'affichage est la même.
-  await memberPage.getByLabel('Salons', { exact: true }).click()
+  await openRoomsTab(memberPage)
   await expect(memberPage.getByText('Hôte t’invite à un salon de focus.')).toBeVisible()
   await expect(memberPage.getByText(/t’invite dans un salon/)).toBeVisible()
-  await memberPage.getByRole('button', { name: 'Accepter' }).click()
+  // Scopé au dialogue : le toast (LOT H2, §1) a lui aussi un bouton « Accepter » depuis
+  // qu'il agit directement, ambigu avec celui de la carte de salon dans le panneau.
+  await memberPage.getByRole('dialog').getByRole('button', { name: 'Accepter' }).click()
   await expect(memberPage.getByText('En attente du démarrage par l’hôte.')).toBeVisible()
 
   // 3. L'hôte démarre le minuteur partagé.
@@ -69,7 +89,7 @@ test('deux navigateurs voient le même salon se synchroniser', async ({ browser 
   // notification » du toast d'invitation (LOT H1, temps réel) encore affiché quelques
   // secondes après l'avoir reçue.
   await memberPage.getByRole('button', { name: 'Fermer', exact: true }).click()
-  await memberPage.getByLabel('Salons', { exact: true }).click()
+  await openRoomsTab(memberPage)
   await memberPage.getByRole('button', { name: 'Rejoindre' }).click()
   await expect(memberPage.getByText('En attente du démarrage par l’hôte.')).toHaveCount(0)
   await expect(memberPage.getByRole('button', { name: 'Mettre en pause' })).not.toBeVisible()
@@ -83,7 +103,7 @@ test('deux navigateurs voient le même salon se synchroniser', async ({ browser 
   // contrôler le salon — le transfert a bien traversé les deux navigateurs.
   // `exact: true` : même ambiguïté qu'à l'étape 4 avec le toast d'invitation.
   await memberPage.getByRole('button', { name: 'Fermer', exact: true }).click()
-  await memberPage.getByLabel('Salons', { exact: true }).click()
+  await openRoomsTab(memberPage)
   await memberPage.getByRole('button', { name: 'Rejoindre' }).click()
   await expect(memberPage.getByRole('button', { name: 'Mettre en pause' })).toBeVisible()
 
@@ -96,7 +116,7 @@ test('deux navigateurs voient le même salon se synchroniser', async ({ browser 
   // plutôt qu'un bouton « Rejoindre » vers un salon qui ne tourne plus.
   // `exact: true` : même ambiguïté qu'à l'étape 4 avec le toast d'invitation.
   await hostPage.getByRole('button', { name: 'Fermer', exact: true }).click()
-  await hostPage.getByLabel('Salons', { exact: true }).click()
+  await openRoomsTab(hostPage)
   await hostPage.getByRole('tab', { name: 'Mes salons' }).click()
   await expect(hostPage.getByText(/t’invite dans un salon/)).toHaveCount(0)
   await expect(hostPage.getByRole('button', { name: 'Rejoindre' })).toHaveCount(0)

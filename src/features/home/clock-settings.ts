@@ -1,14 +1,38 @@
-import { TASK_COLORS } from '@/features/tasks/task-color'
-
 export type ClockFormat = '12h' | '24h'
-export type ClockSize = 'small' | 'normal' | 'huge'
+// `xs`/`s` ajoutées en LOT H2, §2 : avant, « Petite » (`small`) était la plus petite
+// taille possible — certains écrans (mobile surtout) demandaient une horloge encore plus
+// discrète.
+export type ClockSize = 'xs' | 's' | 'small' | 'normal' | 'huge'
 
 export const CLOCK_COLOR_AUTO = 'auto'
-// Réutilise la palette des couleurs de tâches (§8, exception documentée à la règle « une
-// seule couleur de marque » §20.1 — déjà étendue aux confettis et aux cartes de stats) :
-// une seule palette « contenu » cohérente dans toute l'app plutôt qu'une nouvelle liste.
-export const CLOCK_COLORS = TASK_COLORS
-export type ClockColor = typeof CLOCK_COLOR_AUTO | (typeof CLOCK_COLORS)[number]
+// Palettes par thème (lot 3 bis, §5) : l'ancienne palette (réutilisant TASK_COLORS) était
+// trop vive et trop claire pour une horloge affichée en grand sur un fond photo. En sombre,
+// des tons doux et légèrement désaturés ; en clair, des tons profonds — chacun vérifié à au
+// moins 4,5:1 de contraste contre le fond de base du thème (voir clock-color-contrast.ts,
+// THEME_SURFACE_HEX) par clock-color-contrast.test.ts.
+export const CLOCK_COLORS_DARK = [
+  '#F5F1EA', // blanc cassé
+  '#C9BFE8', // lavande
+  '#E3B8BE', // rose poudré
+  '#A9D4C4', // vert d'eau
+  '#D9C3A0', // sable
+] as const
+export const CLOCK_COLORS_LIGHT = [
+  '#1A1A2E', // encre
+  '#312E81', // indigo
+  '#6B1F2A', // bordeaux
+  '#1F4D3A', // vert forêt
+  '#4A3222', // brun
+] as const
+export type ClockColor =
+  | typeof CLOCK_COLOR_AUTO
+  | (typeof CLOCK_COLORS_DARK)[number]
+  | (typeof CLOCK_COLORS_LIGHT)[number]
+
+export const CLOCK_COLORS_BY_THEME: Record<'dark' | 'light', readonly ClockColor[]> = {
+  dark: CLOCK_COLORS_DARK,
+  light: CLOCK_COLORS_LIGHT,
+}
 
 export const CLOCK_STYLES = [
   'default-bold',
@@ -53,6 +77,8 @@ export function resolveClockColor(color: ClockColor): string | undefined {
 }
 
 export const CLOCK_SIZE_SCALE: Record<ClockSize, number> = {
+  xs: 0.38,
+  s: 0.5,
   small: 0.62,
   normal: 1,
   huge: 1.35,

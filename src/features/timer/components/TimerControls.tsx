@@ -31,12 +31,18 @@ export function TimerControls({
   showPip = true,
 }: TimerControlsProps) {
   const isRunning = status === 'running'
+  const isIdle = status === 'idle'
   const PrimaryIcon = isRunning ? Pause : Play
   const primaryLabel = isRunning
     ? strings.focus.controls.pause
     : status === 'paused'
       ? strings.focus.controls.resume
       : strings.focus.controls.start
+  // LOT H2, §5 : sur mobile, tant que rien n'a démarré, seuls Réinitialiser et Lancer
+  // sont utiles (passer/terminer/PIP n'ont de sens qu'une fois une session en cours) —
+  // masqué en CSS via un wrapper dédié (`hidden sm:block`, jamais de classe conflictuelle
+  // posée directement sur IconButton, qui porte déjà son propre `inline-flex`).
+  const idleMobileOnlyClassName = isIdle ? 'hidden sm:block' : undefined
 
   return (
     <div className="flex items-center gap-4">
@@ -55,22 +61,28 @@ export function TimerControls({
         />
       </button>
       {showSkip ? (
-        <IconButton icon={SkipForward} label={strings.focus.controls.skip} onClick={onSkip} />
+        <span className={idleMobileOnlyClassName}>
+          <IconButton icon={SkipForward} label={strings.focus.controls.skip} onClick={onSkip} />
+        </span>
       ) : null}
       {showEndSession && onEndSession ? (
-        <IconButton icon={Square} label={strings.focus.controls.endSession} onClick={onEndSession} />
+        <span className={idleMobileOnlyClassName}>
+          <IconButton icon={Square} label={strings.focus.controls.endSession} onClick={onEndSession} />
+        </span>
       ) : null}
       {showPip ? (
-        <IconButton
-          icon={PictureInPicture2}
-          label={
-            pipAvailable
-              ? strings.focus.controls.pictureInPicture
-              : strings.focus.controls.pictureInPictureUnavailable
-          }
-          onClick={onPictureInPicture}
-          disabled={!pipAvailable}
-        />
+        <span className={idleMobileOnlyClassName}>
+          <IconButton
+            icon={PictureInPicture2}
+            label={
+              pipAvailable
+                ? strings.focus.controls.pictureInPicture
+                : strings.focus.controls.pictureInPictureUnavailable
+            }
+            onClick={onPictureInPicture}
+            disabled={!pipAvailable}
+          />
+        </span>
       ) : null}
     </div>
   )

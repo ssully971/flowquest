@@ -14,6 +14,8 @@ function makePillar(overrides: Partial<PillarRecord>): PillarRecord {
     level: 1,
     createdAt: Date.now(),
     archivedAt: null,
+    goalLevel: null,
+    goalDeadline: null,
     ...overrides,
   }
 }
@@ -22,11 +24,14 @@ describe('BalanceCard — carte « Équilibre » (LOT G3)', () => {
   it('affiche un message clair avec moins de 3 piliers actifs', () => {
     render(
       <BalanceCard
-        activePillars={[makePillar({ id: '1', name: 'Travail' }), makePillar({ id: '2', name: 'Sport' })]}
+        activePillars={[
+          makePillar({ id: '1', name: 'Travail' }),
+          makePillar({ id: '2', name: 'Sport' }),
+        ]}
       />,
     )
     expect(
-      screen.getByText('Ajoute au moins 3 piliers actifs dans Réglages > Piliers pour voir ton équilibre.'),
+      screen.getByText('Ajoute au moins 3 piliers actifs pour voir ton équilibre.'),
     ).toBeInTheDocument()
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })

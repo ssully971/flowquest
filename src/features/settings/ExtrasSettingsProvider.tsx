@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { DEFAULT_EXTRAS_SETTINGS } from './extras-settings'
 import type { ExtrasSettings } from './extras-settings'
 import { ExtrasSettingsContext } from './extras-settings-context'
 import { SETTINGS_PAGE_IDS } from './page-id'
+import { setPillarsEnabledRef } from './pillars-enabled-ref'
 
 const STORAGE_KEY = 'flowquest.extrasSettings'
 
@@ -38,6 +39,10 @@ function readStored(): ExtrasSettings {
 
 export function ExtrasSettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettingsState] = useState<ExtrasSettings>(readStored)
+
+  useEffect(() => {
+    setPillarsEnabledRef(settings.pillarsEnabled)
+  }, [settings.pillarsEnabled])
 
   const setSettings = useCallback((next: ExtrasSettings) => {
     setSettingsState(next)

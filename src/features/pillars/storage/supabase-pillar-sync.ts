@@ -16,6 +16,8 @@ function toRow(userId: string, pillar: PillarRecord) {
     name: pillar.name,
     color: pillar.color,
     archived_at: pillar.archivedAt ? new Date(pillar.archivedAt).toISOString() : null,
+    goal_level: pillar.goalLevel,
+    goal_deadline: pillar.goalDeadline ? new Date(pillar.goalDeadline).toISOString() : null,
   }
 }
 
@@ -40,6 +42,8 @@ export async function pullAllPillars(userId: string): Promise<PillarRecord[] | n
     level: row.level,
     createdAt: new Date(row.created_at).getTime(),
     archivedAt: row.archived_at ? new Date(row.archived_at).getTime() : null,
+    goalLevel: row.goal_level,
+    goalDeadline: row.goal_deadline ? new Date(row.goal_deadline).getTime() : null,
   }))
 }
 
@@ -60,5 +64,7 @@ export async function pullOnePillar(id: string): Promise<PillarRecord | null> {
     level: data.level,
     createdAt: new Date(data.created_at).getTime(),
     archivedAt: data.archived_at ? new Date(data.archived_at).getTime() : null,
+    goalLevel: data.goal_level,
+    goalDeadline: data.goal_deadline ? new Date(data.goal_deadline).getTime() : null,
   }
 }

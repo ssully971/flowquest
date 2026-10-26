@@ -1,17 +1,21 @@
-import { Flame, ListTodo, Maximize2, Minimize2, NotebookPen, Radio, Settings, Users } from 'lucide-react'
+import { Flame, Home, ListTodo, Maximize2, Minimize2, Moon, NotebookPen, Settings, Timer } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 
 import { GuestImportPrompt } from '@/features/auth/components/GuestImportPrompt'
 import { useCurrentUserSync } from '@/features/auth/useCurrentUserSync'
-import { CheersBanner } from '@/features/friends/components/CheersBanner'
-import { FriendsPanel } from '@/features/friends/components/FriendsPanel'
+import { SocialPanel } from '@/features/friends/components/SocialPanel'
 import { useCheers } from '@/features/friends/useCheers'
+import { CheersBanner } from '@/features/friends/components/CheersBanner'
+import { useDuoStreaks } from '@/features/friends/useDuoStreaks'
+import { useFriends } from '@/features/friends/useFriends'
+import { useLeaderboard } from '@/features/friends/useLeaderboard'
 import { useLiveStatusSync } from '@/features/friends/useLiveStatusSync'
 import { usePillarSync } from '@/features/pillars/usePillarSync'
 import { InstallPrompt } from '@/features/pwa/InstallPrompt'
 import { RoomScreen } from '@/features/rooms/components/RoomScreen'
-import { RoomsPanel } from '@/features/rooms/components/RoomsPanel'
+import { useRooms } from '@/features/rooms/useRooms'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
 import { blurPercentToPx } from '@/features/settings/background-display-settings'
@@ -38,6 +42,7 @@ import {
 import { useFullscreen } from '@/shared/hooks/useFullscreen'
 import { strings } from '@/shared/i18n'
 
+import { MobileMenu } from './MobileMenu'
 import type { AppMode } from './useAppMode'
 import { useBackgroundSettings } from './useBackgroundSettings'
 
@@ -47,15 +52,18 @@ interface AppShellProps {
   children: ReactNode
 }
 
-const MODE_OPTIONS: { value: AppMode; label: string }[] = [
-  { value: 'home', label: strings.common.modeHome },
-  { value: 'focus', label: strings.common.modeFocus },
-  { value: 'ambient', label: strings.common.modeAmbient },
+// Icônes (LOT H2, §5) : visibles seules sur mobile (texte en sr-only, voir
+// SegmentedControl), avec le texte à côté à partir de `sm:` — inchangé sur grand écran.
+const MODE_OPTIONS: { value: AppMode; label: string; icon: LucideIcon }[] = [
+  { value: 'home', label: strings.common.modeHome, icon: Home },
+  { value: 'focus', label: strings.common.modeFocus, icon: Timer },
+  { value: 'ambient', label: strings.common.modeAmbient, icon: Moon },
 ]
 
 export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const fullscreen = useFullscreen()
-  const { selection, setBackground } = useBackgroundSettings()
+  const { selections, resolve, setBackground, setLinked, setBackgroundBoth, replaceSelection } =
+    useBackgroundSettings()
   const { settings: backgroundDisplaySettings, setSettings: setBackgroundDisplaySettings } =
     useBackgroundDisplaySettings()
   const { appearance, setAppearance } = useTheme()
@@ -68,8 +76,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isTasksOpen, setIsTasksOpen] = useState(false)
   const [isNotesOpen, setIsNotesOpen] = useState(false)
-  const [isFriendsOpen, setIsFriendsOpen] = useState(false)
-  const [isRoomsOpen, setIsRoomsOpen] = useState(false)
+  const [isSocialOpen, setIsSocialOpen] = useState(false)
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null)
   const [isStreakOpen, setIsStreakOpen] = useState(false)
   const [previousMode, setPreviousMode] = useState(mode)
@@ -83,19 +90,30 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
       if (isTasksOpen) setIsTasksOpen(false)
       if (isNotesOpen) setIsNotesOpen(false)
       if (isStreakOpen) setIsStreakOpen(false)
-      if (isFriendsOpen) setIsFriendsOpen(false)
-      if (isRoomsOpen) setIsRoomsOpen(false)
+      if (isSocialOpen) setIsSocialOpen(false)
     }
   }
 
   useCurrentUserSync()
   useLiveStatusSync()
   const cheers = useCheers()
+  // Point d'entrée social unique (LOT H2, §1) : états possédés ici (plutôt que dans
+  // SocialPanel) pour que la pastille de l'engrenage ci-dessous puisse les lire sans
+  // ouvrir un second canal temps réel par état (useFriendsRealtime, useRoomInvitesRealtime...
+  // supportent plusieurs montages, mais doubler les abonnements serait du gaspillage).
+  const friendsState = useFriends()
+  const roomsState = useRooms()
+  const leaderboardState = useLeaderboard()
+  const duoStreaksState = useDuoStreaks()
+  const hasUnreadSocial =
+    friendsState.incomingRequests.length > 0 ||
+    cheers.unreadCount > 0 ||
+    roomsState.rooms.some((room) => room.myStatus === 'invited')
   useSettingsSync({
     appearance,
     setAppearance,
-    backgrounds: selection,
-    setBackground,
+    backgrounds: selections,
+    setBackgroundSelection: replaceSelection,
     backgroundDisplaySettings,
     setBackgroundDisplaySettings,
     activeTaskId,
@@ -130,20 +148,32 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
       ? BACKGROUNDS.filter((bg) => bg.category !== 'animated')
       : BACKGROUNDS
     const randomId = () => pool[Math.floor(Math.random() * pool.length)].id
-    setBackground('home', randomId())
-    setBackground('focus', randomId())
-    setBackground('ambient', randomId())
+    setBackgroundBoth('home', randomId())
+    setBackgroundBoth('focus', randomId())
+    setBackgroundBoth('ambient', randomId())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const CurrentBackground = getBackgroundDefinition(selection[mode]).Component
+  const CurrentBackground = getBackgroundDefinition(resolve(mode)).Component
   const blurPx = blurPercentToPx(backgroundDisplaySettings.blurPercent)
   const settingsButton = (
-    <IconButton
-      icon={Settings}
-      label={strings.common.settings}
-      onClick={() => setIsSettingsOpen(true)}
-    />
+    <span className="relative inline-flex">
+      <IconButton
+        icon={Settings}
+        label={strings.common.settings}
+        onClick={() => setIsSettingsOpen(true)}
+      />
+      {/* Pastille de notifications non lues (LOT H2, §1) : demande d'ami, encouragement ou
+          invitation de salon — la seule indication désormais que le panneau social a
+          quelque chose de nouveau, plus aucun bouton dédié en bas à droite. */}
+      {hasUnreadSocial ? (
+        <span
+          aria-label={strings.social.unreadBadge}
+          className="pointer-events-none absolute right-0 top-0 h-2.5 w-2.5 rounded-full border-2"
+          style={{ background: 'var(--accent)', borderColor: 'var(--surface)' }}
+        />
+      ) : null}
+    </span>
   )
 
   return (
@@ -164,7 +194,30 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
         className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 px-4 sm:flex-nowrap sm:justify-between sm:px-10"
         style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
       >
-        <div data-testid="left-button-group" className="flex items-center gap-3">
+        {/* Menu mobile (retour après feu vert, LOT H2 §5) : Réglages et Plein écran
+            (actions ponctuelles, sans panneau ancré à repositionner) tenaient sur une
+            ligne à part sur petit écran — regroupés ici derrière un seul bouton. Série,
+            sélecteur de mode, Tâches et Notes gardent leur panneau ancré à leur propre
+            bouton (inchangé) : les en extraire aurait cassé leur positionnement.
+            Desktop inchangé (`hidden sm:flex` sur les boutons repris dans ce menu). */}
+        <MobileMenu
+          items={[
+            {
+              key: 'settings',
+              icon: Settings,
+              label: strings.common.settings,
+              onClick: () => setIsSettingsOpen(true),
+            },
+            {
+              key: 'fullscreen',
+              icon: fullscreen.isFullscreen ? Minimize2 : Maximize2,
+              label: fullscreen.isFullscreen ? strings.common.exitFullscreen : strings.common.fullscreen,
+              onClick: fullscreen.toggle,
+            },
+          ]}
+        />
+
+        <div data-testid="left-button-group" className="hidden items-center gap-3 sm:flex">
           {extrasSettings.settingsPanelSide === 'left' ? settingsButton : null}
           <IconButton
             icon={fullscreen.isFullscreen ? Minimize2 : Maximize2}
@@ -179,7 +232,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
           data-testid="right-button-group"
           className="flex flex-wrap items-center justify-center gap-3"
         >
-          {extrasSettings.settingsPanelSide === 'right' ? settingsButton : null}
+          <div className="hidden sm:contents">{extrasSettings.settingsPanelSide === 'right' ? settingsButton : null}</div>
           {extrasSettings.showStreak ? (
             <div className="relative">
               <button
@@ -200,6 +253,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
             value={mode}
             onChange={onModeChange}
             options={MODE_OPTIONS}
+            iconSize={extrasSettings.iconSize}
           />
           {mode !== 'ambient' ? (
             <div className="relative">
@@ -223,45 +277,34 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
               <NotesPanel open={isNotesOpen} onClose={() => setIsNotesOpen(false)} />
             </div>
           ) : null}
-          {mode !== 'ambient' ? (
-            <div className="relative">
-              <IconButton
-                icon={Users}
-                label={strings.common.friends}
-                aria-expanded={isFriendsOpen}
-                onClick={() => setIsFriendsOpen((prev) => !prev)}
-              />
-              <FriendsPanel open={isFriendsOpen} onClose={() => setIsFriendsOpen(false)} />
-            </div>
-          ) : null}
-          {mode !== 'ambient' ? (
-            <div className="relative">
-              <IconButton
-                icon={Radio}
-                label={strings.common.rooms}
-                aria-expanded={isRoomsOpen}
-                onClick={() => setIsRoomsOpen((prev) => !prev)}
-              />
-              <RoomsPanel
-                open={isRoomsOpen}
-                onClose={() => setIsRoomsOpen(false)}
-                onOpenRoom={(roomId) => {
-                  setIsRoomsOpen(false)
-                  setActiveRoomId(roomId)
-                }}
-              />
-            </div>
-          ) : null}
         </div>
       </div>
+
+      <SocialPanel
+        open={isSocialOpen}
+        onClose={() => setIsSocialOpen(false)}
+        onOpenRoom={(roomId) => {
+          setIsSocialOpen(false)
+          setActiveRoomId(roomId)
+        }}
+        friendsState={friendsState}
+        leaderboardState={leaderboardState}
+        duoStreaksState={duoStreaksState}
+        roomsState={roomsState}
+      />
 
       <SettingsPanel
         open={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        onOpenSocial={() => {
+          setIsSettingsOpen(false)
+          setIsSocialOpen(true)
+        }}
         mode={mode}
         onModeChange={onModeChange}
-        backgroundSelection={selection}
+        backgroundSelections={selections}
         onBackgroundSelect={setBackground}
+        onBackgroundLinkedChange={setLinked}
         backgroundDisplaySettings={backgroundDisplaySettings}
         onBackgroundDisplaySettingsChange={setBackgroundDisplaySettings}
         dailyGoalMinutes={dailyGoalMinutes}

@@ -2,6 +2,7 @@ import { getCurrentUserId } from '@/features/auth/current-user'
 import { getActivePillarId } from '@/features/pillars/active-pillar-ref'
 import { applySessionXp, reconcilePillarFromServer } from '@/features/pillars/apply-session-xp'
 import type { PillarXpResult } from '@/features/pillars/apply-session-xp'
+import { getPillarsEnabled } from '@/features/settings/pillars-enabled-ref'
 import { notifySessionRecorded } from '@/features/stats/session-events'
 import type { FocusSessionRecord } from '@/shared/storage/db'
 import { enqueueWrite } from '@/shared/sync/offline-queue'
@@ -42,8 +43,10 @@ export async function recordSession(
 
   // Un pilier ne s'attache qu'aux segments de focus (LOT G3) : seuls eux comptent pour
   // l'XP (recompute_pillar_xp filtre déjà kind = 'focus' côté serveur), inutile de
-  // rattacher un pilier à une pause.
-  const pillarId = state.segment === 'focus' ? getActivePillarId() : null
+  // rattacher un pilier à une pause. Piliers désactivés (lot 4, §5) : la session
+  // s'enregistre normalement, juste sans pilier — même si un pilier était resté actif
+  // dans active-pillar-ref avant la désactivation.
+  const pillarId = state.segment === 'focus' && getPillarsEnabled() ? getActivePillarId() : null
 
   const record: FocusSessionRecord = {
     id: crypto.randomUUID(),

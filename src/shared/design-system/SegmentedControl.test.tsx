@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { Home } from 'lucide-react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { SegmentedControl } from './SegmentedControl'
@@ -54,5 +55,49 @@ describe('SegmentedControl', () => {
         'bg-[var(--accent)]',
       )
     }
+  })
+
+  it('une option à icône n’affiche son nom en dessous que si elle est active (LOT H2, retour après feu vert)', () => {
+    const iconOptions: SegmentedOption<'home' | 'focus'>[] = [
+      { value: 'home', label: 'Accueil', icon: Home },
+      { value: 'focus', label: 'Focus', icon: Home },
+    ]
+    render(<SegmentedControl ariaLabel="Mode" value="home" onChange={vi.fn()} options={iconOptions} />)
+
+    // Toujours trouvable par son nom accessible (aria-label porté par le bouton), que le
+    // texte soit affiché ou non.
+    const active = screen.getByRole('radio', { name: 'Accueil' })
+    expect(active.querySelector('span')).toHaveTextContent('Accueil')
+
+    const inactive = screen.getByRole('radio', { name: 'Focus' })
+    expect(inactive.querySelector('span')).toBeNull()
+  })
+
+  it('suit `iconSize` pour la taille des icônes (défaut « medium »)', () => {
+    const iconOptions: SegmentedOption<'home' | 'focus'>[] = [
+      { value: 'home', label: 'Accueil', icon: Home },
+      { value: 'focus', label: 'Focus', icon: Home },
+    ]
+    const { rerender } = render(
+      <SegmentedControl ariaLabel="Mode" value="home" onChange={vi.fn()} options={iconOptions} />,
+    )
+    expect(screen.getByRole('radio', { name: 'Accueil' }).querySelector('svg')).toHaveAttribute(
+      'width',
+      '18',
+    )
+
+    rerender(
+      <SegmentedControl
+        ariaLabel="Mode"
+        value="home"
+        onChange={vi.fn()}
+        options={iconOptions}
+        iconSize="small"
+      />,
+    )
+    expect(screen.getByRole('radio', { name: 'Accueil' }).querySelector('svg')).toHaveAttribute(
+      'width',
+      '15',
+    )
   })
 })

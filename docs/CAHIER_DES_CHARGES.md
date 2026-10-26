@@ -336,6 +336,127 @@ Passe de relecture sur l'ensemble du Mode Amis (F1 à F4) avant de le considére
 - **Harmonisation** : tous les champs numériques de Réglages > Minuteur utilisent le même
   stepper compact (−/valeur/+, largeur alignée sur les autres lignes du panneau).
 
+### 10.7 Épuration et mobile (LOT H2)
+- **Point d'entrée social unique** (§10.1, §10.3, §10.2) : les boutons Amis et Salons,
+  jusque-là en bas à droite de l'accueil, ont disparu. `SocialPanel` les fusionne (onglets
+  Amis/Demandes/Classement/Salons/Ajouter) derrière un seul point d'entrée — la carte
+  profil en haut du panneau Réglages (avatar, pseudo, « Amis, salons et classement »).
+  L'icône d'engrenage porte une petite pastille quand il y a une demande d'ami, un
+  encouragement ou une invitation de salon non lus ; le toast d'invitation de salon a
+  maintenant un bouton « Accepter » qui agit directement.
+- **Tailles** : deux tailles d'horloge plus petites que « Petite » ajoutées (XS, S —
+  Réglages > Horloge). Réglage « Taille des icônes » (Petite par défaut, Moyenne,
+  Grande, synchronisé par compte) appliqué au bouton à icône générique utilisé dans toute
+  l'interface (barre du bas, contrôles du minuteur) — traits plus fins par défaut.
+- **Modes de l'app en icônes** (retour après feu vert) : c'est le sélecteur
+  Accueil/Focus/Ambiant de la barre du bas qui porte des icônes (Home/Timer/Moon), pas les
+  onglets Focus/Pause courte/Pause longue de l'écran Focus — remis au texte d'origine
+  (légèrement réduit, `text-xs`). Le nom du mode n'apparaît sous son icône que pour le
+  mode actif. Taille pilotée par le même réglage « Taille des icônes » que les boutons
+  génériques, sur tous les types d'appareil (pas seulement mobile).
+- **Survol discret** (souris uniquement, `@media (hover: hover)`, Tailwind v4) : curseur
+  pointer et infobulle (nom de l'icône, après 400 ms) sur les boutons à icône — jamais
+  d'effet resté « collé » sur un appareil tactile.
+- **Mobile, écran Accueil et écran Focus** : un seul bouton « Menu » (icône hamburger)
+  regroupe Réglages et Plein écran derrière un petit menu ancré, sur les deux écrans —
+  trop chargés sinon. Série, sélecteur de mode, Tâches et Notes restent directement dans
+  la barre (leur panneau ancré se serait mal positionné hors de leur propre bouton).
+  Écran Focus : logo + citation épinglés en haut (comme l'Accueil, plus aérés qu'au milieu
+  d'un bloc centré), titre « Sur quoi veux-tu te concentrer ? », horloge, 2 boutons
+  (Lancer, Réinitialiser). Tâche active, pilier, sélecteur Pomodoro/Compte à
+  rebours/Chronomètre et objectif masqués sur mobile (desktop inchangé, rien de supprimé) ;
+  Passer/Terminer/Image dans l'image restent masqués tant que rien n'a démarré, révélés dès
+  que la session est en cours.
+- **Pas encore couvert** : la barre du bas reste deux groupes de boutons séparés plutôt
+  qu'un seul bandeau unifié comme sur les captures de référence — jugé trop risqué à
+  refondre entièrement dans ce lot ; Réglages, Tâches, Notes et Statistiques restent des
+  panneaux complets (non concernés par la règle « écran de travail », réservée à
+  Accueil/Focus/Ambiant).
+
+### 10.8 Fonds d'écran, couleurs et Deep Focus (LOT H3)
+- **Nouvelles photos** (11 fichiers triés et convertis) : `public/backgrounds/scenic/`
+  (Brouillard, Pirogue, Pourpre, Envol), `public/backgrounds/interior/` (Foyer),
+  `public/backgrounds/abstract/` (Nébuleuse, Velours, Éclipse, Spectre, Prisme, Agate —
+  dégradés de couleur façon prisme). Chaque fichier : WebP ≤ 1920 px de large, qualité
+  ~80, vignette WebP 480 px dans un sous-dossier `thumbs/`. Le bokeh de 10 Mo (sapin de
+  Noël, catégorie Intérieur) tombe à moins de 100 Ko une fois converti. Originaux
+  supprimés de la racine du dépôt une fois le registre mis à jour
+  (`src/shared/design-system/backgrounds/photo-backgrounds.tsx`).
+- **Bibliothèque de fonds repensée** (`ThemesPage`, façon Flocus) : puces de catégorie
+  en haut (dont une nouvelle catégorie « Minimal ») ; en vue « Tous », une rangée par
+  catégorie avec au plus 4 vignettes visibles (défilement horizontal, nom sous chacune,
+  contour `--accent` sur la sélection) et un bouton « Tout voir (N) » qui bascule sur la
+  grille complète de cette catégorie (même mécanisme que cliquer sa puce). Vignettes
+  photo en chargement différé (`loading="lazy"`, déjà en place depuis le lot 3).
+- **Un fond par thème** (`useBackgroundSettings`, `background-selection.ts`) : chaque
+  mode (Accueil/Focus/Ambiant) a désormais un fond pour le thème sombre et un pour le
+  thème clair (`{ dark, light, linked }`), qui change automatiquement avec le thème actif.
+  Dans la bibliothèque, un sélecteur « Pour : Sombre / Clair » choisit quel thème on
+  modifie, et une case « Utiliser le même fond pour les deux thèmes » (activée par défaut
+  pour Ambiant, désactivée pour Accueil/Focus) garde les deux slots alignés quand elle est
+  cochée. Défauts : Aurore (sombre) et Lueur (clair) pour Accueil/Focus, Fjord (les deux)
+  pour Ambiant. Synchronisé par compte comme le reste des réglages (même mécanisme
+  générique `AppSettings`/`user_settings`, pas de nouvelle table) ; un ancien choix
+  (format à une seule valeur par mode, avant ce lot) est migré automatiquement vers les
+  deux thèmes à la première lecture, jamais perdu.
+- **Fonds « Minimal »** : Noir pur (#000, OLED) et Blanc pur (#FFF) ajoutés à la
+  bibliothèque, rendus en CSS pur (`SolidBackground.tsx`), pas en photo.
+- **Couleur de l'horloge par thème** (`clock-settings.ts`) : la palette proposée dans
+  Réglages > Horloge change avec le thème actif — en sombre, des tons doux et désaturés
+  (blanc cassé, lavande, rose poudré, vert d'eau, sable) ; en clair, des tons profonds
+  (encre, indigo, bordeaux, vert forêt, brun). Chaque couleur vérifiée à au moins 4,5:1 de
+  contraste contre la teinte de base du thème (`clock-color-contrast.ts`, seuil relevé de
+  3:1 à 4,5:1) ; l'avertissement discret existant (§7.2) s'applique désormais à ce seuil.
+- **Mode Deep Focus, mise en page** (`DeepFocusSession.tsx`) : une fois une session de
+  focus démarrée avec Deep Focus actif (jamais avant que Lancer soit pressé), l'écran
+  Focus devient entièrement un fond noir pur + horloge blanche (thème sombre) ou fond
+  blanc pur + horloge noire (thème clair) — rien d'autre (pas de citation, pas de barre du
+  bas, pas de fond d'écran), juste le temps, un bouton pause/reprise et un bouton
+  terminer. Les deux boutons s'estompent après 3 s d'inactivité et reviennent au moindre
+  geste (pointeur ou clavier). Reste affiché pendant une pause (manuelle ou déclenchée par
+  le comportement de pause à la sortie de l'onglet, §9), pas pendant l'écran de fin de
+  session ni le palier d'objectif atteint. Retour normal dès la fin de la session.
+
+### 10.9 Sons en boucle, Piliers et Galaxie (LOT H4)
+- **Boucle d'ambiance sans coupure** (`crossfade-loop.ts`) : chaque son d'ambiance
+  (rain/waves/forest/fire) ne boucle plus via `AudioBufferSourceNode.loop = true` (qui
+  recolle la fin au début à l'échantillon près, mais n'efface pas un défaut du fichier
+  source lui-même) mais via deux lectures en alternance, chevauchement d'1 s (retenu pour
+  les quatre fichiers du catalogue, mesurés entre 10,8 s et 30,2 s — voir
+  `sounds.ts`), enveloppe de gain à puissance égale (cos/sin, posée par
+  `AudioParam.setValueCurveAtTime`). Toute la planification (instants de lecture, courbes)
+  est calculée à l'avance en valeurs de `AudioContext.currentTime`, jamais déclenchée par
+  un `setTimeout` — la chaîne se poursuit au-delà des deux premières lectures par relais
+  via `onended` (évènement du moteur audio), avec plusieurs secondes de marge avant chaque
+  calcul suivant, pour rester fiable même si l'onglet passe en arrière-plan.
+- **Galaxie dans Piliers** : la galaxie et la carte « Équilibre » (radar) quittent l'onglet
+  Statistiques général pour la section Réglages > Piliers (sous le radar) — les deux
+  concernent les piliers, pas les statistiques générales de tâches/temps de focus.
+- **Disposition en spirale** (`galaxy-layout.ts`) : fini le placement pseudo-aléatoire par
+  hachage. Un bras par pilier, régulièrement répartis (angle stable, dérivé du rang du
+  pilier dans la liste complète du compte, pas du sous-ensemble filtré à l'écran), bras
+  gris pour les sessions sans pilier ou dont le pilier référencé n'existe plus. Chaque
+  étoile placée le long de son bras à rayon croissant selon l'ordre chronologique (la plus
+  ancienne au centre), avec une distance minimale garantie entre étoiles consécutives et
+  un léger décalage borné et déterministe (jamais `Math.random()`) pour un aspect naturel.
+  Limite assumée : au-delà d'environ un tour de spirale par bras (~45 sessions sur un même
+  pilier), deux étoiles de tours différents peuvent se rapprocher visuellement — contre
+  aucune garantie du tout avant ce lot.
+- **Objectifs de niveau par pilier** (`pillar-xp.ts`, colonnes `goal_level`/`goal_deadline`
+  sur `public.pillars`, migration `0037_pillar_goals.sql`) : niveau visé, date limite
+  optionnelle. Progression affichée (XP restante, barre) et, si une date limite est fixée,
+  le temps de focus moyen par jour nécessaire pour l'atteindre à temps. Notification
+  discrète et distincte d'un simple niveau gagné dans le bilan de session, à l'instant
+  précis où l'objectif est franchi. RLS propriétaire et GRANT déjà en place depuis la
+  migration 0034 (table entière), revalidés explicitement dans la nouvelle migration.
+- **Désactiver les piliers** (réglage « Activer les piliers de vie », Réglages > Extras,
+  synchronisé par compte comme le reste) : désactivé, plus de sélecteur de pilier sur
+  l'écran Focus, plus d'entrée de navigation Piliers dans Réglages (donc plus de radar, de
+  galaxie ni de calcul d'XP affiché — redirige vers Thèmes si on y était resté), et les
+  sessions enregistrées n'attachent plus de pilier même si un pilier était resté actif.
+  Les données des piliers ne sont jamais supprimées : tout réapparaît tel quel si le
+  réglage est réactivé.
+
 ## 11. Défis et succès (V3)
 
 ### 11.1 Défis quotidiens

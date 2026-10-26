@@ -42,3 +42,70 @@ export function levelProgressForXp(xp: number): PillarLevelProgress {
   const xpForNextLevel = xpToReachLevel(level + 1) - xpToReachLevel(level)
   return { level, xpInLevel, xpForNextLevel }
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** XP restante pour atteindre un niveau visé (lot 4, §4), jamais négative — un objectif
+ * déjà dépassé n'a plus d'XP restante à gagner. */
+export function xpRemainingForGoal(currentXp: number, goalLevel: number): number {
+  return Math.max(0, xpToReachLevel(goalLevel) - currentXp)
+}
+
+/** Progression (0 à 1) vers un objectif de niveau, mesurée depuis le niveau où l'objectif
+ * a commencé à compter (niveau courant au moment où il a été fixé n'est pas connu ici —
+ * on mesure depuis le niveau 1, cohérent avec `xpToReachLevel`, en bornant à 1 une fois
+ * l'objectif atteint). */
+export function goalProgressRatio(currentXp: number, goalLevel: number): number {
+  const target = xpToReachLevel(goalLevel)
+  if (target <= 0) return 1
+  return Math.min(1, currentXp / target)
+}
+
+export interface GoalPace {
+  /** Toujours ≥ 0. */
+  xpRemaining: number
+  /** Temps de focus réel restant pour combler `xpRemaining`, en secondes. */
+  secondsRemaining: number
+  /** `null` si aucune date limite n'est fixée. Négatif si la date limite est déjà
+   * dépassée (et l'objectif pas encore atteint). */
+  daysUntilDeadline: number | null
+  /** Temps de focus moyen par jour nécessaire pour atteindre l'objectif avant sa date
+   * limite, en secondes — `null` si aucune date limite, ou si elle est déjà dépassée
+   * (voir `daysUntilDeadline`, alors ≤ 0). */
+  averageSecondsPerDayNeeded: number | null
+}
+
+/** Rythme nécessaire pour atteindre un objectif de niveau (lot 4, §4) : XP/temps restant,
+ * et — si une date limite est fixée — le temps de focus moyen par jour nécessaire pour
+ * l'atteindre à temps. `nowMs` est un paramètre explicite (jamais `Date.now()` lu en
+ * interne) pour rester une fonction pure, testable sans horloge système. */
+export function goalPace(
+  currentXp: number,
+  goalLevel: number,
+  deadlineMs: number | null,
+  nowMs: number,
+): GoalPace {
+  const xpRemaining = xpRemainingForGoal(currentXp, goalLevel)
+  const secondsRemaining = (xpRemaining / XP_PER_MINUTE) * 60
+
+  if (deadlineMs === null) {
+    return {
+      xpRemaining,
+      secondsRemaining,
+      daysUntilDeadline: null,
+      averageSecondsPerDayNeeded: null,
+    }
+  }
+
+  const daysUntilDeadline = (deadlineMs - nowMs) / DAY_MS
+  if (xpRemaining === 0 || daysUntilDeadline <= 0) {
+    return { xpRemaining, secondsRemaining, daysUntilDeadline, averageSecondsPerDayNeeded: null }
+  }
+
+  return {
+    xpRemaining,
+    secondsRemaining,
+    daysUntilDeadline,
+    averageSecondsPerDayNeeded: secondsRemaining / daysUntilDeadline,
+  }
+}

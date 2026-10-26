@@ -20,7 +20,9 @@ async function clearAll() {
   }
 }
 
-function session(overrides: Partial<FocusSessionRecord> & { id: string; startedAt: number }): FocusSessionRecord {
+function session(
+  overrides: Partial<FocusSessionRecord> & { id: string; startedAt: number },
+): FocusSessionRecord {
   return {
     kind: 'focus',
     plannedSeconds: 1500,
@@ -42,6 +44,8 @@ function pillar(overrides: Partial<PillarRecord> & { id: string }): PillarRecord
     level: 1,
     createdAt: 0,
     archivedAt: null,
+    goalLevel: null,
+    goalDeadline: null,
     ...overrides,
   }
 }
@@ -69,7 +73,9 @@ describe('GalaxyView — filtres et états (LOT G4)', () => {
     await db.put('focusSessions', session({ id: 's1', startedAt: NOW }))
 
     render(<GalaxyView />)
-    expect(await screen.findByRole('img', { name: 'Galaxie de tes sessions de focus' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('img', { name: 'Galaxie de tes sessions de focus' }),
+    ).toBeInTheDocument()
   })
 
   it('exclut les sessions hors de la période choisie (30 jours)', async () => {
@@ -104,10 +110,14 @@ describe('GalaxyView — filtres et états (LOT G4)', () => {
     await user.selectOptions(screen.getByLabelText('Pilier'), 'none')
     // Une seule session (sans pilier) reste : toujours assez pour afficher le canevas,
     // pas le message vide.
-    expect(screen.getByRole('img', { name: 'Galaxie de tes sessions de focus' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('img', { name: 'Galaxie de tes sessions de focus' }),
+    ).toBeInTheDocument()
 
     await user.selectOptions(screen.getByLabelText('Pilier'), 'p1')
-    expect(screen.getByRole('img', { name: 'Galaxie de tes sessions de focus' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('img', { name: 'Galaxie de tes sessions de focus' }),
+    ).toBeInTheDocument()
   })
 
   it('affiche la note de regroupement au-delà du plafond d’étoiles individuelles', async () => {
@@ -119,8 +129,12 @@ describe('GalaxyView — filtres et états (LOT G4)', () => {
 
     render(<GalaxyView />)
     await waitFor(() =>
-      expect(screen.getByRole('img', { name: 'Galaxie de tes sessions de focus' })).toBeInTheDocument(),
+      expect(
+        screen.getByRole('img', { name: 'Galaxie de tes sessions de focus' }),
+      ).toBeInTheDocument(),
     )
-    expect(screen.queryByText(/sessions plus anciennes regroupées par mois/)).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(/sessions plus anciennes regroupées par mois/),
+    ).not.toBeInTheDocument()
   })
 })

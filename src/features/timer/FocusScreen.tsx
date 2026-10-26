@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-import { CLOCK_SIZE_SCALE, CLOCK_STYLE_CSS, resolveClockColor } from '@/features/home/clock-settings'
+import {
+  CLOCK_SIZE_SCALE,
+  CLOCK_STYLE_CSS,
+  resolveClockColor,
+} from '@/features/home/clock-settings'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
 import { useQuotePool } from '@/features/home/useQuotePool'
@@ -10,13 +14,13 @@ import { isIOSDevice } from '@/features/pwa/platform'
 import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { useActiveTask } from '@/features/tasks/active-task-context'
 import { useTasks } from '@/features/tasks/useTasks'
-import { SegmentedControl } from '@/shared/design-system'
+import { Logo, SegmentedControl, useResolvedTheme } from '@/shared/design-system'
 import { useWakeLock } from '@/shared/hooks/useWakeLock'
 import { strings } from '@/shared/i18n'
 import { useToast } from '@/shared/toast'
 
 import type { SegmentKind, TimerMode } from './engine/timer-engine'
-import { DeepFocusIndicator } from './components/DeepFocusIndicator'
+import { DeepFocusSession } from './components/DeepFocusSession'
 import { FadingQuote } from './components/FadingQuote'
 import { GoalProgress } from './components/GoalProgress'
 import { GoalReachedPanel } from './components/GoalReachedPanel'
@@ -73,6 +77,7 @@ export function FocusScreen() {
   const quote = usePhaseQuote(quotesSettings.category, quotePool, phaseKey)
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
   const { showToast } = useToast()
+  const resolvedTheme = useResolvedTheme()
   useWakeLock(extrasSettings.preventSleep && timer.snapshot?.status === 'running')
   const activeTask = tasks.find((task) => task.id === activeTaskId) ?? null
 
@@ -82,7 +87,6 @@ export function FocusScreen() {
   // écouteur avant que le toast de reprise n'ait pu se déclencher au retour.
   const isDeepFocusEligible =
     timerSettings.deepFocusEnabled && timer.mode === 'pomodoro' && timer.segment === 'focus'
-  const isDeepFocusActive = isDeepFocusEligible && timer.snapshot?.status === 'running'
 
   useDeepFocus({
     enabled: isDeepFocusEligible,
@@ -154,9 +158,88 @@ export function FocusScreen() {
         })
       : 0
 
+  const pipPortal = pip.pipWindow
+    ? createPortal(
+        <div
+          style={{
+            fontFamily: 'sans-serif',
+            background: '#0c0719',
+            color: '#f2ecfc',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 4,
+          }}
+        >
+          <div style={{ fontSize: 14, opacity: 0.7 }}>{getSegmentLabel(timer.segment)}</div>
+          <div style={{ fontSize: 40, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
+            {displayLabel}
+          </div>
+          {timerSettings.showTaskInPip && activeTask ? (
+            <div style={{ fontSize: 12, opacity: 0.6, maxWidth: '90%', textAlign: 'center' }}>
+              {activeTask.title}
+            </div>
+          ) : null}
+        </div>,
+        pip.pipWindow.document.body,
+      )
+    : null
+
+  // Mise en page Deep Focus (lot 3 bis, §6) : remplace entièrement l'écran normal (pas
+  // seulement un badge) une fois la session démarrée — jamais avant (l'écran « Sur quoi
+  // veux-tu te concentrer ? » et le bouton Lancer restent visibles tant que rien n'a
+  // commencé), y compris pendant une pause déclenchée manuellement ou par Deep Focus
+  // lui-même, pour ne pas faire clignoter la mise en page en basculant pause/reprise.
+  // Jamais pendant l'écran de fin de session ou le palier d'objectif atteint, qui ont
+  // besoin de leurs propres actions.
+  const isDeepFocusLayoutActive =
+    isDeepFocusEligible &&
+    (snapshot.status === 'running' || snapshot.status === 'paused') &&
+    !timer.cycleEnded &&
+    !timer.goalReached
+
+  if (isDeepFocusLayoutActive) {
+    return (
+      <>
+        <DeepFocusSession
+          theme={resolvedTheme}
+          displayLabel={displayLabel}
+          displayStyle={timerSettings.displayStyle}
+          progress={progress}
+          clockSize={clockSettings.size}
+          clockStyle={clockSettings.style}
+          status={snapshot.status}
+          onPrimary={handlePrimary}
+          onEndSession={timer.endSession}
+        />
+        {pipPortal}
+        <KeyboardShortcutsHelp
+          open={isShortcutsHelpOpen}
+          onClose={() => setIsShortcutsHelpOpen(false)}
+        />
+      </>
+    )
+  }
+
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="relative h-full overflow-y-auto">
+      {/* LOT H2, §5 (retour après feu vert) : logo + citation ancrés en haut sur mobile,
+          comme l'accueil (HomeScreen) — pas au milieu d'un bloc centré, pour rester
+          aussi aéré que l'accueil. Desktop inchangé : logo absent, citation à sa place
+          habituelle dans le bloc centré ci-dessous (voir plus bas, `sm:block`). */}
+      <div className="absolute inset-x-0 top-0 flex flex-col items-center gap-2 px-6 pt-[max(2rem,env(safe-area-inset-top))] text-center sm:hidden">
+        <Logo className="h-8 w-auto" />
+        {quotesSettings.showOnFocus ? <FadingQuote quote={quote} /> : null}
+      </div>
+
       <div className="flex min-h-full flex-col items-center justify-center gap-6 px-4 py-8 pb-24 text-center sm:gap-7 sm:pb-28">
+        {/* LOT H2, §5 : mise en page mobile épurée (logo, citation, titre, icônes de
+            mode, horloge, 2 boutons) — la tâche active, le pilier et le mode
+            Pomodoro/Compte à rebours/Chronomètre restent une fonctionnalité desktop,
+            volontairement absente de cette version mobile simplifiée (voir le
+            compte-rendu du lot pour la liste complète de ce qui est masqué). */}
         <div className="w-full">
           <p
             className="text-[28px] font-semibold text-[var(--text)]"
@@ -164,22 +247,30 @@ export function FocusScreen() {
           >
             {strings.focus.question}
           </p>
-          <div className="mt-1 flex items-center justify-center gap-1.5">
+          <div className="mt-1 hidden items-center justify-center gap-1.5 sm:flex">
             <p className="text-sm text-[var(--muted)]">
               {activeTask ? activeTask.title : strings.focus.noActiveTask}
             </p>
-            <PillarSelector disabled={timer.isSegmentSwitchBlocked} />
+            {extrasSettings.pillarsEnabled ? (
+              <PillarSelector disabled={timer.isSegmentSwitchBlocked} />
+            ) : null}
           </div>
         </div>
 
-        {quotesSettings.showOnFocus ? <FadingQuote quote={quote} /> : null}
+        {quotesSettings.showOnFocus ? (
+          <div className="hidden sm:block">
+            <FadingQuote quote={quote} />
+          </div>
+        ) : null}
 
-        <SegmentedControl
-          ariaLabel={strings.focus.mode}
-          value={timer.mode}
-          onChange={timer.selectMode}
-          options={MODE_OPTIONS}
-        />
+        <div className="hidden sm:block">
+          <SegmentedControl
+            ariaLabel={strings.focus.mode}
+            value={timer.mode}
+            onChange={timer.selectMode}
+            options={MODE_OPTIONS}
+          />
+        </div>
 
         {timer.mode === 'pomodoro' && timer.cycleEnded ? (
           <SessionEndScreen
@@ -206,13 +297,18 @@ export function FocusScreen() {
                 />
 
                 {goalTarget > 0 ? (
-                  <GoalProgress completed={timer.goalProgress} target={goalTarget} />
+                  <div className="hidden sm:block">
+                    <GoalProgress completed={timer.goalProgress} target={goalTarget} />
+                  </div>
                 ) : null}
               </>
             ) : null}
 
             {timer.mode === 'pomodoro' && timer.goalReached ? (
-              <GoalReachedPanel completed={timer.goalProgress} onContinue={timer.continueAfterGoal} />
+              <GoalReachedPanel
+                completed={timer.goalProgress}
+                onContinue={timer.continueAfterGoal}
+              />
             ) : (
               <>
                 <div
@@ -228,8 +324,6 @@ export function FocusScreen() {
                     styleCss={CLOCK_STYLE_CSS[clockSettings.style]}
                   />
                 </div>
-
-                {isDeepFocusActive ? <DeepFocusIndicator /> : null}
 
                 <TimerControls
                   status={snapshot.status}
@@ -249,36 +343,12 @@ export function FocusScreen() {
         )}
       </div>
 
-      {pip.pipWindow
-        ? createPortal(
-            <div
-              style={{
-                fontFamily: 'sans-serif',
-                background: '#0c0719',
-                color: '#f2ecfc',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 4,
-              }}
-            >
-              <div style={{ fontSize: 14, opacity: 0.7 }}>{getSegmentLabel(timer.segment)}</div>
-              <div style={{ fontSize: 40, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
-                {displayLabel}
-              </div>
-              {timerSettings.showTaskInPip && activeTask ? (
-                <div style={{ fontSize: 12, opacity: 0.6, maxWidth: '90%', textAlign: 'center' }}>
-                  {activeTask.title}
-                </div>
-              ) : null}
-            </div>,
-            pip.pipWindow.document.body,
-          )
-        : null}
+      {pipPortal}
 
-      <KeyboardShortcutsHelp open={isShortcutsHelpOpen} onClose={() => setIsShortcutsHelpOpen(false)} />
+      <KeyboardShortcutsHelp
+        open={isShortcutsHelpOpen}
+        onClose={() => setIsShortcutsHelpOpen(false)}
+      />
     </div>
   )
 }

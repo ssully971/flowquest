@@ -73,7 +73,7 @@ function buildParams(
     appearance: DEFAULT_SETTINGS.appearance,
     setAppearance: vi.fn(),
     backgrounds: DEFAULT_SETTINGS.backgrounds,
-    setBackground: vi.fn(),
+    setBackgroundSelection: vi.fn(),
     backgroundDisplaySettings: DEFAULT_SETTINGS.backgroundDisplaySettings,
     setBackgroundDisplaySettings: vi.fn(),
     activeTaskId: null,

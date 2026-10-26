@@ -136,6 +136,7 @@ describe('useRooms — nouvelles invitations en temps réel (LOT H1)', () => {
     expect(showToastMock).toHaveBeenCalledWith({
       type: 'info',
       message: 'Autre Hôte t’invite à un salon de focus.',
+      action: { label: 'Accepter', onClick: expect.any(Function) },
     })
     expect(showToastMock).toHaveBeenCalledTimes(1)
   })
@@ -150,5 +151,24 @@ describe('useRooms — nouvelles invitations en temps réel (LOT H1)', () => {
     })
 
     expect(showToastMock).not.toHaveBeenCalled()
+  })
+
+  it('le bouton « Accepter » du toast accepte l’invitation (LOT H2, §1)', async () => {
+    const { useRooms } = await import('./useRooms')
+    const { result } = renderHook(() => useRooms())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    const newInvite = { ...MY_ROOM, roomId: 'r2', hostUsername: 'autre_hote' }
+    listMyRoomsMock.mockResolvedValue([MY_ROOM, newInvite])
+    await act(async () => {
+      await result.current.refresh()
+    })
+
+    const toastCall = showToastMock.mock.calls.find((call) => call[0].action)
+    await act(async () => {
+      await toastCall?.[0].action.onClick()
+    })
+
+    expect(respondRoomInviteMock).toHaveBeenCalledWith('r2', true)
   })
 })

@@ -15,6 +15,45 @@ const repo = new IndexedDbPillarRepository()
  * aussi pour une UX immédiate, sans aller-retour serveur. */
 export const MAX_ACTIVE_PILLARS = 8
 
+/**
+ * Dédoublonnage du pilier « Général » (lot 4, §2) : plusieurs composants montés en même
+ * temps (PillarsPage et GalaxyView, désormais sur la même page) appellent chacun
+ * `usePillars()`, donc chacun son propre effet de bootstrap — sans ce verrou partagé au
+ * niveau du module, les deux liraient `repo.listAll()` vide avant que l'un des deux n'ait
+ * fini d'insérer, et créeraient chacun leur « Général » en double. La promesse n'est
+ * mémorisée que pendant qu'elle est en vol (remise à `null` une fois résolue) : elle ne
+ * déduplique que les appels concurrents d'un même montage, jamais les montages suivants
+ * (ex. après un changement de compte, où la base a pu être vidée entre-temps).
+ */
+let bootstrapPromise: Promise<void> | null = null
+
+function ensureDefaultPillar(): Promise<void> {
+  if (bootstrapPromise) return bootstrapPromise
+  bootstrapPromise = (async () => {
+    try {
+      const current = await repo.listAll()
+      if (current.length > 0) return
+      const pillar: PillarRecord = {
+        id: crypto.randomUUID(),
+        name: strings.pillars.defaultName,
+        color: PILLAR_COLORS[0],
+        currentXp: 0,
+        level: 1,
+        createdAt: Date.now(),
+        archivedAt: null,
+        goalLevel: null,
+        goalDeadline: null,
+      }
+      await repo.put(pillar)
+      pushIfAuthenticated(pillar)
+      notifyPillarsChanged()
+    } finally {
+      bootstrapPromise = null
+    }
+  })()
+  return bootstrapPromise
+}
+
 export interface UsePillarsResult {
   /** Tous les piliers, actifs et archivés. */
   pillars: PillarRecord[]
@@ -25,6 +64,8 @@ export interface UsePillarsResult {
   recolorPillar: (id: string, color: string) => Promise<void>
   archivePillar: (id: string) => Promise<void>
   unarchivePillar: (id: string) => Promise<void>
+  setGoal: (id: string, goalLevel: number, goalDeadline: number | null) => Promise<void>
+  clearGoal: (id: string) => Promise<void>
 }
 
 function pushIfAuthenticated(pillar: PillarRecord): void {
@@ -61,25 +102,12 @@ export function usePillars(): UsePillarsResult {
   // après coup) : on ne regarde jamais `pillars` (filtré par le rendu courant) mais une
   // relecture fraîche de TOUT l'historique local, piliers archivés compris, pour qu'un
   // utilisateur qui aurait archivé son seul pilier n'en voie pas resurgir un nouveau.
+  // ensureDefaultPillar() ci-dessus déduplique les appels concurrents de plusieurs
+  // instances de ce hook montées en même temps.
   useEffect(() => {
     if (isLoading || bootstrapAttemptedRef.current) return
     bootstrapAttemptedRef.current = true
-    void (async () => {
-      const current = await repo.listAll()
-      if (current.length > 0) return
-      const pillar: PillarRecord = {
-        id: crypto.randomUUID(),
-        name: strings.pillars.defaultName,
-        color: PILLAR_COLORS[0],
-        currentXp: 0,
-        level: 1,
-        createdAt: Date.now(),
-        archivedAt: null,
-      }
-      await repo.put(pillar)
-      pushIfAuthenticated(pillar)
-      notifyPillarsChanged()
-    })()
+    void ensureDefaultPillar()
   }, [isLoading])
 
   const addPillar = useCallback(async (name: string, color: string) => {
@@ -97,6 +125,8 @@ export function usePillars(): UsePillarsResult {
       level: 1,
       createdAt: Date.now(),
       archivedAt: null,
+      goalLevel: null,
+      goalDeadline: null,
     }
     await repo.put(pillar)
     pushIfAuthenticated(pillar)
@@ -145,6 +175,33 @@ export function usePillars(): UsePillarsResult {
   const archivePillar = useCallback((id: string) => setArchived(id, true), [setArchived])
   const unarchivePillar = useCallback((id: string) => setArchived(id, false), [setArchived])
 
+  // Objectif de niveau (lot 4, §4) : niveau visé et date limite optionnelle. `setGoal`
+  // remplace l'objectif précédent le cas échéant (un seul objectif actif par pilier,
+  // jamais un historique).
+  const setGoal = useCallback(
+    async (id: string, goalLevel: number, goalDeadline: number | null) => {
+      if (!Number.isFinite(goalLevel) || goalLevel < 1) return
+      const current = await repo.listAll()
+      const pillar = current.find((item) => item.id === id)
+      if (!pillar) return
+      const updated: PillarRecord = { ...pillar, goalLevel: Math.floor(goalLevel), goalDeadline }
+      await repo.put(updated)
+      pushIfAuthenticated(updated)
+      notifyPillarsChanged()
+    },
+    [],
+  )
+
+  const clearGoal = useCallback(async (id: string) => {
+    const current = await repo.listAll()
+    const pillar = current.find((item) => item.id === id)
+    if (!pillar) return
+    const updated: PillarRecord = { ...pillar, goalLevel: null, goalDeadline: null }
+    await repo.put(updated)
+    pushIfAuthenticated(updated)
+    notifyPillarsChanged()
+  }, [])
+
   return {
     pillars,
     activePillars: pillars.filter((pillar) => pillar.archivedAt === null),
@@ -154,5 +211,7 @@ export function usePillars(): UsePillarsResult {
     recolorPillar,
     archivePillar,
     unarchivePillar,
+    setGoal,
+    clearGoal,
   }
 }

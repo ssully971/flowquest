@@ -10,6 +10,7 @@ const ALL_CATEGORIES: BackgroundCategory[] = [
   'nature',
   'urban',
   'interior',
+  'minimal',
   'animated',
 ]
 
@@ -43,9 +44,9 @@ describe('backgrounds registry — bibliothèque par catégories (§7.1 du cahie
 })
 
 describe('backgrounds registry — fonds photo du lot 3', () => {
-  it('ajoute 14 fonds photo (dégradés sombres/clairs, paysages, abstrait)', () => {
+  it('ajoute 25 fonds photo (dégradés sombres/clairs, paysages, abstrait, intérieur — lot 3 bis)', () => {
     const photoBackgrounds = BACKGROUNDS.filter((bg) => bg.id.startsWith('photo-'))
-    expect(photoBackgrounds.length).toBe(14)
+    expect(photoBackgrounds.length).toBe(25)
   })
 
   it('chaque fond photo fournit une vignette légère distincte du rendu plein écran', () => {
@@ -60,11 +61,22 @@ describe('backgrounds registry — fonds photo du lot 3', () => {
     const cssLabels = new Set(
       BACKGROUNDS.filter((bg) => !bg.id.startsWith('photo-')).map((bg) => bg.label),
     )
-    const photoLabels = BACKGROUNDS.filter((bg) => bg.id.startsWith('photo-')).map(
-      (bg) => bg.label,
-    )
+    const photoLabels = BACKGROUNDS.filter((bg) => bg.id.startsWith('photo-')).map((bg) => bg.label)
     for (const label of photoLabels) {
       expect(cssLabels.has(label)).toBe(false)
     }
+  })
+})
+
+describe('backgrounds registry — fonds « Minimal » (lot 3 bis, §4)', () => {
+  it('propose Noir pur et Blanc pur, catégorie Minimal', () => {
+    const pureBlack = getBackgroundDefinition('pure-black')
+    const pureWhite = getBackgroundDefinition('pure-white')
+    expect(pureBlack.label).toBe('Noir pur')
+    expect(pureBlack.category).toBe('minimal')
+    expect(pureBlack.suggestedTheme).toBe('dark')
+    expect(pureWhite.label).toBe('Blanc pur')
+    expect(pureWhite.category).toBe('minimal')
+    expect(pureWhite.suggestedTheme).toBe('light')
   })
 })

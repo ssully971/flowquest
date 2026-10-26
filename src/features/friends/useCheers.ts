@@ -52,5 +52,8 @@ export function useCheers() {
   // session de focus démarre pendant que le bandeau est affiché, pas seulement avant.
   const visible = timerState.liveState === 'focus' ? [] : pending
 
-  return { cheers: visible, dismiss }
+  // `unreadCount` (LOT H2, §1, pastille sur l'engrenage) : volontairement PAS masqué
+  // pendant le focus, contrairement à `cheers` — la pastille reflète l'état réel, seul le
+  // bandeau se tait pendant une session en cours.
+  return { cheers: visible, dismiss, unreadCount: pending.length }
 }

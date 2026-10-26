@@ -270,6 +270,8 @@ export interface Database {
           level: number
           created_at: string
           archived_at: string | null
+          goal_level: number | null
+          goal_deadline: string | null
         }
         Insert: {
           id?: string
@@ -277,11 +279,15 @@ export interface Database {
           name: string
           color: string
           archived_at?: string | null
+          goal_level?: number | null
+          goal_deadline?: string | null
         }
         Update: {
           name?: string
           color?: string
           archived_at?: string | null
+          goal_level?: number | null
+          goal_deadline?: string | null
         }
         Relationships: []
       }

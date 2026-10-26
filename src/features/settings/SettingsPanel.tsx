@@ -16,11 +16,12 @@ import type { LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
+import type { BackgroundSelections } from '@/app/background-selection'
 import type { ClockSettings } from '@/features/home/clock-settings'
 import type { QuotesSettings } from '@/features/home/quotes-settings'
 import type { TimerSettings } from '@/features/timer/timer-settings'
-import { Logo } from '@/shared/design-system'
 import type { BackgroundId } from '@/shared/design-system'
+import { Logo } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import type { BackgroundDisplaySettings } from './background-display-settings'
@@ -35,6 +36,7 @@ import { ExtrasPage } from './pages/ExtrasPage'
 import { FriendsPrivacyPage } from './pages/FriendsPrivacyPage'
 import { PillarsPage } from './pages/PillarsPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { ProfileCard } from './pages/ProfileCard'
 import { QuotesPage } from './pages/QuotesPage'
 import { StatsPage } from './pages/StatsPage'
 import { SupportPage } from './pages/SupportPage'
@@ -61,10 +63,12 @@ const NAV_ITEMS: { id: PageId; label: string; icon: LucideIcon }[] = [
 interface SettingsPanelProps {
   open: boolean
   onClose: () => void
+  onOpenSocial: () => void
   mode: AppMode
   onModeChange: (mode: AppMode) => void
-  backgroundSelection: Record<AppMode, BackgroundId>
-  onBackgroundSelect: (mode: AppMode, id: BackgroundId) => void
+  backgroundSelections: BackgroundSelections
+  onBackgroundSelect: (mode: AppMode, theme: 'dark' | 'light', id: BackgroundId) => void
+  onBackgroundLinkedChange: (mode: AppMode, linked: boolean) => void
   backgroundDisplaySettings: BackgroundDisplaySettings
   onBackgroundDisplaySettingsChange: (settings: BackgroundDisplaySettings) => void
   dailyGoalMinutes: number
@@ -82,10 +86,12 @@ interface SettingsPanelProps {
 export function SettingsPanel({
   open,
   onClose,
+  onOpenSocial,
   mode,
   onModeChange,
-  backgroundSelection,
+  backgroundSelections,
   onBackgroundSelect,
+  onBackgroundLinkedChange,
   backgroundDisplaySettings,
   onBackgroundDisplaySettingsChange,
   dailyGoalMinutes,
@@ -132,6 +138,17 @@ export function SettingsPanel({
     markChangelogSeen(latestChangelogVersion)
     setLastSeenChangelogVersion(latestChangelogVersion)
   }
+  // Piliers désactivés (lot 4, §5) : plus de page Piliers (ni son entrée de navigation,
+  // voir visibleNavItems plus bas) — si on y était resté (ex. désactivé depuis Extras
+  // pendant que ce panneau reste ouvert), on retombe sur Thèmes plutôt que de laisser
+  // affiché le radar/la galaxie/le calcul d'XP d'une page qui n'a plus d'entrée.
+  if (!extrasSettings.pillarsEnabled && activePage === 'pillars') {
+    setActivePage('themes')
+  }
+
+  const visibleNavItems = NAV_ITEMS.filter(
+    (item) => item.id !== 'pillars' || extrasSettings.pillarsEnabled,
+  )
 
   const handleSelectPage = (page: PageId) => {
     setActivePage(page)
@@ -220,15 +237,23 @@ export function SettingsPanel({
           className="flex shrink-0 flex-row overflow-x-auto border-b sm:w-[264px] sm:flex-col sm:overflow-x-visible sm:border-b-0 sm:border-r"
           style={{ borderColor: 'var(--panel-line)' }}
         >
-          <div className="flex items-center justify-between px-5 py-4 sm:hidden">
-            <span className="text-sm font-semibold text-[var(--panel-text)]">
-              {strings.settings.title}
-            </span>
+          <div className="flex shrink-0 flex-col sm:hidden">
+            <div className="flex items-center justify-between px-5 py-4">
+              <span className="text-sm font-semibold text-[var(--panel-text)]">
+                {strings.settings.title}
+              </span>
+            </div>
+            <div className="px-5 pb-3">
+              <ProfileCard onOpenSocial={onOpenSocial} />
+            </div>
           </div>
           <div className="hidden px-5 pb-2 pt-6 sm:block">
             <Logo tone="panel" className="h-5 w-auto" />
           </div>
-          {NAV_ITEMS.map((item) => {
+          <div className="hidden px-5 pb-4 sm:block">
+            <ProfileCard onOpenSocial={onOpenSocial} />
+          </div>
+          {visibleNavItems.map((item) => {
             const isActive = item.id === activePage
             const Icon = item.icon
             return (
@@ -277,8 +302,9 @@ export function SettingsPanel({
               <ThemesPage
                 mode={mode}
                 onModeChange={onModeChange}
-                selection={backgroundSelection}
+                selections={backgroundSelections}
                 onSelect={onBackgroundSelect}
+                onLinkedChange={onBackgroundLinkedChange}
                 disableAnimatedThemes={extrasSettings.disableAnimatedThemes}
                 backgroundDisplaySettings={backgroundDisplaySettings}
                 onBackgroundDisplaySettingsChange={onBackgroundDisplaySettingsChange}

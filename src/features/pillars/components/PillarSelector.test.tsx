@@ -35,7 +35,9 @@ describe('PillarSelector — pastille discrète (LOT G3)', () => {
 
   it('affiche la pastille du pilier par défaut « Général » une fois chargé', async () => {
     renderSelector()
-    expect(await screen.findByRole('button', { name: 'Pilier de la session : Général' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('button', { name: 'Pilier de la session : Général' }),
+    ).toBeInTheDocument()
   })
 
   it('ouvre un menu listant les piliers actifs au clic', async () => {
@@ -88,6 +90,8 @@ describe('PillarSelector — sélection persistée (LOT G3)', () => {
       level: 1,
       createdAt: 1,
       archivedAt: null,
+      goalLevel: null,
+      goalDeadline: null,
     })
     await db.put('pillars', {
       id: 'p-travail',
@@ -97,12 +101,16 @@ describe('PillarSelector — sélection persistée (LOT G3)', () => {
       level: 1,
       createdAt: 2,
       archivedAt: null,
+      goalLevel: null,
+      goalDeadline: null,
     })
   })
 
   it('présélectionne le premier pilier tant qu’aucun choix explicite n’a été fait', async () => {
     renderSelector()
-    expect(await screen.findByRole('button', { name: 'Pilier de la session : Sport' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('button', { name: 'Pilier de la session : Sport' }),
+    ).toBeInTheDocument()
   })
 
   it('change de pilier actif au clic sur une entrée du menu et le persiste', async () => {

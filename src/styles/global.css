@@ -29,6 +29,19 @@ h3 {
   outline-offset: 2px;
 }
 
+/* LOT H2, §4 : curseur pointer sur tout élément cliquable, uniquement sur les appareils
+   avec souris (jamais de curseur « collé » ni d'effet de survol bloqué sur tactile — un
+   appareil tactile ne matche pas `(hover: hover)`). Les boutons natifs n'ont pas
+   `cursor: pointer` par défaut dans la plupart des navigateurs, contrairement aux liens. */
+@media (hover: hover) {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='tab'],
+  a {
+    cursor: pointer;
+  }
+}
+
 /*
  * Style « Liquid Glass » (posé au LOT A, formalisé en composant partagé GlassCard au
  * LOT C1 — fenêtre de connexion, mode Ambiant, grandes fenêtres tâches/notes). Verre

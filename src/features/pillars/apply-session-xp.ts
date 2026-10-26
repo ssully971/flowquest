@@ -13,6 +13,12 @@ export interface PillarXpResult {
   previousLevel: number
   newLevel: number
   leveledUp: boolean
+  /** Vrai seulement la session qui fait franchir le niveau visé (lot 4, §4) — jamais à
+   * nouveau les sessions suivantes, même si l'objectif reste atteint : on compare le
+   * niveau AVANT et APRÈS cette session précise contre `goalLevel`, pas juste « est-ce que
+   * le niveau actuel est ≥ l'objectif ». */
+  goalReached: boolean
+  goalLevel: number | null
 }
 
 /**
@@ -37,12 +43,17 @@ export async function applySessionXp(
   await repo.put(updated)
   notifyPillarsChanged()
 
+  const goalLevel = pillar.goalLevel
+  const goalReached = goalLevel !== null && pillar.level < goalLevel && newLevel >= goalLevel
+
   return {
     pillarId,
     pillarName: pillar.name,
     previousLevel: pillar.level,
     newLevel,
     leveledUp: newLevel > pillar.level,
+    goalReached,
+    goalLevel,
   }
 }
 

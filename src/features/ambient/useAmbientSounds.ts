@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { AMBIENT_SOUNDS, MAX_SIMULTANEOUS_SOUNDS } from './sounds'
+import { createCrossfadeLoop } from './crossfade-loop'
+import type { CrossfadeLoopHandle } from './crossfade-loop'
+import { AMBIENT_SOUNDS, CROSSFADE_OVERLAP_SECONDS, MAX_SIMULTANEOUS_SOUNDS } from './sounds'
 
 const DEFAULT_VOLUME = 0.6
 
@@ -32,22 +34,23 @@ export interface UseAmbientSoundsResult {
 }
 
 interface ActiveSound {
-  source: AudioBufferSourceNode
-  gain: GainNode
+  loop: CrossfadeLoopHandle
 }
 
 /**
- * Moteur des sons d'ambiance (LOT C3) : Web Audio API (AudioContext +
- * AudioBufferSourceNode) plutôt que `<audio loop>`, pour une boucle réellement sans
- * coupure. Un `<audio loop>` doit recharger/resynchroniser le flux à chaque tour — un
- * à-coup souvent audible à la jonction, en particulier sur des MP3 qui ont un silence
- * d'encodage en tête (repli LAME courant). AudioBufferSourceNode boucle, lui, une mémoire
- * tampon déjà décodée en PCM, échantillon par échantillon, sans redémarrage du flux.
+ * Moteur des sons d'ambiance (LOT C3, fondu enchaîné lot 4 §1) : Web Audio API
+ * (AudioContext + AudioBufferSourceNode) plutôt que `<audio loop>`, qui doit
+ * recharger/resynchroniser le flux à chaque tour — un à-coup souvent audible à la
+ * jonction, en particulier sur des MP3 qui ont un silence d'encodage en tête (repli LAME
+ * courant). Chaque son boucle désormais via `createCrossfadeLoop` (voir crossfade-loop.ts)
+ * plutôt que `source.loop = true` : un fondu enchaîné à puissance égale d'1 s masque le
+ * raccord entre la fin et le début du fichier source, qu'une boucle native se contente de
+ * recoller à l'échantillon près (sans masquer un défaut du fichier lui-même).
  *
  * Au plus deux sons simultanés (MAX_SIMULTANEOUS_SOUNDS), mémoire tampon décodée à la
  * demande et mise en cache (une seule fois par son, réutilisée d'une activation à
- * l'autre), volume par son via un GainNode (AudioBufferSourceNode n'a pas de volume
- * natif), et un minuteur d'arrêt optionnel.
+ * l'autre), volume par son via le `volumeGain` de la boucle (en aval de son enveloppe de
+ * fondu, jamais perturbé par elle), et un minuteur d'arrêt optionnel.
  */
 export function useAmbientSounds(): UseAmbientSoundsResult {
   const [activeIds, setActiveIds] = useState<string[]>([])
@@ -103,13 +106,7 @@ export function useAmbientSounds(): UseAmbientSoundsResult {
   const stopSound = useCallback((id: string) => {
     const active = activeSoundsRef.current.get(id)
     if (!active) return
-    try {
-      active.source.stop()
-    } catch {
-      // Déjà arrêté (ex. fin naturelle improbable vu loop=true) : sans conséquence.
-    }
-    active.source.disconnect()
-    active.gain.disconnect()
+    active.loop.stop()
     activeSoundsRef.current.delete(id)
   }, [])
 
@@ -123,15 +120,14 @@ export function useAmbientSounds(): UseAmbientSoundsResult {
         // pas démarrer une lecture qui ne correspond plus à l'état voulu.
         if (!buffer || !desiredRef.current.has(id)) return
 
-        const source = context.createBufferSource()
-        source.buffer = buffer
-        source.loop = true
-        const gain = context.createGain()
-        gain.gain.value = volumes[id] ?? DEFAULT_VOLUME
-        source.connect(gain)
-        gain.connect(getMasterGain(context))
-        source.start()
-        activeSoundsRef.current.set(id, { source, gain })
+        const loop = createCrossfadeLoop(
+          context,
+          buffer,
+          getMasterGain(context),
+          CROSSFADE_OVERLAP_SECONDS,
+        )
+        loop.volumeGain.gain.value = volumes[id] ?? DEFAULT_VOLUME
+        activeSoundsRef.current.set(id, { loop })
       } catch {
         // Décodage, réseau ou API audio indisponible : le son reste simplement inactif
         // plutôt que de faire planter l'appelant.
@@ -178,7 +174,7 @@ export function useAmbientSounds(): UseAmbientSoundsResult {
   const setVolume = useCallback((id: string, volume: number) => {
     setVolumes((prev) => ({ ...prev, [id]: volume }))
     const active = activeSoundsRef.current.get(id)
-    if (active) active.gain.gain.value = volume
+    if (active) active.loop.volumeGain.gain.value = volume
   }, [])
 
   const setSleepTimerMinutes = useCallback((minutes: number | null) => {
@@ -216,11 +212,7 @@ export function useAmbientSounds(): UseAmbientSoundsResult {
     const audioContext = audioContextRef
     return () => {
       for (const active of activeSounds.values()) {
-        try {
-          active.source.stop()
-        } catch {
-          // Sans conséquence si déjà arrêté.
-        }
+        active.loop.stop()
       }
       void audioContext.current?.close().catch(() => {})
     }

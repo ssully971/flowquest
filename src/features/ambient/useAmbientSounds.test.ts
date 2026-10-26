@@ -6,6 +6,7 @@ import { useAmbientSounds } from './useAmbientSounds'
 class FakeAudioBufferSourceNode {
   buffer: AudioBuffer | null = null
   loop = false
+  onended: (() => void) | null = null
   connect = vi.fn().mockReturnThis()
   disconnect = vi.fn()
   start = vi.fn()
@@ -13,17 +14,27 @@ class FakeAudioBufferSourceNode {
 }
 
 class FakeGainNode {
-  gain = { value: 1 }
+  gain = {
+    value: 1,
+    setValueCurveAtTime: vi.fn(),
+    cancelScheduledValues: vi.fn(),
+    setValueAtTime: vi.fn(),
+    linearRampToValueAtTime: vi.fn(),
+  }
   connect = vi.fn().mockReturnThis()
   disconnect = vi.fn()
 }
 
 class FakeAudioContext {
   state: 'running' | 'suspended' | 'closed' = 'running'
+  currentTime = 0
   destination = {}
   createBufferSource = vi.fn(() => new FakeAudioBufferSourceNode())
   createGain = vi.fn(() => new FakeGainNode())
-  decodeAudioData = vi.fn().mockResolvedValue({} as AudioBuffer)
+  // `duration` : lot 4, §1 — le moteur de fondu enchaîné (crossfade-loop.ts) calcule ses
+  // instants de programmation à partir de `buffer.duration`, nécessaire ici même si le
+  // contenu réel du son n'a pas d'importance pour ces tests.
+  decodeAudioData = vi.fn().mockResolvedValue({ duration: 10 } as AudioBuffer)
   resume = vi.fn(function (this: FakeAudioContext) {
     this.state = 'running'
     return Promise.resolve()
@@ -122,29 +133,43 @@ describe('useAmbientSounds — moteur des sons d’ambiance, Web Audio API sans 
     expect(result.current.remainingSleepMs).toBeNull()
   })
 
-  it('boucle via AudioBufferSourceNode.loop (pas <audio loop>), pour une lecture sans coupure', async () => {
+  it('boucle via un fondu enchaîné (deux sources en alternance), pas AudioBufferSourceNode.loop ni <audio loop> (lot 4, §1)', async () => {
     const { result } = renderHook(() => useAmbientSounds())
 
     act(() => result.current.toggle('rain'))
-    await waitFor(() => expect(lastContext?.createBufferSource).toHaveBeenCalled())
+    await waitFor(() => expect(lastContext?.createBufferSource).toHaveBeenCalledTimes(2))
 
-    const source = lastContext?.createBufferSource.mock.results[0]?.value as FakeAudioBufferSourceNode
-    expect(source.loop).toBe(true)
-    expect(source.start).toHaveBeenCalled()
+    const sources = lastContext!.createBufferSource.mock.results.map(
+      (r) => r.value as FakeAudioBufferSourceNode,
+    )
+    expect(sources[0]!.loop).toBe(false)
+    expect(sources[0]!.start).toHaveBeenCalled()
+    expect(sources[1]!.start).toHaveBeenCalled()
+    // Une enveloppe de gain à puissance égale est posée sur chaque lecture, pas un
+    // simple volume constant.
+    const gains = lastContext!.createGain.mock.results.map((r) => r.value as FakeGainNode)
+    // Les deux premiers GainNode créés sont le gain maître puis volumeGain ; les suivants
+    // sont les enveloppes de fondu des deux premières lectures.
+    const envelopeGains = gains.slice(2)
+    for (const gain of envelopeGains) {
+      expect(gain.gain.setValueCurveAtTime).toHaveBeenCalled()
+    }
   })
 
-  it('règle le volume via un GainNode plutôt que le volume natif (absent sur AudioBufferSourceNode)', async () => {
+  it('règle le volume via le volumeGain de la boucle, en aval du fondu enchaîné', async () => {
     const { result } = renderHook(() => useAmbientSounds())
 
     act(() => result.current.setVolume('rain', 0.3))
     act(() => result.current.toggle('rain'))
     await waitFor(() => expect(lastContext?.createGain).toHaveBeenCalled())
 
-    const gain = lastContext?.createGain.mock.results[0]?.value as FakeGainNode
-    expect(gain.gain.value).toBe(0.3)
+    // Premier GainNode créé pour ce son : le gain maître (créé paresseusement), puis
+    // volumeGain — c'est ce dernier que setVolume doit piloter.
+    const volumeGain = lastContext?.createGain.mock.results[1]?.value as FakeGainNode
+    expect(volumeGain.gain.value).toBe(0.3)
 
     act(() => result.current.setVolume('rain', 0.8))
-    expect(gain.gain.value).toBe(0.8)
+    expect(volumeGain.gain.value).toBe(0.8)
   })
 
   it('arrête bien la source Web Audio en désactivant un son déjà démarré', async () => {
@@ -190,9 +215,9 @@ describe('useAmbientSounds — moteur des sons d’ambiance, Web Audio API sans 
 
     act(() => result.current.toggle('rain'))
     await waitFor(() => expect(lastContext?.createGain).toHaveBeenCalled())
-    // Deux GainNode créés pour le premier son : le gain propre au son, puis le gain
-    // maître (créé paresseusement au moment de la connexion).
-    const masterGain = lastContext!.createGain.mock.results[1]!.value as { gain: { value: number } }
+    // Le gain maître est créé paresseusement en premier (avant volumeGain et les
+    // enveloppes de fondu de la boucle), au moment de la connexion du premier son.
+    const masterGain = lastContext!.createGain.mock.results[0]!.value as { gain: { value: number } }
 
     expect(result.current.muted).toBe(false)
     act(() => result.current.toggleMute())
@@ -213,7 +238,9 @@ describe('useAmbientSounds — moteur des sons d’ambiance, Web Audio API sans 
     act(() => result.current.toggle('rain'))
     await waitFor(() => expect(lastContext?.createGain).toHaveBeenCalled())
 
-    const masterGain = lastContext!.createGain.mock.results[1]!.value as { gain: { value: number } }
+    // Rien n'avait encore créé le gain maître avant ce toggle (toggleMute seul ne le crée
+    // pas tant qu'aucun son n'est encore démarré) : il reste le premier GainNode créé ici.
+    const masterGain = lastContext!.createGain.mock.results[0]!.value as { gain: { value: number } }
     expect(masterGain.gain.value).toBe(0)
   })
 })

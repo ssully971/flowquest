@@ -13,6 +13,21 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.15.0',
+    date: '2026-11-04',
+    text: 'Sons en boucle sans coupure (fondu enchaîné), la galaxie rejoint les Piliers (sous le radar, disposée en spirale avec un bras par pilier), des objectifs de niveau par pilier (avec le rythme de focus nécessaire pour les atteindre à temps), et un réglage pour désactiver entièrement les piliers de vie si tu préfères t’en passer.',
+  },
+  {
+    version: '0.14.0',
+    date: '2026-11-03',
+    text: 'Fonds d’écran, couleurs et Deep Focus : 11 nouvelles photos triées par catégorie (dont une catégorie Minimal avec Noir pur et Blanc pur), une bibliothèque repensée avec rangées par catégorie et « Tout voir », un fond différent pour chaque thème (avec option « même fond pour les deux »), une palette de couleurs d’horloge plus douce et propre à chaque thème, et un écran de session ultra-minimal quand Deep Focus est actif (fond noir ou blanc pur, rien d’autre que le temps et deux boutons).',
+  },
+  {
+    version: '0.13.0',
+    date: '2026-11-02',
+    text: 'Épuration et mobile : un seul point d’entrée vers Amis/Salons/Classement (la carte profil en haut de Réglages, avec une pastille sur l’engrenage s’il y a du nouveau), deux tailles d’horloge plus petites et une taille d’icônes réglable, les modes du minuteur deviennent des icônes, un léger effet au survol partout (souris uniquement), et l’écran Focus sur mobile adopte une mise en page épurée façon Flocus.',
+  },
+  {
     version: '0.12.0',
     date: '2026-11-01',
     text: 'Corrections et temps réel : le bug des salons (« room_id » ambigu) est corrigé, les demandes d’amis, encouragements et invitations de salon arrivent désormais en direct (toast discret), Amis et Salons expliquent clairement comment se connecter quand tu es invité·e, la durée d’un salon affiche sa valeur en direct avec un champ saisissable, et la suppression d’une tâche demande confirmation (réglable dans Extras, avec un « Annuler » de 5 s si tu la désactives).',

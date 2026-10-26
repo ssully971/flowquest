@@ -72,6 +72,16 @@ describe('useCheers — bandeau d’encouragements différé pendant le focus (L
     expect(result.current.cheers).toEqual([])
   })
 
+  it('unreadCount (LOT H2, §1) reste visible même en focus, contrairement au bandeau', async () => {
+    useGlobalTimerStateMock.mockReturnValue({ liveState: 'focus', startedAt: 1000, durationMs: 1500000 })
+    listUnreadCheersMock.mockResolvedValue([CHEER])
+    const { useCheers } = await import('./useCheers')
+    const { result } = renderHook(() => useCheers())
+
+    await waitFor(() => expect(result.current.unreadCount).toBe(1))
+    expect(result.current.cheers).toEqual([])
+  })
+
   it('se re-vérifie à chaque session enregistrée (fin de session)', async () => {
     const { useCheers } = await import('./useCheers')
     renderHook(() => useCheers())

@@ -32,6 +32,8 @@ async function seedPillars(count: number, overrides: Partial<PillarRecord> = {})
       level: 1,
       createdAt: Date.now() + index,
       archivedAt: null,
+      goalLevel: null,
+      goalDeadline: null,
       ...overrides,
     }
     await db.put('pillars', pillar)
@@ -69,6 +71,21 @@ describe('usePillars — bootstrap du pilier par défaut (LOT G3)', () => {
     })
     expect(result.current.pillars).toHaveLength(1)
     expect(result.current.activePillars).toHaveLength(0)
+  })
+
+  it('deux instances montées en même temps (PillarsPage + GalaxyView, lot 4 §2) ne créent qu’un seul « Général »', async () => {
+    const { usePillars } = await import('./usePillars')
+    const first = renderHook(() => usePillars())
+    const second = renderHook(() => usePillars())
+
+    await waitFor(() => expect(first.result.current.activePillars).toHaveLength(1))
+    await waitFor(() => expect(second.result.current.activePillars).toHaveLength(1))
+    // Laisse le temps à un éventuel second bootstrap concurrent de (mal) s'exécuter.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    })
+    expect(first.result.current.activePillars).toHaveLength(1)
+    expect(first.result.current.activePillars[0].id).toBe(second.result.current.activePillars[0].id)
   })
 })
 
@@ -173,8 +190,91 @@ describe('usePillars — CRUD', () => {
       await result.current.unarchivePillar('archived-one')
     })
     expect(result.current.activePillars).toHaveLength(8)
-    expect(result.current.pillars.find((pillar) => pillar.id === 'archived-one')?.archivedAt).not.toBe(
-      null,
-    )
+    expect(
+      result.current.pillars.find((pillar) => pillar.id === 'archived-one')?.archivedAt,
+    ).not.toBe(null)
+  })
+})
+
+describe('usePillars — objectif de niveau (lot 4, §4)', () => {
+  beforeEach(async () => {
+    upsertMock.mockReset()
+    upsertMock.mockResolvedValue({ error: null })
+    setCurrentUserId(null)
+    await clearPillars()
+  })
+
+  it('fixe un objectif (niveau visé, date limite)', async () => {
+    await seedPillars(1, { name: 'Sport' })
+    const { usePillars } = await import('./usePillars')
+    const { result } = renderHook(() => usePillars())
+    await waitFor(() => expect(result.current.activePillars).toHaveLength(1))
+    const id = result.current.activePillars[0].id
+    const deadline = Date.now() + 30 * 24 * 60 * 60 * 1000
+
+    await act(async () => {
+      await result.current.setGoal(id, 5, deadline)
+    })
+
+    expect(result.current.activePillars[0].goalLevel).toBe(5)
+    expect(result.current.activePillars[0].goalDeadline).toBe(deadline)
+  })
+
+  it('fixe un objectif sans date limite', async () => {
+    await seedPillars(1)
+    const { usePillars } = await import('./usePillars')
+    const { result } = renderHook(() => usePillars())
+    await waitFor(() => expect(result.current.activePillars).toHaveLength(1))
+    const id = result.current.activePillars[0].id
+
+    await act(async () => {
+      await result.current.setGoal(id, 3, null)
+    })
+
+    expect(result.current.activePillars[0].goalLevel).toBe(3)
+    expect(result.current.activePillars[0].goalDeadline).toBeNull()
+  })
+
+  it('remplace un objectif déjà fixé (un seul objectif actif à la fois)', async () => {
+    await seedPillars(1, { goalLevel: 3, goalDeadline: null })
+    const { usePillars } = await import('./usePillars')
+    const { result } = renderHook(() => usePillars())
+    await waitFor(() => expect(result.current.activePillars).toHaveLength(1))
+    const id = result.current.activePillars[0].id
+
+    await act(async () => {
+      await result.current.setGoal(id, 7, null)
+    })
+
+    expect(result.current.activePillars[0].goalLevel).toBe(7)
+  })
+
+  it('annule un objectif fixé', async () => {
+    await seedPillars(1, { goalLevel: 5, goalDeadline: Date.now() })
+    const { usePillars } = await import('./usePillars')
+    const { result } = renderHook(() => usePillars())
+    await waitFor(() => expect(result.current.activePillars).toHaveLength(1))
+    const id = result.current.activePillars[0].id
+
+    await act(async () => {
+      await result.current.clearGoal(id)
+    })
+
+    expect(result.current.activePillars[0].goalLevel).toBeNull()
+    expect(result.current.activePillars[0].goalDeadline).toBeNull()
+  })
+
+  it('ignore un niveau visé invalide (0 ou non fini)', async () => {
+    await seedPillars(1)
+    const { usePillars } = await import('./usePillars')
+    const { result } = renderHook(() => usePillars())
+    await waitFor(() => expect(result.current.activePillars).toHaveLength(1))
+    const id = result.current.activePillars[0].id
+
+    await act(async () => {
+      await result.current.setGoal(id, 0, null)
+    })
+
+    expect(result.current.activePillars[0].goalLevel).toBeNull()
   })
 })

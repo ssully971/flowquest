@@ -14,6 +14,9 @@ interface SegmentTabsProps {
   disabled?: boolean
 }
 
+// Texte, pas des icônes (LOT H2, retour arrière après feu vert) : le remplacement par des
+// icônes demandé au §3 visait le sélecteur de MODE (Accueil/Focus/Ambiant, bas de l'écran),
+// pas ces onglets-ci — revenus à leur version texte, juste légèrement réduite (text-xs).
 const TABS: { value: SegmentKind; label: string }[] = [
   { value: 'focus', label: strings.focus.tabs.focus },
   { value: 'short_break', label: strings.focus.tabs.shortBreak },
@@ -48,7 +51,7 @@ export function SegmentTabs({ value, onChange, disabled = false }: SegmentTabsPr
       ref={containerRef}
       role="tablist"
       aria-label={strings.focus.question}
-      className="flex items-center gap-6"
+      className="flex items-center gap-5"
     >
       {TABS.map((tab) => {
         const selected = tab.value === value
@@ -65,7 +68,7 @@ export function SegmentTabs({ value, onChange, disabled = false }: SegmentTabsPr
               onChange(tab.value)
             }}
             onKeyDown={handleKeyDown}
-            className={`relative pb-2 text-sm font-medium transition-colors duration-200 ${
+            className={`relative pb-2 text-xs font-medium transition-colors duration-200 ${
               disabled
                 ? 'cursor-not-allowed text-[var(--muted)] opacity-50'
                 : selected

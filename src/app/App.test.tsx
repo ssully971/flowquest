@@ -47,7 +47,7 @@ describe('App', () => {
     render(<App />)
 
     await user.click(screen.getByRole('radio', { name: 'Focus' }))
-    expect(await screen.findByText('Sur quoi te concentres-tu ?')).toBeInTheDocument()
+    expect(await screen.findByText('Sur quoi veux-tu te concentrer ?')).toBeInTheDocument()
   })
 
   it('ouvre le panneau de réglages sur la page Thèmes et le ferme via Échap', async () => {

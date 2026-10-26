@@ -1,7 +1,7 @@
 import { startOfDay } from '@/features/timer/pomodoro-cycle'
 import type { FocusSessionRecord, PillarRecord } from '@/shared/storage/db'
 
-import { deterministicPosition } from './galaxy-hash'
+import { createArmAngleResolver, spiralStarPosition } from './galaxy-layout'
 
 /** Même teinte neutre que « sans couleur » pour les tâches (task-color.ts) — une session
  * sans pilier n'est jamais invisible, juste discrète. */
@@ -30,6 +30,9 @@ export interface GalaxyStar {
    * récente du groupe pour une étoile agrégée). */
   date: number
   durationSeconds: number
+  /** `null` si sans pilier, ou si le pilier référencé n'existe plus (bras gris dans les
+   * deux cas — voir createArmAngleResolver). */
+  pillarId: string | null
   pillarName: string | null
   sessionCount: number
 }
@@ -64,7 +67,8 @@ function monthKey(timestamp: number): string {
  * filtrées par période/pilier (voir useGalaxySessions / GalaxyView) — fonction pure,
  * testable sans canvas ni IndexedDB.
  *
- * - Position : hachage déterministe de l'id (galaxy-hash.ts), jamais aléatoire.
+ * - Position : disposition en spirale déterministe, un bras par pilier (galaxy-layout.ts,
+ *   lot 4 §3) — jamais un placement pseudo-aléatoire.
  * - Taille : proportionnelle à la durée réelle, bornée (clampedRadius).
  * - Couleur : celle du pilier, gris doux si aucun.
  * - Liaisons : entre sessions individuelles d'un même jour calendaire, dans leur ordre
@@ -78,6 +82,11 @@ export function buildGalaxyData(
   maxIndividualStars: number = MAX_INDIVIDUAL_STARS,
 ): GalaxyData {
   const pillarsById = new Map(pillars.map((pillar) => [pillar.id, pillar]))
+  // Bras gris (lot 4, §3) : un pillarId absent (session sans pilier) ou qui ne correspond
+  // plus à aucun pilier connu (supprimé) retombent tous les deux sur le même bras — même
+  // logique que colorFor/nameFor ci-dessous, déjà gris dans ce cas.
+  const armIdFor = (pillarId: string | null): string | null =>
+    pillarId !== null && pillarsById.has(pillarId) ? pillarId : null
   const colorFor = (pillarId: string | null) => {
     if (!pillarId) return GALAXY_NEUTRAL_COLOR
     return pillarsById.get(pillarId)?.color ?? GALAXY_NEUTRAL_COLOR
@@ -89,21 +98,21 @@ export function buildGalaxyData(
   const individual = sorted.slice(0, maxIndividualStars)
   const overflow = sorted.slice(maxIndividualStars)
 
-  const stars: GalaxyStar[] = individual.map((session) => {
-    const { x, y } = deterministicPosition(session.id)
-    return {
-      id: session.id,
-      x,
-      y,
-      radius: clampedRadius(session.actualSeconds),
-      color: colorFor(session.pillarId),
-      isCluster: false,
-      date: session.startedAt,
-      durationSeconds: session.actualSeconds,
-      pillarName: nameFor(session.pillarId),
-      sessionCount: 1,
-    }
-  })
+  // Position posée plus bas (voir « Disposition en spirale ») : x/y valent 0 ici, chaque
+  // étoile est repositionnée une fois regroupée par bras et triée chronologiquement.
+  const stars: GalaxyStar[] = individual.map((session) => ({
+    id: session.id,
+    x: 0,
+    y: 0,
+    radius: clampedRadius(session.actualSeconds),
+    color: colorFor(session.pillarId),
+    isCluster: false,
+    date: session.startedAt,
+    durationSeconds: session.actualSeconds,
+    pillarId: armIdFor(session.pillarId),
+    pillarName: nameFor(session.pillarId),
+    sessionCount: 1,
+  }))
 
   if (overflow.length > 0) {
     const clusters = new Map<
@@ -127,20 +136,44 @@ export function buildGalaxyData(
       }
     }
     for (const [key, cluster] of clusters) {
-      const { x, y } = deterministicPosition(`cluster:${key}`)
       stars.push({
         id: `cluster:${key}`,
-        x,
-        y,
+        x: 0,
+        y: 0,
         radius: clampedRadius(cluster.totalSeconds),
         color: colorFor(cluster.pillarId),
         isCluster: true,
         date: cluster.latest,
         durationSeconds: cluster.totalSeconds,
+        pillarId: armIdFor(cluster.pillarId),
         pillarName: nameFor(cluster.pillarId),
         sessionCount: cluster.count,
       })
     }
+  }
+
+  // Disposition en spirale, un bras par pilier (lot 4, §3) : jamais de placement
+  // pseudo-aléatoire. Chaque bras regroupe ses étoiles (régulières et agrégées — ces
+  // dernières sont, par construction, toujours plus anciennes que toutes les étoiles
+  // individuelles puisqu'elles viennent du débordement au-delà de `maxIndividualStars`,
+  // donc elles se classent naturellement au centre du bras une fois trié par date), triées
+  // par ordre chronologique croissant, puis positionnées à rayon croissant le long du bras
+  // (la plus ancienne au centre, la plus récente en bout de bras).
+  const armAngleFor = createArmAngleResolver(pillars.map((pillar) => pillar.id))
+  const byArm = new Map<string | null, GalaxyStar[]>()
+  for (const star of stars) {
+    const group = byArm.get(star.pillarId)
+    if (group) group.push(star)
+    else byArm.set(star.pillarId, [star])
+  }
+  for (const [pillarId, arm] of byArm) {
+    arm.sort((a, b) => a.date - b.date)
+    const angle = armAngleFor(pillarId)
+    arm.forEach((star, index) => {
+      const position = spiralStarPosition(angle, index, star.id)
+      star.x = position.x
+      star.y = position.y
+    })
   }
 
   // Liaisons entre étoiles individuelles d'un même jour, dans leur ordre chronologique.

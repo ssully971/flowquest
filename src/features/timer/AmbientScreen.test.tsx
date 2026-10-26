@@ -36,8 +36,8 @@ describe('AmbientScreen — minuteur compact en carte Liquid Glass, reste de l�
     renderAmbientScreen()
 
     expect(await screen.findByTestId('big-digits')).toHaveTextContent('25:00')
-    expect(screen.getByRole('button', { name: 'Démarrer' })).toBeInTheDocument()
-    expect(screen.queryByText('Sur quoi te concentres-tu ?')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Lancer' })).toBeInTheDocument()
+    expect(screen.queryByText('Sur quoi veux-tu te concentrer ?')).not.toBeInTheDocument()
   })
 
   it('démarre et met en pause le minuteur depuis la carte compacte', async () => {
@@ -45,7 +45,7 @@ describe('AmbientScreen — minuteur compact en carte Liquid Glass, reste de l�
     renderAmbientScreen()
 
     await screen.findByTestId('big-digits')
-    await user.click(screen.getByRole('button', { name: 'Démarrer' }))
+    await user.click(screen.getByRole('button', { name: 'Lancer' }))
 
     expect(await screen.findByRole('button', { name: 'Mettre en pause' })).toBeInTheDocument()
   })
