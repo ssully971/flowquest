@@ -16,6 +16,7 @@ export const FLAG_KEYS = [
   'cheers',
   'avatar_upload',
   'signups',
+  'beta_fermee',
   'maintenance',
 ] as const
 
@@ -31,5 +32,6 @@ export const FLAG_DEFAULTS: Record<FlagKey, boolean> = {
   cheers: true,
   avatar_upload: true,
   signups: true,
+  beta_fermee: true,
   maintenance: false,
 }
