@@ -24,9 +24,13 @@ export function AdminGate() {
 
   if (status !== 'authenticated' || profile?.role !== 'admin') {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[var(--bg)] p-6 text-center text-[var(--text)]">
-        <p className="text-sm text-[var(--muted)]">{strings.admin.denied}</p>
-        <a href="/" className="text-sm text-[var(--accent)] underline-offset-2 hover:underline">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-[var(--bg)] p-6 text-center text-[var(--text)]">
+        <p className="text-lg font-semibold">{strings.admin.denied}</p>
+        <p className="max-w-sm text-sm text-[var(--muted)]">{strings.admin.deniedHint}</p>
+        <a
+          href="/"
+          className="mt-2 text-sm text-[var(--accent)] underline-offset-2 hover:underline"
+        >
           {strings.admin.backHome}
         </a>
       </div>

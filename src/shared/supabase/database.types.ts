@@ -616,8 +616,21 @@ export interface Database {
         Args: Record<string, never>
         Returns: AdminStatsOverview
       }
+      admin_list_log: {
+        Args: { p_limit?: number; p_search?: string | null }
+        Returns: AdminLogRow[]
+      }
     }
   }
+}
+
+export interface AdminLogRow {
+  id: string
+  admin_id: string | null
+  admin_username: string | null
+  action: string
+  target: string
+  created_at: string
 }
 
 export interface AdminStatsOverview {
