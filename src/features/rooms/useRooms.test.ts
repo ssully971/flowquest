@@ -125,63 +125,22 @@ describe('useRooms — mes salons (LOT F3)', () => {
   })
 })
 
-describe('useRooms — nouvelles invitations en temps réel (LOT H1)', () => {
-  it('ne montre aucun toast au tout premier chargement, même avec une invitation déjà en attente', async () => {
-    const { useRooms } = await import('./useRooms')
-    const { result } = renderHook(() => useRooms())
-    await waitFor(() => expect(result.current.isLoading).toBe(false))
-
-    expect(showToastMock).not.toHaveBeenCalled()
-  })
-
-  it('montre un toast quand une nouvelle invitation apparaît entre deux rafraîchissements', async () => {
+describe('useRooms — nouvelles invitations en temps réel (LOT H1, M4)', () => {
+  it('expose une nouvelle invitation arrivée entre deux rafraîchissements, sans toast éphémère', async () => {
     const { useRooms } = await import('./useRooms')
     const { result } = renderHook(() => useRooms())
     await waitFor(() => expect(result.current.isLoading).toBe(false))
 
     const newInvite = { ...MY_ROOM, roomId: 'r2', hostUsername: 'autre_hote', hostDisplayName: 'Autre Hôte' }
     listMyRoomsMock.mockResolvedValue([MY_ROOM, newInvite])
-
     await act(async () => {
       await result.current.refresh()
     })
 
-    expect(showToastMock).toHaveBeenCalledWith({
-      type: 'info',
-      message: 'Autre Hôte t’invite à un salon de focus.',
-      action: { label: 'Accepter', onClick: expect.any(Function) },
-    })
-    expect(showToastMock).toHaveBeenCalledTimes(1)
-  })
-
-  it('ne montre aucun toast si la même invitation persiste', async () => {
-    const { useRooms } = await import('./useRooms')
-    const { result } = renderHook(() => useRooms())
-    await waitFor(() => expect(result.current.isLoading).toBe(false))
-
-    await act(async () => {
-      await result.current.refresh()
-    })
-
+    // La notification visible (bannière Rejoindre / Refuser) est celle de SocialInvitesBanner
+    // (LOT M4), qui lit cette liste : plus de toast de 5 s ici, donc jamais deux notifications
+    // pour la même invitation.
+    expect(result.current.rooms.map((room) => room.roomId)).toEqual(['r1', 'r2'])
     expect(showToastMock).not.toHaveBeenCalled()
-  })
-
-  it('le bouton « Accepter » du toast accepte l’invitation (LOT H2, §1)', async () => {
-    const { useRooms } = await import('./useRooms')
-    const { result } = renderHook(() => useRooms())
-    await waitFor(() => expect(result.current.isLoading).toBe(false))
-
-    const newInvite = { ...MY_ROOM, roomId: 'r2', hostUsername: 'autre_hote' }
-    listMyRoomsMock.mockResolvedValue([MY_ROOM, newInvite])
-    await act(async () => {
-      await result.current.refresh()
-    })
-
-    const toastCall = showToastMock.mock.calls.find((call) => call[0].action)
-    await act(async () => {
-      await toastCall?.[0].action.onClick()
-    })
-
-    expect(respondRoomInviteMock).toHaveBeenCalledWith('r2', true, null)
   })
 })

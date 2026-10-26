@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.23.0',
+    date: '2026-11-12',
+    text: 'Invitations en direct : quand un ami t’invite dans un salon ou t’envoie une demande, une notification apparaît où que tu sois sur Fokitsu, avec « Rejoindre » ou « Refuser » en un toucher.',
+  },
+  {
     version: '0.22.0',
     date: '2026-11-11',
     text: 'Les sessions de groupe prennent la place de l’horloge : quand tu rejoins un salon, l’écran Focus affiche l’horloge du groupe, avec les participants en direct. Un petit bouton « Session en cours » te ramène à l’horloge depuis les autres pages.',

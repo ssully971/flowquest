@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { useAuth } from '@/features/auth/useAuth'
 import { getActivePillarId } from '@/features/pillars/active-pillar-ref'
 import { getPillarsEnabled } from '@/features/settings/pillars-enabled-ref'
-import { strings } from '@/shared/i18n'
 import { useToast } from '@/shared/toast'
 
 import { RoomsError, createRoom, listMyRooms, respondRoomInvite } from './rooms-repository'
@@ -23,47 +22,20 @@ function errorMessage(err: unknown): string {
 /** Mes salons (LOT F3) : invitations en attente et salons actifs, pour l'onglet « Mes
  * salons » du panneau. Realtime (LOT H1, useRoomInvitesRealtime) détecte une invitation
  * dès qu'elle arrive — le salon ouvert lui-même (useActiveRoom) a son propre canal
- * dédié (useRoomRealtime, filtré sur son room_id). */
+ * dédié (useRoomRealtime, filtré sur son room_id). L'avertissement visible (bannière avec
+ * Rejoindre / Refuser, partout sur le site) est assuré par SocialInvitesBanner (LOT M4),
+ * plus par un toast éphémère ici. */
 export function useRooms() {
   const { status } = useAuth()
   const { showToast } = useToast()
   const [rooms, setRooms] = useState<MyRoom[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  // Dernières invitations en attente connues (LOT H1) : permet de ne saluer que celles
-  // qui viennent d'apparaître, jamais au tout premier chargement (ref encore `null`).
-  const previousInvitedIdsRef = useRef<Set<string> | null>(null)
-  // Référence vers `respond` (LOT H2, §1 — toast avec « Accepter ») : `refresh` en a
-  // besoin pour l'action du toast, mais `respond` est défini plus bas et dépend lui-même
-  // de `refresh` — tenue à jour à chaque rendu plutôt que réordonnée pour éviter une
-  // dépendance circulaire entre les deux useCallback.
-  const respondRef = useRef<(roomId: string, accept: boolean) => Promise<boolean>>(
-    () => Promise.resolve(false),
-  )
-
   const refresh = useCallback(() => {
     return listMyRooms()
       .then((next) => {
         setRooms(next)
         setLoadError(null)
-
-        const invited = next.filter((room) => room.myStatus === 'invited')
-        const invitedIds = new Set(invited.map((room) => room.roomId))
-        if (previousInvitedIdsRef.current) {
-          const previous = previousInvitedIdsRef.current
-          for (const room of invited) {
-            if (previous.has(room.roomId)) continue
-            showToast({
-              type: 'info',
-              message: `${room.hostDisplayName ?? room.hostUsername} t’invite à un salon de focus.`,
-              action: {
-                label: strings.rooms.accept,
-                onClick: () => void respondRef.current(room.roomId, true),
-              },
-            })
-          }
-        }
-        previousInvitedIdsRef.current = invitedIds
       })
       .catch((err: unknown) => {
         setLoadError(errorMessage(err))
@@ -71,7 +43,7 @@ export function useRooms() {
       .finally(() => {
         setIsLoading(false)
       })
-  }, [showToast])
+  }, [])
 
   useEffect(() => {
     if (status !== 'authenticated') return
@@ -109,10 +81,6 @@ export function useRooms() {
     },
     [refresh, showToast],
   )
-  useEffect(() => {
-    respondRef.current = respond
-  }, [respond])
-
   return { rooms, isLoading, loadError, refresh, create, respond }
 }
 

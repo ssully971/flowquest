@@ -651,6 +651,15 @@ export const fr = {
       submit: 'Créer le salon',
       creating: 'Création…',
     },
+    invite: {
+      roomText: 't’invite à un salon de focus',
+      friendText: 't’a envoyé une demande d’ami',
+      join: 'Rejoindre',
+      accept: 'Accepter',
+      decline: 'Refuser',
+      dismiss: 'Masquer la notification',
+      more: 'autres notifications',
+    },
     group: {
       badge: 'Session de groupe',
       waiting: 'En attente de l’hôte',

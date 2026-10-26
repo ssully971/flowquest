@@ -401,3 +401,22 @@ pilotée par l'état du salon côté serveur. L'ancienne fenêtre « salon » (`
   salons (qui exclut les salons terminés) s'est rafraîchie entre-temps (identifiant « collant »).
 
 Test e2e à deux navigateurs mis à jour : `e2e/rooms-two-contexts.spec.ts` (`npx playwright test`).
+
+## Notifications d'invitation sur tout le site (LOT M4)
+
+Une invitation à un salon de focus ou une demande d'ami entrante apparaît en **bannière
+cliquable** (`SocialInvitesBanner`) où que l'on soit — accueil, Focus, Ambiant, pages légales,
+admin — avec « Rejoindre / Refuser » (salon) ou « Accepter / Refuser » (ami), sans ouvrir le mode
+amis. « Rejoindre » accepte l'invitation (avec le pilier actif) et emmène directement à
+l'horloge de groupe.
+
+- **Pas de doublon** : la bannière est dérivée en direct des listes serveur (`useRooms` /
+  `useFriends`, abonnés Realtime via `useRoomInvitesRealtime` / `useFriendshipsRealtime`) ; la
+  clé est l'identifiant du salon ou de la demande, donc une même invitation n'apparaît qu'une fois
+  quel que soit le nombre de rafraîchissements. Les anciens toasts éphémères (5 s) ont été
+  retirés pour éviter une double notification.
+- **Pastille de non-lu** (engrenage) : lit les mêmes listes ; reste allumée jusqu'à la réponse,
+  même si la bannière a été masquée (« Masquer » écarte la bannière sans répondre).
+- Jusqu'à 3 bannières empilées (« +N autres notifications » au-delà) ; masquée tant que le
+  panneau social, qui liste déjà les mêmes demandes, est ouvert. Sur les pages hors application
+  (conditions, admin…), seules les invitations de salon sont affichées.

@@ -67,17 +67,12 @@ test('deux navigateurs voient le même salon se synchroniser', async ({ browser 
   await expect(hostPage.getByText('Démarre dès que tu es prêt.')).toBeVisible()
   await expect(hostPage.getByRole('button', { name: 'Lancer' })).toBeVisible()
 
-  // 2. Le membre voit l'invitation dans SON navigateur et l'accepte. La notification
-  // temps réel (LOT H1, §2) se déclenche ici : ouvrir le panneau rafraîchit la liste des
-  // salons (voir le commentaire dans SocialPanel) et le nouvel item détecté par diff
-  // déclenche le toast — pas de vrai canal Realtime dans cet environnement (voir
-  // l'en-tête de ce fichier), mais la logique de détection et d'affichage est la même.
-  await openRoomsTab(memberPage)
-  await expect(memberPage.getByText('Hôte t’invite à un salon de focus.')).toBeVisible()
-  await expect(memberPage.getByText(/t’invite dans un salon/)).toBeVisible()
-  // Scopé au dialogue : le toast (LOT H2, §1) a lui aussi un bouton « Accepter » depuis
-  // qu'il agit directement, ambigu avec celui de la carte de salon dans le panneau.
-  await memberPage.getByRole('dialog').getByRole('button', { name: 'Accepter' }).click()
+  // 2. LOT M4 : le membre est notifié EN DIRECT, sans ouvrir le mode amis ni rien rafraîchir
+  // (pas de vrai canal Realtime dans cet environnement : le repli par interrogation toutes les
+  // 4 s rattrape l'évènement). Il rejoint depuis la bannière : la session de groupe prend aussitôt
+  // la place de son horloge.
+  await expect(memberPage.getByText(/t’invite à un salon de focus/)).toBeVisible({ timeout: 15_000 })
+  await memberPage.getByRole('button', { name: 'Rejoindre' }).click()
   await expect(memberPage.getByText('En attente de l’hôte')).toBeVisible()
 
   // 3. L'hôte démarre le minuteur partagé.

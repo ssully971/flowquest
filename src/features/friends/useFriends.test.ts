@@ -134,44 +134,21 @@ describe('useFriends — chargement et actions (LOT F1)', () => {
   })
 })
 
-describe('useFriends — nouvelles demandes en temps réel (LOT H1)', () => {
-  it('ne montre aucun toast au tout premier chargement', async () => {
-    const { useFriends } = await import('./useFriends')
-    const { result } = renderHook(() => useFriends())
-    await waitFor(() => expect(result.current.isLoading).toBe(false))
-
-    expect(showToastMock).not.toHaveBeenCalled()
-  })
-
-  it('montre un toast quand une nouvelle demande entrante apparaît entre deux rafraîchissements', async () => {
+describe('useFriends — nouvelles demandes en temps réel (LOT H1, M4)', () => {
+  it('expose une nouvelle demande entrante arrivée entre deux rafraîchissements, sans toast éphémère', async () => {
     const { useFriends } = await import('./useFriends')
     const { result } = renderHook(() => useFriends())
     await waitFor(() => expect(result.current.isLoading).toBe(false))
 
     const newIncoming = { ...INCOMING_REQUEST, friendshipId: 'r3', username: 'nouveau_demandeur' }
     listFriendRequestsMock.mockResolvedValue([INCOMING_REQUEST, OUTGOING_REQUEST, newIncoming])
-
     await act(async () => {
       await result.current.refresh()
     })
 
-    expect(showToastMock).toHaveBeenCalledWith({
-      type: 'info',
-      message: 'nouveau_demandeur t’a envoyé une demande d’ami.',
-    })
-    // La demande déjà connue au premier chargement ne redéclenche pas de toast.
-    expect(showToastMock).toHaveBeenCalledTimes(1)
-  })
-
-  it('ne montre aucun toast si la liste de demandes entrantes ne change pas', async () => {
-    const { useFriends } = await import('./useFriends')
-    const { result } = renderHook(() => useFriends())
-    await waitFor(() => expect(result.current.isLoading).toBe(false))
-
-    await act(async () => {
-      await result.current.refresh()
-    })
-
+    // La notification visible (bannière Accepter / Refuser) est celle de SocialInvitesBanner
+    // (LOT M4), qui lit cette liste : jamais deux notifications pour la même demande.
+    expect(result.current.incomingRequests.map((request) => request.friendshipId)).toEqual(['r1', 'r3'])
     expect(showToastMock).not.toHaveBeenCalled()
   })
 })

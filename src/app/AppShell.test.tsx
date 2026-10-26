@@ -5,6 +5,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { AppMode } from '@/app/useAppMode'
 import { AuthProvider } from '@/features/auth/AuthProvider'
+import { ActiveGroupRoomContext, INERT_ACTIVE_ROOM } from '@/features/rooms/active-room-context'
+import type { ActiveGroupRoomValue } from '@/features/rooms/active-room-context'
+import type { MyRoom } from '@/features/rooms/types'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
 import { QuotesSettingsProvider } from '@/features/home/QuotesSettingsProvider'
 import { BackgroundDisplaySettingsProvider } from '@/features/settings/BackgroundDisplaySettingsProvider'
@@ -141,5 +144,79 @@ describe('AppShell — mode Ambiant (§5.3) : tâches et bloc-notes masqués', (
     expect(screen.queryByRole('button', { name: 'Bloc-notes' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Réglages' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Plein écran' })).toBeInTheDocument()
+  })
+})
+
+describe('AppShell — invitations visibles partout et session de groupe (LOT M3/M4)', () => {
+  function renderWithRooms(rooms: MyRoom[], onModeChange = vi.fn()) {
+    const respond = vi.fn().mockResolvedValue(true)
+    const value: ActiveGroupRoomValue = {
+      ...INERT_ACTIVE_ROOM,
+      roomsState: { ...INERT_ACTIVE_ROOM.roomsState, rooms, respond },
+    }
+    render(
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <ActiveTaskProvider>
+              <TimerSettingsProvider>
+                <ClockSettingsProvider>
+                  <QuotesSettingsProvider>
+                    <ExtrasSettingsProvider>
+                      <BackgroundDisplaySettingsProvider>
+                        <ActiveGroupRoomContext.Provider value={value}>
+                          <AppShell mode="home" onModeChange={onModeChange}>
+                            <div>Contenu</div>
+                          </AppShell>
+                        </ActiveGroupRoomContext.Provider>
+                      </BackgroundDisplaySettingsProvider>
+                    </ExtrasSettingsProvider>
+                  </QuotesSettingsProvider>
+                </ClockSettingsProvider>
+              </TimerSettingsProvider>
+            </ActiveTaskProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>,
+    )
+    return { respond, onModeChange }
+  }
+
+  const INVITE: MyRoom = {
+    roomId: 'r1',
+    hostId: 'h',
+    hostUsername: 'hote',
+    hostDisplayName: 'Hôte',
+    status: 'lobby',
+    focusMinutes: 25,
+    myStatus: 'invited',
+    participantCount: 1,
+    createdAt: '2026-01-01T10:00:00Z',
+    mode: 'countdown',
+    phase: 'focus',
+    startedAt: null,
+    durationMs: null,
+    elapsedMsAtPause: null,
+  }
+
+  it('une invitation à un salon s’affiche en bannière, où que l’on soit, sans ouvrir le mode amis', async () => {
+    const user = userEvent.setup()
+    const { respond, onModeChange } = renderWithRooms([INVITE])
+
+    expect(screen.getByText(/t’invite à un salon de focus/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Rejoindre' }))
+
+    expect(respond).toHaveBeenCalledWith('r1', true)
+    // Rejoindre emmène directement à l'horloge de groupe (écran Focus).
+    await vi.waitFor(() => expect(onModeChange).toHaveBeenCalledWith('focus'))
+  })
+
+  it('la pastille de l’engrenage reste allumée tant que l’invitation n’a pas reçu de réponse, même masquée', async () => {
+    const user = userEvent.setup()
+    renderWithRooms([INVITE])
+
+    await user.click(screen.getByRole('button', { name: 'Masquer la notification' }))
+    expect(screen.queryByText(/t’invite à un salon de focus/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Notifications non lues')).toBeInTheDocument()
   })
 })

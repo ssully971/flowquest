@@ -12,6 +12,7 @@ import { LegalNoticePage } from '@/features/legal/pages/LegalNoticePage'
 import { PrivacyPage } from '@/features/legal/pages/PrivacyPage'
 import { TermsPage } from '@/features/legal/pages/TermsPage'
 import { ActiveRoomProvider } from '@/features/rooms/ActiveRoomProvider'
+import { SocialInvitesBanner } from '@/features/friends/components/SocialInvitesBanner'
 import { GroupSessionFab } from '@/features/rooms/components/GroupSessionFab'
 import { ActivePillarProvider } from '@/features/pillars/ActivePillarProvider'
 import { BackgroundDisplaySettingsProvider } from '@/features/settings/BackgroundDisplaySettingsProvider'
@@ -93,6 +94,11 @@ export function App() {
                               sauf l'horloge elle-même (Focus et Ambiant l'affichent déjà). */}
                             {isMainRoute && mode !== 'home' ? null : (
                               <GroupSessionFab onReturn={returnToGroupClock} />
+                            )}
+                            {/* Invitations (LOT M4) : sur l'application, AppShell les affiche avec
+                                les demandes d'ami ; sur les autres pages, seulement les salons. */}
+                            {isMainRoute ? null : (
+                              <SocialInvitesBanner onJoinedRoom={returnToGroupClock} />
                             )}
                           </ActiveRoomProvider>
                         </CustomBackgroundProvider>

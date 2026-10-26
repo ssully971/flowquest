@@ -3,4 +3,4 @@
  * versions pour le badge « nouveau » (§7.9). À incrémenter à chaque entrée ajoutée à
  * CHANGELOG dans src/features/settings/changelog.ts.
  */
-export const APP_VERSION = '0.22.0'
+export const APP_VERSION = '0.23.0'

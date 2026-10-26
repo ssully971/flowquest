@@ -19,6 +19,7 @@ import { MaintenanceBanner } from '@/features/feature-flags/MaintenanceBanner'
 import { SocialPanel } from '@/features/friends/components/SocialPanel'
 import { useCheers } from '@/features/friends/useCheers'
 import { CheersBanner } from '@/features/friends/components/CheersBanner'
+import { SocialInvitesBanner } from '@/features/friends/components/SocialInvitesBanner'
 import { useDuoStreaks } from '@/features/friends/useDuoStreaks'
 import { useFriends } from '@/features/friends/useFriends'
 import { useLeaderboard } from '@/features/friends/useLeaderboard'
@@ -348,6 +349,15 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
       <GuestImportPrompt />
       <InstallPrompt />
       <CheersBanner cheers={cheers.cheers} onDismiss={cheers.dismiss} />
+      {/* Invitations à un salon et demandes d'ami entrantes (LOT M4) : visibles partout, avec
+          Rejoindre / Refuser, sans ouvrir le mode amis. */}
+      <SocialInvitesBanner
+        friendRequests={friendsState.incomingRequests}
+        onAcceptFriend={(id) => void friendsState.acceptRequest(id)}
+        onDeclineFriend={(id) => void friendsState.declineRequest(id)}
+        onJoinedRoom={() => onModeChange('focus')}
+        suppressed={isSocialOpen}
+      />
       <MaintenanceBanner />
       <GameCampaignBanner />
     </div>
