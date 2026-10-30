@@ -1,4 +1,5 @@
 import {
+  confirmPresence,
   createTimerState,
   getSnapshot,
   pause,
@@ -37,8 +38,12 @@ export class TimerController {
     mode: TimerMode,
     segment: SegmentKind,
     durationMs: number | null,
+    guardCarryMs = 0,
   ): TimerController {
-    return new TimerController(repository, createTimerState(mode, segment, durationMs))
+    return new TimerController(
+      repository,
+      createTimerState(mode, segment, durationMs, guardCarryMs),
+    )
   }
 
   getState(): TimerState {
@@ -63,6 +68,13 @@ export class TimerController {
 
   async resume(now: number = Date.now()): Promise<TimerState> {
     this.state = resume(this.state, now)
+    await this.persist()
+    return this.state
+  }
+
+  /** « Je suis là » après la garde de 4 h : le temps d'absence devient du temps de pause. */
+  async confirmPresence(now: number = Date.now()): Promise<TimerState> {
+    this.state = confirmPresence(this.state, now)
     await this.persist()
     return this.state
   }

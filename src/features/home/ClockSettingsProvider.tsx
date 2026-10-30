@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { ClockSettingsContext } from './clock-settings-context'
+import { sanitizeAmbientPositions } from './clock-position'
 import { CLOCK_SIZE_SCALE, CLOCK_STYLES, DEFAULT_CLOCK_SETTINGS } from './clock-settings'
 import type { ClockSettings } from './clock-settings'
 
@@ -31,7 +32,11 @@ function readStored(): ClockSettings {
     if (!raw) return DEFAULT_CLOCK_SETTINGS
     const parsed: unknown = JSON.parse(raw)
     return isClockSettings(parsed)
-      ? { ...DEFAULT_CLOCK_SETTINGS, ...parsed }
+      ? {
+          ...DEFAULT_CLOCK_SETTINGS,
+          ...parsed,
+          ambientPositions: sanitizeAmbientPositions((parsed as ClockSettings).ambientPositions),
+        }
       : DEFAULT_CLOCK_SETTINGS
   } catch {
     return DEFAULT_CLOCK_SETTINGS

@@ -13,6 +13,8 @@ export interface GroupRoomActions {
   end: () => Promise<boolean>
   leave: () => Promise<boolean>
   transfer: (newHostId: string) => Promise<boolean>
+  /** Invite des amis dans le salon en cours (hôte seulement, côté serveur aussi). */
+  invite: (friendIds: string[]) => Promise<boolean>
 }
 
 /** La session de groupe de l'utilisateur, source de vérité UNIQUE de l'horloge de groupe
@@ -74,7 +76,15 @@ export const INERT_ACTIVE_ROOM: ActiveGroupRoomValue = {
   actionError: null,
   dismissActionError: () => undefined,
   nowMs: 0,
-  actions: { start: NOOP, pause: NOOP, resume: NOOP, end: NOOP, leave: NOOP, transfer: NOOP },
+  actions: {
+    start: NOOP,
+    pause: NOOP,
+    resume: NOOP,
+    end: NOOP,
+    leave: NOOP,
+    transfer: NOOP,
+    invite: NOOP,
+  },
   dismissEnded: () => undefined,
 }
 

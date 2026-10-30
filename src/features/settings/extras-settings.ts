@@ -29,6 +29,9 @@ export interface ExtrasSettings {
    * normalement, sans pilier. Les données des piliers ne sont jamais supprimées, elles
    * réapparaissent telles quelles si ce réglage est réactivé. */
   pillarsEnabled: boolean
+  /** Affiche le bouton des sons d'ambiance sur l'écran Focus (désactivé par défaut) ; le mode
+   * Ambiant a toujours le sien. */
+  showFocusSoundsButton: boolean
 }
 
 export const DEFAULT_EXTRAS_SETTINGS: ExtrasSettings = {
@@ -45,4 +48,5 @@ export const DEFAULT_EXTRAS_SETTINGS: ExtrasSettings = {
   confirmTaskDeletion: true,
   iconSize: 'small',
   pillarsEnabled: true,
+  showFocusSoundsButton: false,
 }

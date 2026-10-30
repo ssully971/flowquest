@@ -1,4 +1,8 @@
+import { createElement } from 'react'
 import type { ComponentType } from 'react'
+
+import { photoIdFromBackgroundId } from '@/features/settings/custom-photos'
+import type { CustomBackgroundId } from '@/features/settings/custom-photos'
 
 import { AubergineBackground } from './AubergineBackground'
 import { BrumeBackground } from './BrumeBackground'
@@ -70,7 +74,8 @@ export type BackgroundId =
   | 'photo-pleine-lune'
   | 'pure-black'
   | 'pure-white'
-  | 'custom'
+  /** Photo personnelle de la bibliothèque : `custom:<id de la photo>`. */
+  | CustomBackgroundId
 
 export type BackgroundCategory =
   'gradients' | 'abstract' | 'scenic' | 'nature' | 'urban' | 'interior' | 'animated' | 'minimal'
@@ -91,6 +96,9 @@ export interface BackgroundDefinition {
   /** `false` pour un fond jugé trop chargé en mode Ambiant (texte/minuteur par-dessus). */
   usableInAmbient?: boolean
   credit?: string
+  /** Image statique légère de ce fond (fonds photo) : pour les rendus qui ne peuvent pas monter
+   * le composant — fenêtre Picture-in-Picture, vignettes. Absente pour les fonds en CSS. */
+  staticSrc?: string
 }
 
 export const BACKGROUNDS: BackgroundDefinition[] = [
@@ -129,14 +137,30 @@ export const BACKGROUNDS: BackgroundDefinition[] = [
     suggestedTheme: 'light',
     Component: PureWhiteBackground,
   },
-  // Fond personnel (lot 3) : jamais affiché dans la grille de la bibliothèque (exclu
-  // explicitement par id dans ThemesPage, pas par catégorie), seulement sélectionnable une
-  // fois une image envoyée, depuis sa propre section « Fond personnel ».
-  { id: 'custom', label: 'Fond personnel', category: 'gradients', Component: CustomBackground },
 ]
 
 export const BACKGROUND_IDS: BackgroundId[] = BACKGROUNDS.map((bg) => bg.id)
 
+const customDefinitions = new Map<string, BackgroundDefinition>()
+
+/** Définition d'un fond personnel : un composant par photo, créé une seule fois (une identité de
+ * composant stable évite de démonter/remonter le fond à chaque rendu). */
+function customBackgroundDefinition(id: CustomBackgroundId, photoId: string): BackgroundDefinition {
+  let definition = customDefinitions.get(id)
+  if (!definition) {
+    const Component = function CustomPhotoBackground() {
+      return createElement(CustomBackground, { photoId })
+    }
+    definition = { id, label: 'Photo personnelle', category: 'gradients', Component }
+    customDefinitions.set(id, definition)
+  }
+  return definition
+}
+
 export function getBackgroundDefinition(id: BackgroundId): BackgroundDefinition {
-  return BACKGROUNDS.find((bg) => bg.id === id) ?? BACKGROUNDS[0]
+  const found = BACKGROUNDS.find((bg) => bg.id === id)
+  if (found) return found
+  const photoId = photoIdFromBackgroundId(id)
+  if (photoId) return customBackgroundDefinition(id as CustomBackgroundId, photoId)
+  return BACKGROUNDS[0]
 }

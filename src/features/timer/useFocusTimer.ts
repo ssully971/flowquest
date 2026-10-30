@@ -2,14 +2,22 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { getCurrentUserId } from '@/features/auth/current-user'
 import { useAuth } from '@/features/auth/useAuth'
+import { getActivePillarId } from '@/features/pillars/active-pillar-ref'
 import type { PillarXpResult } from '@/features/pillars/apply-session-xp'
+import { getPillarsEnabled } from '@/features/settings/pillars-enabled-ref'
 import { getDb } from '@/shared/storage/db'
 
 import type { CycleSummary } from './cycle-summary'
-import { computeCycleSummary } from './cycle-summary'
-import type { SegmentKind, TimerMode, TimerSnapshot } from './engine/timer-engine'
+import { computeCycleSummary, summarizeSoloSession } from './cycle-summary'
+import { getEndedAt } from './engine/timer-engine'
+import type { SegmentKind, TimerMode, TimerSnapshot, TimerState } from './engine/timer-engine'
 import { getDefaultSegmentForMode, getDurationForSegment, getDurationMsForMode } from './durations'
-import { notifySegmentFinished, requestNotificationPermission } from './notifications'
+import { primeGuardAlertAudio } from './alert-sounds'
+import {
+  notifyPresenceCheck,
+  notifySegmentFinished,
+  requestNotificationPermission,
+} from './notifications'
 import {
   advancePomodoroCycle,
   countFocusSessionsSinceLastLongBreak,
@@ -17,7 +25,8 @@ import {
   effectiveSessionsBeforeLongBreak,
 } from './pomodoro-cycle'
 import type { PomodoroCycleState } from './pomodoro-cycle'
-import { recordSession } from './session-recorder'
+import { carryAfterSegment, isPomodoroPresenceDue, mustAskBeforeNextFocus } from './presence-guard'
+import { MIN_RECORDED_SECONDS, recordSession } from './session-recorder'
 import { getGoalFocusSessions, isGoalReached } from './session-goal'
 import { IndexedDbTimerStateRepository } from './storage/indexed-db-timer-state-repository'
 import { SupabaseTimerStateRepository } from './storage/supabase-timer-state-repository'
@@ -64,6 +73,17 @@ export interface UseFocusTimerResult {
   /** Termine le cycle en cours pour de bon (LOT E6) : enregistre la session active si besoin,
    * puis affiche l'écran de fin. */
   endSession: () => void
+  /** Garde anti-oubli de 4 h : `frozen` = Chrono/Minuteur figé en attente de « Je suis là » ;
+   * `pomodoro` = 4 h de focus cumulées, le focus suivant n'a pas démarré ; `null` sinon. */
+  presenceCheck: 'frozen' | 'pomodoro' | null
+  /** Le navigateur a bloqué le son de l'alerte : la fenêtre l'indique (repli visuel). */
+  presenceSoundBlocked: boolean
+  /** « Je suis là » : relance le temps (Chrono/Minuteur) ou la session suivante (Pomodoro) et
+   * réarme le contrôle dans 4 h de focus. */
+  confirmPresence: () => void
+  /** Change à chaque lancement de session et à chaque confirmation : déclenche la petite carte
+   * d'annonce du prochain contrôle (voir GuardAnnouncement). */
+  guardAnnounceKey: number
   /** Accuse réception de l'écran de fin et repart sur un cycle neuf. */
   acknowledgeSessionEnd: () => void
   selectMode: (mode: TimerMode) => void
@@ -79,6 +99,7 @@ async function createSelectedController(
   mode: TimerMode,
   segment: SegmentKind,
   settings: TimerSettings,
+  guardCarryMs = 0,
 ): Promise<TimerController> {
   const durationMs = getDurationMsForMode(
     mode,
@@ -86,7 +107,7 @@ async function createSelectedController(
     toDurationsMs(settings),
     settings.countdownMinutes * 60_000,
   )
-  const controller = TimerController.createIdle(repository, mode, segment, durationMs)
+  const controller = TimerController.createIdle(repository, mode, segment, durationMs, guardCarryMs)
   await controller.reset()
   return controller
 }
@@ -128,6 +149,8 @@ export function useFocusTimer(): UseFocusTimerResult {
   const [sessionSummary, setSessionSummary] = useState<CycleSummary | null>(null)
   const [pillarLevelUp, setPillarLevelUp] = useState<PillarXpResult | null>(null)
   const [isReady, setIsReady] = useState(false)
+  const [presenceSoundBlocked, setPresenceSoundBlocked] = useState(false)
+  const [guardAnnounceKey, setGuardAnnounceKey] = useState(0)
   const [snapshot, refresh] = useTimerSnapshot(controller)
   const settledEndedAtRef = useRef<number | null>(null)
   const pulledForUserRef = useRef<string | null>(null)
@@ -176,16 +199,35 @@ export function useFocusTimer(): UseFocusTimerResult {
   /** Avance au segment suivant sans rien enregistrer : les appelants décident eux-mêmes
    * si la session qui se termine doit être consignée (terminée ou abandonnée). Renvoie le
    * nouveau contrôleur pour permettre un démarrage automatique immédiat si activé. */
-  const advanceToNext = useCallback(async () => {
+  const advanceToNext = useCallback(
+    async (guardCarryMs = 0) => {
+      const config = timerSettingsRef.current
+      const next = advancePomodoroCycle(cycle, {
+        sessionsBeforeLongBreak: effectiveSessionsBeforeLongBreak(config),
+      })
+      const nextController = await createSelectedController(
+        'pomodoro',
+        next.segment,
+        config,
+        guardCarryMs,
+      )
+      setCycle(next)
+      setController(nextController)
+      return nextController
+    },
+    [cycle],
+  )
+
+  /** « Tu es toujours là ? » : son dédié + notification si l'onglet est masqué (+ repli visuel). */
+  const alertPresence = useCallback(() => {
     const config = timerSettingsRef.current
-    const next = advancePomodoroCycle(cycle, {
-      sessionsBeforeLongBreak: effectiveSessionsBeforeLongBreak(config),
-    })
-    const nextController = await createSelectedController('pomodoro', next.segment, config)
-    setCycle(next)
-    setController(nextController)
-    return nextController
-  }, [cycle])
+    void notifyPresenceCheck({
+      soundEnabled: config.soundEnabled,
+      notificationsEnabled: config.notificationsEnabled,
+      alertSoundId: config.alertSoundId,
+      alertVolume: config.alertVolume,
+    }).then(setPresenceSoundBlocked)
+  }, [])
 
   /** Bilan + bascule vers l'écran de fin (LOT E6), utilisé aussi bien par l'arrêt manuel
    * (bouton Terminer) que par le seuil automatique « s'arrêter après N sessions ». */
@@ -193,6 +235,15 @@ export function useFocusTimer(): UseFocusTimerResult {
     const db = await getDb()
     const [sessions, tasks] = await Promise.all([db.getAll('focusSessions'), db.getAll('tasks')])
     setSessionSummary(computeCycleSummary(sessions, tasks))
+    setCycleEnded(true)
+  }, [])
+
+  /** Bilan d'une session Chrono / Minuteur (une seule phase) puis écran de fin. */
+  const finishSolo = useCallback(async (state: TimerState, endedAt: number) => {
+    const db = await getDb()
+    const tasks = await db.getAll('tasks')
+    const pillarActive = getPillarsEnabled() && getActivePillarId() !== null
+    setSessionSummary(summarizeSoloSession(state, endedAt, tasks, pillarActive))
     setCycleEnded(true)
   }, [])
 
@@ -205,9 +256,16 @@ export function useFocusTimer(): UseFocusTimerResult {
         const result = await recordSession(state, Date.now(), false)
         if (result?.leveledUp) setPillarLevelUp(result)
       }
-      await advanceToNext()
+      // Phase passée à la main : son temps réel compte pour la garde de 4 h du Pomodoro.
+      const nextCarry = carryAfterSegment(
+        state.guardCarryMs ?? 0,
+        state.segment,
+        liveSnapshot.elapsedMs,
+      )
+      await advanceToNext(nextCarry)
+      if (mustAskBeforeNextFocus(state.segment, nextCarry)) alertPresence()
     })()
-  }, [controller, advanceToNext])
+  }, [controller, advanceToNext, alertPresence])
 
   useEffect(() => {
     if (!controller || !snapshot) return
@@ -224,6 +282,11 @@ export function useFocusTimer(): UseFocusTimerResult {
     })
     void recordSession(state, snapshot.endedAt, true).then((result) => {
       if (result?.leveledUp) setPillarLevelUp(result)
+      if (state.mode === 'countdown') {
+        // Fin naturelle du Minuteur : bilan de la session, comme après « Terminer ».
+        void finishSolo(state, snapshot.endedAt as number)
+        return
+      }
       if (state.mode !== 'pomodoro') return
 
       // Réglage « Fin de cycle » (LOT E5) : en mode « s'arrêter après N sessions », on ne
@@ -247,7 +310,8 @@ export function useFocusTimer(): UseFocusTimerResult {
           sessionsBeforeLongBreak: config.sessionsBeforeLongBreak,
         })
         const nextProgress = goalProgress + 1
-        const justReached = !isGoalReached(goalProgress, target) && isGoalReached(nextProgress, target)
+        const justReached =
+          !isGoalReached(goalProgress, target) && isGoalReached(nextProgress, target)
         setGoalProgress(nextProgress)
         if (justReached) {
           setGoalReached(true)
@@ -255,45 +319,103 @@ export function useFocusTimer(): UseFocusTimerResult {
         }
       }
 
-      void advanceToNext().then((nextController) => {
+      // Garde de 4 h : à la fin de la pause qui suit 4 h de focus cumulées, le focus suivant ne
+      // démarre PAS tout seul — « Tu es toujours là ? » attend une réponse (rien n'est compté).
+      const nextCarry = carryAfterSegment(
+        state.guardCarryMs ?? 0,
+        state.segment,
+        snapshot.elapsedMs,
+      )
+      const mustAsk = mustAskBeforeNextFocus(state.segment, nextCarry)
+      void advanceToNext(nextCarry).then((nextController) => {
+        if (mustAsk) {
+          alertPresence()
+          return
+        }
         if (!timerSettingsRef.current.autoStartNext) return
         if (timerSettingsRef.current.notificationsEnabled) requestNotificationPermission()
         void nextController.start().then(refresh)
       })
     })
-  }, [controller, snapshot, advanceToNext, refresh, goalProgress, cycle, finishCycle])
+  }, [
+    controller,
+    snapshot,
+    advanceToNext,
+    alertPresence,
+    refresh,
+    goalProgress,
+    cycle,
+    finishCycle,
+    finishSolo,
+  ])
 
   const continueAfterGoal = useCallback(() => {
     setGoalReached(false)
-    void advanceToNext().then((nextController) => {
+    const finished = controller?.getState()
+    const nextCarry = finished
+      ? carryAfterSegment(
+          finished.guardCarryMs ?? 0,
+          finished.segment,
+          controller?.getSnapshot().elapsedMs ?? 0,
+        )
+      : 0
+    void advanceToNext(nextCarry).then((nextController) => {
       if (!timerSettingsRef.current.autoStartNext) return
       if (timerSettingsRef.current.notificationsEnabled) requestNotificationPermission()
       void nextController.start().then(refresh)
     })
-  }, [advanceToNext, refresh])
+  }, [controller, advanceToNext, refresh])
 
   const endSession = useCallback(() => {
     void (async () => {
-      if (controller) {
-        const state = controller.getState()
-        const liveSnapshot = controller.getSnapshot()
-        if (state.startedAt !== null && liveSnapshot.status !== 'completed') {
-          const result = await recordSession(state, Date.now(), false)
+      if (!controller) {
+        await finishCycle()
+        return
+      }
+      const state = controller.getState()
+      const now = Date.now()
+      const liveSnapshot = controller.getSnapshot(now)
+      const isCompleted = liveSnapshot.status === 'completed'
+      // Chrono / Minuteur : sous une minute de focus, terminer à la main n'enregistre rien
+      // (clic accidentel).
+      const longEnough = liveSnapshot.elapsedMs >= MIN_RECORDED_SECONDS * 1000
+      const wasStarted = state.startedAt !== null && !isCompleted
+
+      if (state.mode !== 'pomodoro') {
+        // Chrono / Minuteur : jamais lancé, ou trop court → rien à enregistrer ni à résumer.
+        if (state.startedAt === null || !longEnough) {
+          await controller.reset()
+          refresh()
+          return
+        }
+        if (wasStarted) {
+          const result = await recordSession(state, now, false)
           if (result?.leveledUp) setPillarLevelUp(result)
         }
+        await finishSolo(
+          state,
+          isCompleted ? (liveSnapshot.endedAt ?? getEndedAt(state) ?? now) : now,
+        )
+        await controller.reset()
+        return
+      }
+
+      // Pomodoro : comportement historique, toute phase démarrée est enregistrée.
+      if (wasStarted) {
+        const result = await recordSession(state, now, false)
+        if (result?.leveledUp) setPillarLevelUp(result)
       }
       await finishCycle()
     })()
-  }, [controller, finishCycle])
+  }, [controller, finishCycle, finishSolo, refresh])
 
   const acknowledgeSessionEnd = useCallback(() => {
     void (async () => {
-      const nextController = await createSelectedController(
-        'pomodoro',
-        'focus',
-        timerSettingsRef.current,
-      )
-      setCycle(createPomodoroCycle('focus'))
+      // Le Chrono et le Minuteur restent dans leur mode ; le Pomodoro repart sur un focus neuf.
+      const mode = controller?.getState().mode ?? 'pomodoro'
+      const segment = mode === 'pomodoro' ? 'focus' : getDefaultSegmentForMode(mode)
+      const nextController = await createSelectedController(mode, segment, timerSettingsRef.current)
+      setCycle(createPomodoroCycle(segment))
       setController(nextController)
       setGoalProgress(0)
       setGoalReached(false)
@@ -301,7 +423,7 @@ export function useFocusTimer(): UseFocusTimerResult {
       setSessionSummary(null)
       setPillarLevelUp(null)
     })()
-  }, [])
+  }, [controller])
 
   const selectSegment = useCallback(
     (segment: SegmentKind) => {
@@ -336,7 +458,7 @@ export function useFocusTimer(): UseFocusTimerResult {
           const liveSnapshot = controller.getSnapshot()
           if (state.startedAt !== null && liveSnapshot.status !== 'completed') {
             const result = await recordSession(state, Date.now(), false)
-          if (result?.leveledUp) setPillarLevelUp(result)
+            if (result?.leveledUp) setPillarLevelUp(result)
           }
         }
         const segment = getDefaultSegmentForMode(mode)
@@ -356,6 +478,13 @@ export function useFocusTimer(): UseFocusTimerResult {
 
   const start = useCallback(() => {
     if (timerSettingsRef.current.notificationsEnabled) requestNotificationPermission()
+    // Geste de l'utilisateur : amorce le son d'alerte de la garde de 4 h (déblocage audio mobile).
+    primeGuardAlertAudio()
+    // Annonce du contrôle : au lancement d'une session (pas au redémarrage d'une pause).
+    const segment = controller?.getState().segment
+    if (segment === 'focus' || segment === 'countdown' || segment === 'stopwatch') {
+      setGuardAnnounceKey((key) => key + 1)
+    }
     void controller?.start().then(refresh)
   }, [controller, refresh])
 
@@ -373,6 +502,44 @@ export function useFocusTimer(): UseFocusTimerResult {
 
   const resume = useCallback(() => {
     void controller?.resume().then(refresh)
+  }, [controller, refresh])
+
+  const guardPending = snapshot?.guardPending === true
+  const presenceCheck: 'frozen' | 'pomodoro' | null = guardPending
+    ? 'frozen'
+    : controller && isPomodoroPresenceDue(controller.getState())
+      ? 'pomodoro'
+      : null
+
+  // Chrono / Minuteur : dès que la garde fige le temps, on l'enregistre dans l'état (exact après
+  // un rechargement) et on alerte une seule fois par franchissement.
+  const prevGuardPendingRef = useRef(false)
+  useEffect(() => {
+    if (guardPending && !prevGuardPendingRef.current) {
+      void controller?.settleIfFinished()
+      alertPresence()
+    }
+    prevGuardPendingRef.current = guardPending
+  }, [guardPending, controller, alertPresence])
+
+  const confirmPresence = useCallback(() => {
+    primeGuardAlertAudio()
+    setPresenceSoundBlocked(false)
+    setGuardAnnounceKey((key) => key + 1)
+    if (!controller) return
+    if (controller.getSnapshot().guardPending) {
+      void controller.confirmPresence().then(refresh)
+      return
+    }
+    if (isPomodoroPresenceDue(controller.getState())) {
+      // 4 h de focus confirmées : compteur remis à zéro, la session suivante démarre.
+      void createSelectedController('pomodoro', 'focus', timerSettingsRef.current, 0).then(
+        (fresh) => {
+          setController(fresh)
+          void fresh.start().then(refresh)
+        },
+      )
+    }
   }, [controller, refresh])
 
   const reset = useCallback(() => {
@@ -404,6 +571,10 @@ export function useFocusTimer(): UseFocusTimerResult {
     cycleEnded,
     sessionSummary,
     pillarLevelUp,
+    presenceCheck,
+    presenceSoundBlocked,
+    confirmPresence,
+    guardAnnounceKey,
     endSession,
     acknowledgeSessionEnd,
     selectMode,

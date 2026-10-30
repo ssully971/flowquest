@@ -25,6 +25,8 @@ interface GroupParticipantsProps {
   onTransferHost: (userId: string) => void
   /** Une action du salon est en cours : « Nommer hôte » est désactivé le temps qu'elle aboutisse. */
   disabled?: boolean
+  /** Ouvre l'invitation d'amis (hôte seulement) ; absent = pas de bouton « Inviter ». */
+  onInvite?: () => void
 }
 
 /** Liste des participants avec leur statut en direct (concentré, en pause, parti...), mise
@@ -36,13 +38,26 @@ export function GroupParticipants({
   isHost,
   onTransferHost,
   disabled = false,
+  onInvite,
 }: GroupParticipantsProps) {
   const s = strings.rooms.group
   return (
     <div className="flex w-full max-w-md flex-col gap-2 text-left">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-        {s.participants} · {participants.filter((p) => p.status === 'joined').length}
-      </h3>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+          {s.participants} · {participants.filter((p) => p.status === 'joined').length}
+        </h3>
+        {isHost && onInvite ? (
+          <button
+            type="button"
+            onClick={onInvite}
+            disabled={disabled}
+            className="shrink-0 rounded-full border border-[var(--line)] px-3 py-1 text-xs font-medium text-[var(--text)] transition-opacity duration-200 disabled:cursor-wait disabled:opacity-60"
+          >
+            {s.invite}
+          </button>
+        ) : null}
+      </div>
       <ul className="flex flex-col gap-2">
         {participants.map((participant) => {
           const live = participantLiveStatus(participant, view)

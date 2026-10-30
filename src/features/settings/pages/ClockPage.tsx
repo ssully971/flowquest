@@ -1,3 +1,4 @@
+import { DEFAULT_AMBIENT_POSITIONS } from '@/features/home/clock-position'
 import { isLowContrast } from '@/features/home/clock-color-contrast'
 import {
   CLOCK_COLOR_AUTO,
@@ -27,6 +28,10 @@ export function ClockPage({ settings, onChange }: ClockPageProps) {
   // La palette proposée change avec le thème (lot 3 bis, §5) : des tons doux en sombre, des
   // tons profonds en clair, plutôt qu'une seule liste de couleurs vives pour les deux.
   const paletteColors = CLOCK_COLORS_BY_THEME[resolvedTheme]
+
+  const hasAmbientPosition = Boolean(
+    settings.ambientPositions?.compact || settings.ambientPositions?.wide,
+  )
 
   return (
     <div className="flex flex-col gap-6">
@@ -153,6 +158,18 @@ export function ClockPage({ settings, onChange }: ClockPageProps) {
         checked={settings.flipClock}
         onToggle={() => onChange({ ...settings, flipClock: !settings.flipClock })}
       />
+
+      <div className="flex max-w-md flex-col gap-2">
+        <p className="text-sm text-[var(--panel-muted)]">{s.ambientPositionHint}</p>
+        <button
+          type="button"
+          disabled={!hasAmbientPosition}
+          onClick={() => onChange({ ...settings, ambientPositions: DEFAULT_AMBIENT_POSITIONS })}
+          className="h-10 w-fit rounded-xl border border-[var(--panel-line)] px-4 text-sm font-medium text-[var(--panel-text)] transition-colors duration-200 hover:bg-[var(--panel-line)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+        >
+          {s.resetAmbientPosition}
+        </button>
+      </div>
     </div>
   )
 }

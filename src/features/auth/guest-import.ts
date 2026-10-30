@@ -77,6 +77,8 @@ export async function importGuestDataToAccount(userId: string): Promise<ImportSu
       started_at: new Date(session.startedAt).toISOString(),
       ended_at: session.endedAt ? new Date(session.endedAt).toISOString() : null,
       completed: session.completed,
+      paused_seconds: session.pausedSeconds ?? 0,
+      pause_count: session.pauseCount ?? 0,
     })
     summary.importedSessions += 1
   }

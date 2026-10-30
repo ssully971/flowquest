@@ -7,6 +7,8 @@ import {
   resolveClockColor,
 } from '@/features/home/clock-settings'
 import { useFeatureAccess } from '@/features/access/useFeatureAccess'
+import { AmbientSoundsControl } from '@/features/ambient/components/AmbientSoundsControl'
+import { useAmbientSounds } from '@/features/ambient/useAmbientSounds'
 import { FeatureGate } from '@/features/feature-flags/FeatureGate'
 import { useFeatureFlag } from '@/features/feature-flags/useFeatureFlag'
 import { useClockSettings } from '@/features/home/clock-settings-context'
@@ -35,13 +37,16 @@ import { GoalProgress } from './components/GoalProgress'
 import { GoalReachedPanel } from './components/GoalReachedPanel'
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp'
 import { SegmentTabs } from './components/SegmentTabs'
+import { PipDocumentView } from './components/PipDocumentView'
 import { SessionEndScreen } from './components/SessionEndScreen'
+import { TimerGuardLayer } from './components/TimerGuardLayer'
 import { SessionTally } from './components/SessionTally'
 import { TimerControls } from './components/TimerControls'
 import { TimerFace } from './components/TimerFace'
 import { useDeepFocus } from './useDeepFocus'
 import { buildGroupClockSource, buildSoloClockSource } from './clock-source'
 import { fireSessionEndConfetti } from './session-end-confetti'
+import { MIN_RECORDED_SECONDS } from './session-recorder'
 import { getGoalFocusSessions } from './session-goal'
 import { toDurationsMs } from './timer-settings'
 import { useTimerSettings } from './timer-settings-context'
@@ -50,6 +55,7 @@ import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import { useLiveTabTitle } from './useLiveTabTitle'
 import { usePhaseQuote } from './usePhaseQuote'
 import { usePictureInPicture } from './usePictureInPicture'
+import { usePipBackground } from './usePipBackground'
 
 const MODE_OPTIONS: { value: TimerMode; label: string }[] = [
   { value: 'pomodoro', label: strings.focus.modes.pomodoro },
@@ -77,6 +83,9 @@ export function FocusScreen() {
   const group = useActiveGroupRoom()
   const { user } = useAuth()
   const { isLocked } = useFeatureAccess()
+  // Le moteur de sons ne crée son AudioContext qu'à la première activation d'un son : l'appeler
+  // toujours ne coûte rien tant que le bouton (optionnel) n'est pas utilisé.
+  const sounds = useAmbientSounds()
   const { activeTaskId } = useActiveTask()
   const { tasks } = useTasks()
   const { settings: timerSettings } = useTimerSettings()
@@ -144,19 +153,71 @@ export function FocusScreen() {
   const isStopwatch = source.isStopwatch
   const displayLabel = source.displayLabel
   useLiveTabTitle(displayLabel, source.status === 'running')
-  const pip = usePictureInPicture({
-    segmentLabel: getSegmentLabel(source.segment),
-    timeLabel: displayLabel,
-    taskLabel: timerSettings.showTaskInPip ? activeTask?.title : null,
-  })
+  const pipBackground = usePipBackground('focus')
+  const pip = usePictureInPicture(
+    {
+      segmentLabel: getSegmentLabel(source.segment),
+      timeLabel: displayLabel,
+      taskLabel: timerSettings.showTaskInPip ? activeTask?.title : null,
+    },
+    {
+      background: pipBackground,
+      // Commandes natives du PiP vidéo (play / pause) ; pas de « Arrêter » possible dans ce mode.
+      controls: source.readOnly
+        ? null
+        : {
+            isRunning: source.status === 'running',
+            onPlay: () => {
+              if (source.status === 'paused') source.resume()
+              else if (source.status === 'idle') source.onPrimary()
+            },
+            onPause: () => source.pause(),
+          },
+    },
+  )
 
   const handlePrimary = source.onPrimary
+
+  // Terminer à la main : sous une minute de focus rien n'est enregistré, on demande donc
+  // confirmation d'abord (évite l'erreur de clic) — pour tous les modes.
+  const handleEndSession = (): boolean => {
+    const live = timer.snapshot
+    const inProgress = live !== null && (live.status === 'running' || live.status === 'paused')
+    if (
+      inProgress &&
+      live.elapsedMs < MIN_RECORDED_SECONDS * 1000 &&
+      !window.confirm(
+        timer.mode === 'pomodoro'
+          ? strings.focus.confirmEndShortPomodoro
+          : strings.focus.confirmEndShort,
+      )
+    ) {
+      return false
+    }
+    timer.endSession()
+    return true
+  }
+
+  // « Arrêter » depuis la fenêtre PiP : même logique que le bouton Terminer (confirmation sous une
+  // minute, récapitulatif affiché dans la fenêtre principale), puis la fenêtre PiP se ferme.
+  const handlePipEnd = () => {
+    let ended = true
+    if (isGroup) void group.actions.end()
+    else ended = handleEndSession()
+    if (ended) pip.close()
+  }
 
   useKeyboardShortcuts(
     {
       onPrimary: handlePrimary,
       onNext: isGroup ? () => undefined : timer.skip,
       onReset: isGroup ? () => undefined : timer.reset,
+      // M coupe les sons seulement quand leur bouton est affiché sur l'écran Focus (réglage) :
+      // sinon la touche ne fait rien, comme avant. Verrouillés pour un invité : inerte aussi.
+      onToggleMute:
+        extrasSettings.showFocusSoundsButton && !isLocked('ambientSounds')
+          ? sounds.toggleMute
+          : undefined,
       onOpenHelp: () => setIsShortcutsHelpOpen(true),
     },
     timerSettings.keyboardShortcutsEnabled,
@@ -187,31 +248,19 @@ export function FocusScreen() {
         })
       : 0
 
+  // Fenêtre Document PiP : fond d'écran statique, Pause/Reprendre et Arrêter. Un participant non hôte
+  // d'un salon n'a aucune commande (lecture seule), comme sur l'écran principal.
   const pipPortal = pip.pipWindow
     ? createPortal(
-        <div
-          style={{
-            fontFamily: 'sans-serif',
-            background: '#0c0719',
-            color: '#f2ecfc',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 4,
-          }}
-        >
-          <div style={{ fontSize: 14, opacity: 0.7 }}>{getSegmentLabel(source.segment)}</div>
-          <div style={{ fontSize: 40, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
-            {displayLabel}
-          </div>
-          {timerSettings.showTaskInPip && activeTask ? (
-            <div style={{ fontSize: 12, opacity: 0.6, maxWidth: '90%', textAlign: 'center' }}>
-              {activeTask.title}
-            </div>
-          ) : null}
-        </div>,
+        <PipDocumentView
+          segmentLabel={getSegmentLabel(source.segment)}
+          timeLabel={displayLabel}
+          taskLabel={timerSettings.showTaskInPip ? activeTask?.title : null}
+          background={pipBackground}
+          status={source.status}
+          onPrimary={source.readOnly ? undefined : handlePrimary}
+          onEnd={source.readOnly ? undefined : handlePipEnd}
+        />,
         pip.pipWindow.document.body,
       )
     : null
@@ -240,7 +289,7 @@ export function FocusScreen() {
           clockStyle={clockSettings.style}
           status={snapshot.status}
           onPrimary={handlePrimary}
-          onEndSession={isGroup ? () => void group.actions.end() : timer.endSession}
+          onEndSession={isGroup ? () => void group.actions.end() : handleEndSession}
           readOnly={source.readOnly}
         />
         {pipPortal}
@@ -248,6 +297,7 @@ export function FocusScreen() {
           open={isShortcutsHelpOpen}
           onClose={() => setIsShortcutsHelpOpen(false)}
         />
+        <TimerGuardLayer timer={timer} />
       </>
     )
   }
@@ -356,7 +406,7 @@ export function FocusScreen() {
           />
         ) : group.endedRoom ? (
           <GroupEndedPanel onClose={group.dismissEnded} />
-        ) : timer.mode === 'pomodoro' && timer.cycleEnded ? (
+        ) : timer.cycleEnded ? (
           <SessionEndScreen
             summary={timer.sessionSummary}
             showSummary={timerSettings.sessionSummaryEnabled}
@@ -403,8 +453,8 @@ export function FocusScreen() {
                   onPrimary={handlePrimary}
                   onSkip={timer.skip}
                   showSkip={timer.mode === 'pomodoro'}
-                  onEndSession={timer.endSession}
-                  showEndSession={timer.mode === 'pomodoro'}
+                  onEndSession={handleEndSession}
+                  showEndSession
                   onPictureInPicture={pip.toggle}
                   pipAvailable={pip.isSupported}
                   showPip={!isIOSDevice()}
@@ -413,6 +463,12 @@ export function FocusScreen() {
             )}
           </>
         )}
+
+        {/* Sons d'ambiance (réglage Extras, désactivé par défaut) : même bouton et même panneau que
+            le mode Ambiant, partagés (AmbientSoundsControl). */}
+        {extrasSettings.showFocusSoundsButton ? (
+          <AmbientSoundsControl sounds={sounds} placement="center" />
+        ) : null}
       </div>
 
       {pipPortal}
@@ -421,6 +477,7 @@ export function FocusScreen() {
         open={isShortcutsHelpOpen}
         onClose={() => setIsShortcutsHelpOpen(false)}
       />
+      <TimerGuardLayer timer={timer} />
     </div>
   )
 }

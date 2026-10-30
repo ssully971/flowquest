@@ -80,3 +80,17 @@ describe('backgrounds registry — fonds « Minimal » (lot 3 bis, §4)', () => 
     expect(pureWhite.suggestedTheme).toBe('light')
   })
 })
+
+describe('getBackgroundDefinition — photos personnelles', () => {
+  it('fournit une définition pour custom:<id>, au composant stable d’un appel à l’autre', () => {
+    const first = getBackgroundDefinition('custom:abc')
+    const second = getBackgroundDefinition('custom:abc')
+    expect(first.id).toBe('custom:abc')
+    expect(first.Component).toBe(second.Component)
+    expect(getBackgroundDefinition('custom:autre').Component).not.toBe(first.Component)
+  })
+
+  it('l’ancien identifiant « custom » n’est plus un fond du catalogue (converti en custom:legacy à la lecture)', () => {
+    expect(BACKGROUND_IDS).not.toContain('custom')
+  })
+})

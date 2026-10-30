@@ -63,3 +63,20 @@ describe('ClockSettingsProvider — persistance locale des réglages de l’horl
     expect(second.current.settings.size).toBe('xs')
   })
 })
+
+describe('ClockSettingsProvider — position de l’horloge Ambiant (LOT 2)', () => {
+  it('relit une position enregistrée et ignore une valeur invalide', async () => {
+    window.localStorage.setItem(
+      'flowquest.clockSettings',
+      JSON.stringify({
+        ...DEFAULT_CLOCK_SETTINGS,
+        ambientPositions: { compact: { x: 0.25, y: 0.5 }, wide: { x: 'oups', y: 0.5 } },
+      }),
+    )
+    const { result } = renderHook(() => useClockSettings(), { wrapper })
+    expect(result.current.settings.ambientPositions).toEqual({
+      compact: { x: 0.25, y: 0.5 },
+      wide: null,
+    })
+  })
+})

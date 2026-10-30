@@ -34,6 +34,7 @@ function groupValue(isHost: boolean): ActiveGroupRoomValue {
       end: vi.fn().mockResolvedValue(true),
       leave: vi.fn().mockResolvedValue(true),
       transfer: vi.fn().mockResolvedValue(true),
+      invite: vi.fn().mockResolvedValue(true),
     },
   }
 }

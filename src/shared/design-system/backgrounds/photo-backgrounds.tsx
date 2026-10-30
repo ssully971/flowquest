@@ -354,6 +354,7 @@ export const PHOTO_BACKGROUNDS: BackgroundDefinition[] = PHOTO_BACKGROUND_SPECS.
     suggestedTheme: spec.suggestedTheme,
     usableInAmbient: spec.usableInAmbient,
     credit: spec.credit,
+    staticSrc: thumbSrc,
     Component: () => <PhotoBackground src={fullSrc} />,
     Thumbnail: () => <PhotoBackground src={thumbSrc} lazy />,
   }

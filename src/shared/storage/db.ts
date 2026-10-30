@@ -19,6 +19,10 @@ export interface FocusSessionRecord {
   completed: boolean
   taskId: string | null
   pillarId: string | null
+  /** Temps de pause (s) et nombre de pauses manuelles — absents des sessions enregistrées avant
+   * la migration 0052 (comptés 0). */
+  pausedSeconds?: number
+  pauseCount?: number
   syncedAt: number | null
 }
 
@@ -70,6 +74,19 @@ export interface CustomBackgroundRecord {
   updatedAt: number
 }
 
+/** Photo de la bibliothèque de fonds personnels (plusieurs, contre un seul emplacement avant). */
+export interface CustomPhotoRecord {
+  id: string
+  /** Image redimensionnée (2560 px max, webp). */
+  blob: Blob
+  /** Vignette (≈ 320 px) pour la grille de la bibliothèque. */
+  thumb: Blob
+  position: CustomBackgroundPosition
+  /** Poids total stocké (image + vignette), pour le plafond de la bibliothèque. */
+  size: number
+  createdAt: number
+}
+
 interface FokitsuDB extends DBSchema {
   timerState: {
     key: string
@@ -105,11 +122,15 @@ interface FokitsuDB extends DBSchema {
     key: string
     value: PillarRecord
   }
+  customPhotos: {
+    key: string
+    value: CustomPhotoRecord
+  }
 }
 
 // Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const DB_NAME = 'flowquest'
-const DB_VERSION = 6
+const DB_VERSION = 7
 
 let dbPromise: Promise<IDBPDatabase<FokitsuDB>> | null = null
 
@@ -142,6 +163,12 @@ export function getDb(): Promise<IDBPDatabase<FokitsuDB>> {
         }
         if (!db.objectStoreNames.contains('pillars')) {
           db.createObjectStore('pillars', { keyPath: 'id' })
+        }
+        // v7 : bibliothèque de photos personnelles. L'ancien fond unique (store
+        // `customBackground`) n'est pas touché ici : il est repris dans la bibliothèque, puis
+        // supprimé, au premier chargement (voir CustomBackgroundProvider) — migration douce.
+        if (!db.objectStoreNames.contains('customPhotos')) {
+          db.createObjectStore('customPhotos', { keyPath: 'id' })
         }
       },
     })

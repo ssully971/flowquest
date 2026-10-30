@@ -386,3 +386,25 @@ describe('rooms-repository — appels RPC et mise en forme (LOT F3)', () => {
     await expect(startRoom('r1')).rejects.toThrow('Le salon a déjà démarré')
   })
 })
+
+describe('rooms-repository — invitations après coup (migration 0053)', () => {
+  it('inviteToRoom appelle invite_to_room et renvoie le nombre d’invitations créées', async () => {
+    rpcMock.mockResolvedValue({ data: 2, error: null })
+    const { inviteToRoom } = await import('./rooms-repository')
+
+    expect(await inviteToRoom('r1', ['a', 'b'])).toBe(2)
+    expect(rpcMock).toHaveBeenCalledWith('invite_to_room', { p_room_id: 'r1', p_friend_ids: ['a', 'b'] })
+  })
+
+  it('inviteToRoom garde le message du serveur (« Seul l’hôte… ») et traduit un échec réseau', async () => {
+    rpcMock.mockResolvedValue({ data: null, error: { message: 'Seul l’hôte peut inviter dans le salon' } })
+    const { inviteToRoom } = await import('./rooms-repository')
+    await expect(inviteToRoom('r1', ['a'])).rejects.toMatchObject({
+      message: 'Seul l’hôte peut inviter dans le salon',
+      kind: 'server',
+    })
+
+    rpcMock.mockResolvedValue({ data: null, error: { message: 'TypeError: Failed to fetch' } })
+    await expect(inviteToRoom('r1', ['a'])).rejects.toMatchObject({ kind: 'network' })
+  })
+})

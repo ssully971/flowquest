@@ -1,24 +1,26 @@
-import { Music, Pause, Play } from 'lucide-react'
+import { Pause, Play } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-import { LOCKED_DIM_CLASS, LockedBadge } from '@/features/access/LockedBadge'
 import { useFeatureAccess } from '@/features/access/useFeatureAccess'
-import { AmbientSoundsPanel } from '@/features/ambient/components/AmbientSoundsPanel'
+import { AmbientSoundsControl } from '@/features/ambient/components/AmbientSoundsControl'
 import { useAmbientSounds } from '@/features/ambient/useAmbientSounds'
 import {
   CLOCK_SIZE_SCALE,
   CLOCK_STYLE_CSS,
   resolveClockColor,
 } from '@/features/home/clock-settings'
+import { DEFAULT_AMBIENT_POSITIONS } from '@/features/home/clock-position'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useActiveGroupRoom } from '@/features/rooms/active-room-context'
 import { GroupConnecting } from '@/features/rooms/components/GroupConnecting'
-import { BigDigits, GlassCard } from '@/shared/design-system'
+import { BigDigits } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 import { useToast } from '@/shared/toast'
 
 import { DeepFocusIndicator } from './components/DeepFocusIndicator'
+import { DraggableCluster } from './components/DraggableCluster'
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp'
+import { TimerGuardLayer } from './components/TimerGuardLayer'
 import { useDeepFocus } from './useDeepFocus'
 import { buildGroupClockSource, buildSoloClockSource } from './clock-source'
 import { useFocusTimer } from './useFocusTimer'
@@ -35,11 +37,10 @@ export function AmbientScreen() {
   const timer = useFocusTimer()
   const group = useActiveGroupRoom()
   const sounds = useAmbientSounds()
-  const { isLocked, requireAccount } = useFeatureAccess()
+  const { isLocked } = useFeatureAccess()
   const soundsLocked = isLocked('ambientSounds')
-  const { settings: clockSettings } = useClockSettings()
+  const { settings: clockSettings, setSettings: setClockSettings } = useClockSettings()
   const { settings: timerSettings } = useTimerSettings()
-  const [isSoundsOpen, setIsSoundsOpen] = useState(false)
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
   const { showToast } = useToast()
 
@@ -112,78 +113,63 @@ export function AmbientScreen() {
 
   return (
     <div className="relative h-full">
-      <div className="absolute inset-x-0 top-[max(2rem,env(safe-area-inset-top))] flex flex-col items-center gap-2 px-4 sm:inset-x-auto sm:right-14 sm:top-[max(4rem,env(safe-area-inset-top))] sm:items-end sm:px-0">
-        <GlassCard className="flex items-center gap-3 rounded-2xl px-4 py-2.5">
-          <BigDigits
-            label={displayLabel}
-            sizePx={AMBIENT_CLOCK_BASE_PX}
-            sizeScale={CLOCK_SIZE_SCALE[clockSettings.size]}
-            color={resolveClockColor(clockSettings.color)}
-            fontFamily={CLOCK_STYLE_CSS[clockSettings.style].fontFamily}
-            fontWeight={CLOCK_STYLE_CSS[clockSettings.style].fontWeight}
-            letterSpacing={CLOCK_STYLE_CSS[clockSettings.style].letterSpacing}
-            fontStyle={CLOCK_STYLE_CSS[clockSettings.style].fontStyle}
-          />
-          {source.readOnly ? null : (
-            <button
-              type="button"
-              aria-label={primaryLabel}
-              onClick={handlePrimary}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--on-accent)] transition-transform duration-200 hover:scale-105"
-            >
-              <PrimaryIcon
-                size={18}
-                strokeWidth={1.75}
-                aria-hidden="true"
-                fill={isRunning ? 'none' : 'currentColor'}
-              />
-            </button>
-          )}
-        </GlassCard>
+      <DraggableCluster
+        positions={clockSettings.ambientPositions}
+        onChange={(key, position) =>
+          setClockSettings({
+            ...clockSettings,
+            ambientPositions: {
+              ...(clockSettings.ambientPositions ?? DEFAULT_AMBIENT_POSITIONS),
+              [key]: position,
+            },
+          })
+        }
+      >
+        {(grip) => (
+          <>
+            <div className="glass-clock flex items-center gap-3 rounded-2xl px-3 py-2.5 pr-4">
+              {grip}
+              <span className="glass-clock-text">
+                <BigDigits
+                  label={displayLabel}
+                  sizePx={AMBIENT_CLOCK_BASE_PX}
+                  sizeScale={CLOCK_SIZE_SCALE[clockSettings.size]}
+                  color={resolveClockColor(clockSettings.color)}
+                  fontFamily={CLOCK_STYLE_CSS[clockSettings.style].fontFamily}
+                  fontWeight={CLOCK_STYLE_CSS[clockSettings.style].fontWeight}
+                  letterSpacing={CLOCK_STYLE_CSS[clockSettings.style].letterSpacing}
+                  fontStyle={CLOCK_STYLE_CSS[clockSettings.style].fontStyle}
+                />
+              </span>
+              {source.readOnly ? null : (
+                <button
+                  type="button"
+                  aria-label={primaryLabel}
+                  onClick={handlePrimary}
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--on-accent)] transition-transform duration-200 hover:scale-105"
+                >
+                  <PrimaryIcon
+                    size={18}
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                    fill={isRunning ? 'none' : 'currentColor'}
+                  />
+                </button>
+              )}
+            </div>
 
-        <div className="relative">
-          <button
-            type="button"
-            aria-label={
-              soundsLocked
-                ? `${strings.ambient.soundsButton}${strings.access.lockedSuffix}`
-                : strings.ambient.soundsButton
-            }
-            aria-expanded={soundsLocked ? undefined : isSoundsOpen}
-            onClick={() => {
-              if (requireAccount('ambientSounds')) setIsSoundsOpen((prev) => !prev)
-            }}
-            className={
-              (sounds.activeIds.length > 0
-                ? 'inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--on-accent)] transition-transform duration-200 hover:scale-105'
-                : 'glass-pill inline-flex h-11 w-11 items-center justify-center rounded-full transition-transform duration-200 hover:scale-105') +
-              (soundsLocked ? ` ${LOCKED_DIM_CLASS}` : '')
-            }
-          >
-            <Music
-              size={18}
-              strokeWidth={1.75}
-              aria-hidden="true"
-              className={sounds.activeIds.length === 0 ? 'glass-pill-icon' : undefined}
-            />
-          </button>
-          {soundsLocked ? <LockedBadge /> : null}
-          {soundsLocked ? null : (
-            <AmbientSoundsPanel
-              open={isSoundsOpen}
-              onClose={() => setIsSoundsOpen(false)}
-              {...sounds}
-            />
-          )}
-        </div>
+            <AmbientSoundsControl sounds={sounds} />
 
-        {isDeepFocusActive ? <DeepFocusIndicator /> : null}
-      </div>
+            {isDeepFocusActive ? <DeepFocusIndicator /> : null}
+          </>
+        )}
+      </DraggableCluster>
 
       <KeyboardShortcutsHelp
         open={isShortcutsHelpOpen}
         onClose={() => setIsShortcutsHelpOpen(false)}
       />
+      <TimerGuardLayer timer={timer} />
     </div>
   )
 }

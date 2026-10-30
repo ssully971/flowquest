@@ -10,6 +10,7 @@ const resumeRoomMock = vi.fn()
 const endRoomMock = vi.fn()
 const leaveRoomMock = vi.fn()
 const transferHostMock = vi.fn()
+const inviteToRoomMock = vi.fn()
 const useRoomRealtimeMock = vi.fn()
 
 vi.mock('@/features/auth/useAuth', () => ({ useAuth: () => useAuthMock() }))
@@ -25,6 +26,7 @@ vi.mock('./rooms-repository', () => ({
   endRoom: (...args: unknown[]) => endRoomMock(...args),
   leaveRoom: (...args: unknown[]) => leaveRoomMock(...args),
   transferHost: (...args: unknown[]) => transferHostMock(...args),
+  inviteToRoom: (...args: unknown[]) => inviteToRoomMock(...args),
 }))
 
 const ROOM = {
@@ -76,6 +78,7 @@ beforeEach(() => {
   endRoomMock.mockReset().mockResolvedValue(undefined)
   leaveRoomMock.mockReset().mockResolvedValue(undefined)
   transferHostMock.mockReset().mockResolvedValue(undefined)
+  inviteToRoomMock.mockReset().mockResolvedValue(1)
 })
 
 afterEach(() => {
@@ -424,5 +427,58 @@ describe('useActiveRoom — retour utilisateur : verrou, optimiste, rollback, d�
       await result.current.end()
     })
     expect(onActionSuccess).toHaveBeenCalledWith('end')
+  })
+})
+
+describe('useActiveRoom — inviter des amis après coup (LOT 5)', () => {
+  it('invite transmet les amis, passe par le verrou d’action (« Envoi… ») puis recharge le salon', async () => {
+    const pending = deferred<number>()
+    inviteToRoomMock.mockReset().mockReturnValue(pending.promise)
+    const { useActiveRoom } = await import('./useActiveRoom')
+    const { result } = renderHook(() => useActiveRoom('r1'))
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    getRoomStateMock.mockClear()
+
+    act(() => void result.current.invite(['a', 'b']))
+    await waitFor(() => expect(result.current.pendingAction).toBe('invite'))
+    expect(inviteToRoomMock).toHaveBeenCalledWith('r1', ['a', 'b'])
+    // Anti-double-clic : une seconde action est ignorée pendant l'envoi.
+    let second: boolean | undefined
+    await act(async () => {
+      second = await result.current.invite(['c'])
+    })
+    expect(second).toBe(false)
+    expect(inviteToRoomMock).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      pending.resolve(2)
+      await pending.promise
+    })
+    await waitFor(() => expect(result.current.pendingAction).toBeNull())
+    await waitFor(() => expect(getRoomStateMock).toHaveBeenCalled())
+  })
+
+  it('échec : message clair avec « Réessayer », qui relance l’envoi (idempotent côté serveur)', async () => {
+    inviteToRoomMock.mockReset().mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    const { useActiveRoom } = await import('./useActiveRoom')
+    const { result } = renderHook(() => useActiveRoom('r1'))
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    let ok = true
+    await act(async () => {
+      ok = await result.current.invite(['a'])
+    })
+
+    expect(ok).toBe(false)
+    expect(result.current.actionError).toMatchObject({ action: 'invite', kind: 'network' })
+    const toast = showToastMock.mock.calls[0][0]
+    expect(toast.action.label).toBe('Réessayer')
+
+    inviteToRoomMock.mockResolvedValue(1)
+    await act(async () => {
+      toast.action.onClick()
+    })
+    await waitFor(() => expect(inviteToRoomMock).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(result.current.actionError).toBeNull())
   })
 })

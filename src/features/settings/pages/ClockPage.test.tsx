@@ -126,3 +126,29 @@ describe('ClockPage — palette selon le thème (lot 3 bis, §5)', () => {
     }
   })
 })
+
+describe('ClockPage — remise en place de l’horloge Ambiant (LOT 2)', () => {
+  it('le bouton est inactif sans position mémorisée', () => {
+    renderClockPage(DEFAULT_CLOCK_SETTINGS, vi.fn())
+    expect(
+      screen.getByRole('button', { name: 'Remettre l’horloge du mode Ambiant à sa place' }),
+    ).toBeDisabled()
+  })
+
+  it('avec une position mémorisée, le bouton la remet à l’emplacement par défaut', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    const settings = {
+      ...DEFAULT_CLOCK_SETTINGS,
+      ambientPositions: { compact: null, wide: { x: 0.3, y: 0.6 } },
+    }
+    renderClockPage(settings, onChange)
+
+    await user.click(screen.getByRole('button', { name: 'Remettre l’horloge du mode Ambiant à sa place' }))
+
+    expect(onChange).toHaveBeenCalledWith({
+      ...settings,
+      ambientPositions: { compact: null, wide: null },
+    })
+  })
+})

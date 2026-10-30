@@ -1,3 +1,8 @@
+import {
+  LEGACY_PHOTO_ID,
+  photoIdFromBackgroundId,
+  toCustomBackgroundId,
+} from '@/features/settings/custom-photos'
 import { BACKGROUND_IDS } from '@/shared/design-system'
 import type { BackgroundId } from '@/shared/design-system'
 
@@ -18,7 +23,17 @@ export interface BackgroundModeSelection {
 export type BackgroundSelections = Record<AppMode, BackgroundModeSelection>
 
 function isBackgroundId(value: unknown): value is BackgroundId {
-  return typeof value === 'string' && (BACKGROUND_IDS as string[]).includes(value)
+  if (typeof value !== 'string') return false
+  // Photo de la bibliothèque personnelle (`custom:<id>`) ; l'ancien identifiant `custom` (fond
+  // unique d'avant la bibliothèque) est converti par canonicalBackgroundId. Son existence réelle
+  // n'est vérifiée qu'à l'affichage (la bibliothèque est asynchrone) : une photo supprimée donne le
+  // fond du thème.
+  return (BACKGROUND_IDS as string[]).includes(value) || photoIdFromBackgroundId(value) !== null
+}
+
+/** `custom` (ancien fond personnel unique) devient `custom:legacy`, la photo reprise dans la bibliothèque. */
+function canonicalBackgroundId(value: unknown): unknown {
+  return value === 'custom' ? toCustomBackgroundId(LEGACY_PHOTO_ID) : value
 }
 
 /**
@@ -28,15 +43,20 @@ function isBackgroundId(value: unknown): value is BackgroundId {
  * silencieux aux valeurs par défaut.
  */
 export function normalizeBackgroundModeSelection(
-  value: unknown,
+  rawValue: unknown,
   fallback: BackgroundModeSelection,
 ): BackgroundModeSelection {
+  const value = canonicalBackgroundId(rawValue)
   if (isBackgroundId(value)) return { dark: value, light: value, linked: true }
   if (typeof value === 'object' && value !== null) {
     const record = value as Record<string, unknown>
     return {
-      dark: isBackgroundId(record.dark) ? record.dark : fallback.dark,
-      light: isBackgroundId(record.light) ? record.light : fallback.light,
+      dark: isBackgroundId(canonicalBackgroundId(record.dark))
+        ? (canonicalBackgroundId(record.dark) as BackgroundId)
+        : fallback.dark,
+      light: isBackgroundId(canonicalBackgroundId(record.light))
+        ? (canonicalBackgroundId(record.light) as BackgroundId)
+        : fallback.light,
       linked: typeof record.linked === 'boolean' ? record.linked : fallback.linked,
     }
   }

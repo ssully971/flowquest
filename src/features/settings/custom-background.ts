@@ -1,3 +1,5 @@
+import { CUSTOM_PHOTO_THUMB_SIZE } from './custom-photos'
+
 export type { CustomBackgroundPosition, CustomBackgroundRecord } from '@/shared/storage/db'
 
 /** Avant traitement : rejette d'emblée un fichier manifestement trop lourd plutôt que de
@@ -56,5 +58,30 @@ export async function processCustomBackgroundFile(file: File): Promise<Blob> {
     return blob
   } finally {
     bitmap.close()
+  }
+}
+
+/** Vignette (≈ 320 px, webp) d'une image déjà traitée, pour la grille de la bibliothèque. En cas
+ * d'échec de la réduction, l'image d'origine sert de vignette plutôt que de bloquer l'ajout. */
+export async function createCustomBackgroundThumbnail(source: Blob): Promise<Blob> {
+  try {
+    const bitmap = await createImageBitmap(source)
+    try {
+      const scale = Math.min(1, CUSTOM_PHOTO_THUMB_SIZE / Math.max(bitmap.width, bitmap.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return source
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/webp', 0.8),
+      )
+      return blob ?? source
+    } finally {
+      bitmap.close()
+    }
+  } catch {
+    return source
   }
 }

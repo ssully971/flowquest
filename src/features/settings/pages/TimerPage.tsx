@@ -160,6 +160,15 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
         ) : null}
       </div>
 
+      <SettingsToggleRow
+        label={s.guardAnnouncement}
+        hint={s.guardAnnouncementHint}
+        checked={settings.showGuardAnnouncement}
+        onToggle={() =>
+          onChange({ ...settings, showGuardAnnouncement: !settings.showGuardAnnouncement })
+        }
+      />
+
       <SessionGoalSettings settings={settings} onChange={onChange} />
 
       <CycleEndSettings settings={settings} onChange={onChange} />

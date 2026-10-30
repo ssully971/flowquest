@@ -49,6 +49,9 @@ export interface TimerSettings {
   /** Délai de grâce (secondes) avant qu'un changement d'onglet ne déclenche la pause —
    * pardonne un passage accidentel court. */
   deepFocusGraceSeconds: number
+  /** Annonce discrète, au lancement d'une session, du contrôle « Tu es toujours là ? » après 4 h de
+   * focus. Désactivable ; le contrôle lui-même, lui, reste toujours actif. */
+  showGuardAnnouncement: boolean
 }
 
 export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
@@ -75,6 +78,7 @@ export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
   keyboardShortcutsEnabled: true,
   deepFocusEnabled: false,
   deepFocusGraceSeconds: 5,
+  showGuardAnnouncement: true,
 }
 
 export { TIMER_DISPLAY_STYLES, TALLY_ICON_SETS, SESSION_GOAL_TYPES }

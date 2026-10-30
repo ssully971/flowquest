@@ -24,6 +24,7 @@ function groupValue(overrides: Overrides): ActiveGroupRoomValue {
     end: vi.fn().mockResolvedValue(true),
     leave: vi.fn().mockResolvedValue(true),
     transfer: vi.fn().mockResolvedValue(true),
+    invite: vi.fn().mockResolvedValue(true),
   }
   const { view, ...rest } = overrides
   return {

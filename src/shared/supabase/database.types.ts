@@ -327,6 +327,9 @@ export interface Database {
           pillar_id: string | null
           group_session_id: string | null
           xp_multiplier: number
+          /** Temps de pause (s) et pauses manuelles, migration 0052. */
+          paused_seconds: number
+          pause_count: number
           created_at: string
         }
         Insert: {
@@ -341,6 +344,8 @@ export interface Database {
           task_id?: string | null
           pillar_id?: string | null
           group_session_id?: string | null
+          paused_seconds?: number
+          pause_count?: number
         }
         Update: {
           actual_seconds?: number
@@ -671,6 +676,10 @@ export interface Database {
       respond_room_invite: {
         Args: { p_room_id: string; p_accept: boolean; p_pillar_id?: string | null }
         Returns: undefined
+      }
+      invite_to_room: {
+        Args: { p_room_id: string; p_friend_ids: string[] }
+        Returns: number
       }
       set_room_pillar: {
         Args: { p_room_id: string; p_pillar_id: string | null }

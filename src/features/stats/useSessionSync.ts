@@ -31,6 +31,8 @@ export async function pullRemoteFocusSessions(userId: string): Promise<void> {
       completed: row.completed,
       taskId: row.task_id,
       pillarId: row.pillar_id,
+      pausedSeconds: row.paused_seconds ?? 0,
+      pauseCount: row.pause_count ?? 0,
       syncedAt: Date.now(),
     }
     await db.put('focusSessions', record)

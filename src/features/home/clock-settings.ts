@@ -1,3 +1,5 @@
+import type { AmbientClockPositions } from './clock-position'
+
 export type ClockFormat = '12h' | '24h'
 // `xs`/`s` ajoutées en LOT H2, §2 : avant, « Petite » (`small`) était la plus petite
 // taille possible — certains écrans (mobile surtout) demandaient une horloge encore plus
@@ -59,6 +61,9 @@ export interface ClockSettings {
   flipClock: boolean
   style: ClockStyle
   color: ClockColor
+  /** Emplacement de la carte d'horloge du mode Ambiant (déplaçable), par taille d'écran ; absent ou
+   * `null` : emplacement par défaut. Synchronisé avec le reste des réglages d'horloge. */
+  ambientPositions?: AmbientClockPositions
 }
 
 export const DEFAULT_CLOCK_SETTINGS: ClockSettings = {
