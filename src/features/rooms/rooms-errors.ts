@@ -1,4 +1,5 @@
 import { strings } from '@/shared/i18n'
+import { isNetworkMessage } from '@/shared/network-errors'
 
 /** `server` : message du serveur (déjà en français, voir migrations) ; `network` : requête
  * partie dans le vide (hors ligne, DNS, coupure) ; `timeout` : le serveur ne répond pas
@@ -12,15 +13,6 @@ export class RoomsError extends Error {
     super(message)
     this.kind = kind
   }
-}
-
-const NETWORK_PATTERN =
-  /failed to fetch|network ?error|networkerror|load failed|fetch failed|network request failed|err_network|err_internet_disconnected/i
-
-/** Vrai pour les messages bruts d'un échec réseau (Chrome « Failed to fetch », Firefox
- * « NetworkError when attempting to fetch resource », Safari « Load failed »…). */
-export function isNetworkMessage(message: string | undefined | null): boolean {
-  return Boolean(message) && NETWORK_PATTERN.test(message as string)
 }
 
 /** Erreur renvoyée par une RPC : message serveur tel quel, sauf échec réseau (traduit). */

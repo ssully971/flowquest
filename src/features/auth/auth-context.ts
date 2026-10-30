@@ -14,6 +14,9 @@ export interface SignUpResult {
 export interface AuthContextValue {
   status: AuthStatus
   isSupabaseConfigured: boolean
+  /** Session momentanément introuvable (réseau lent…) : l'utilisateur reste connecté avec son
+   * profil, la reconnexion est automatique. Jamais un passage en invité. */
+  isReconnecting: boolean
   user: User | null
   session: Session | null
   profile: Profile | null

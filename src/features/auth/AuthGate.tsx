@@ -36,7 +36,7 @@ interface AuthGateProps {
  * Style translucide « Liquid Glass » (composant partagé GlassCard, LOT C1).
  */
 export function AuthGate({ children }: AuthGateProps) {
-  const { status, isSupabaseConfigured } = useAuth()
+  const { status, isSupabaseConfigured, isReconnecting } = useAuth()
   const { signInRequested, requestedView, clearSignInRequest } = useAuthGateRequest()
   const [dismissed, setDismissed] = useState(readDismissed)
   const [view, setView] = useState<GateView>('choice')
@@ -75,6 +75,16 @@ export function AuthGate({ children }: AuthGateProps) {
   return (
     <>
       {children}
+      {/* Reconnexion discrète : session momentanément introuvable (réseau lent), l'utilisateur
+          reste connecté — jamais un passage en invité. */}
+      {isReconnecting ? (
+        <p
+          role="status"
+          className="glass-pill pointer-events-none fixed left-1/2 top-[max(0.75rem,env(safe-area-inset-top))] z-[60] -translate-x-1/2 rounded-full px-3 py-1 text-xs text-[var(--muted)]"
+        >
+          {strings.auth.reconnecting}
+        </p>
+      ) : null}
       {shouldShow ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div className="absolute inset-0" style={{ background: 'var(--scrim)' }} />

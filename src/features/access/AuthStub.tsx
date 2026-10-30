@@ -19,6 +19,7 @@ export function AuthStub({
   const value: AuthContextValue = {
     status,
     isSupabaseConfigured: configured,
+    isReconnecting: false,
     user: null,
     session: null,
     profile: null,

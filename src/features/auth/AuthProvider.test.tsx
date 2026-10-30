@@ -1,5 +1,6 @@
+import { AuthApiError, AuthRetryableFetchError } from '@supabase/supabase-js'
 import { act, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ToastProvider } from '@/shared/toast'
 
@@ -52,6 +53,8 @@ function selectQuery(result: { data: unknown; error: unknown }) {
 
 function ProbeAccountState() {
   const {
+    status,
+    isReconnecting,
     profileState,
     profile,
     profileError,
@@ -66,6 +69,8 @@ function ProbeAccountState() {
   } = useAuth()
   return (
     <div>
+      <span data-testid="status">{status}</span>
+      <span data-testid="reconnecting">{String(isReconnecting)}</span>
       <span data-testid="profile-state">{profileState}</span>
       <span data-testid="profile-username">{profile?.username ?? ''}</span>
       <span data-testid="profile-error">{profileError ?? ''}</span>
@@ -109,6 +114,8 @@ function renderProbe() {
 }
 
 beforeEach(() => {
+  // Le dernier profil connu est mis en cache dans localStorage : chaque test repart à vide.
+  window.localStorage.clear()
   getSessionMock.mockReset()
   onAuthStateChangeMock.mockReset()
   fromMock.mockReset()
@@ -339,5 +346,221 @@ describe('AuthProvider — renvoi d’e-mail et réinitialisation du mot de pass
     await waitFor(() => expect(signOutMock).toHaveBeenCalled())
     await waitFor(() => expect(screen.getByTestId('profile-state')).toHaveTextContent('idle'))
     expect(screen.getByTestId('profile-username')).toHaveTextContent('')
+  })
+})
+
+type AuthCallback = (event: string, session: unknown) => void
+
+function authCallback(): AuthCallback {
+  return onAuthStateChangeMock.mock.calls[0][0] as AuthCallback
+}
+
+describe('AuthProvider — une session nulle n’est pas une déconnexion (LOT 2)', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  async function renderConnected() {
+    fromMock.mockReturnValue(selectQuery({ data: PROFILE_ROW, error: null }))
+    renderProbe()
+    await waitFor(() => expect(screen.getByTestId('profile-state')).toHaveTextContent('loaded'))
+    expect(screen.getByTestId('status')).toHaveTextContent('authenticated')
+  }
+
+  it('SIGNED_OUT explicite : repasse en invité et efface le profil et son cache', async () => {
+    await renderConnected()
+    expect(window.localStorage.getItem('flowquest.profileCache.user-1')).not.toBeNull()
+
+    act(() => authCallback()('SIGNED_OUT', null))
+
+    expect(screen.getByTestId('status')).toHaveTextContent('guest')
+    expect(screen.getByTestId('profile-username')).toHaveTextContent('')
+    expect(window.localStorage.getItem('flowquest.profileCache.user-1')).toBeNull()
+  })
+
+  it('session nulle transitoire (jeton en cours de rafraîchissement) : reste connecté, profil conservé', async () => {
+    await renderConnected()
+    fromMock.mockClear()
+
+    // L'évènement arrive avec une session nulle, mais la session est de nouveau lisible juste après.
+    act(() => authCallback()('TOKEN_REFRESHED', null))
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    })
+
+    expect(screen.getByTestId('status')).toHaveTextContent('authenticated')
+    expect(screen.getByTestId('profile-username')).toHaveTextContent('sullivan')
+    expect(fromMock).not.toHaveBeenCalled() // pas de rechargement du profil
+  })
+
+  it('réseau lent (échec passager du rafraîchissement) : reste connecté, « reconnexion… », puis rétabli', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    await renderConnected()
+
+    getSessionMock.mockResolvedValue({
+      data: { session: null },
+      error: new AuthRetryableFetchError('Failed to fetch', 0),
+    })
+    act(() => authCallback()('TOKEN_REFRESHED', null))
+    await waitFor(() => expect(screen.getByTestId('reconnecting')).toHaveTextContent('true'))
+    expect(screen.getByTestId('status')).toHaveTextContent('authenticated')
+    expect(screen.getByTestId('profile-username')).toHaveTextContent('sullivan')
+
+    // Nouvelle tentative automatique : le réseau est revenu.
+    getSessionMock.mockResolvedValue({ data: { session: { user: SESSION_USER } } })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_100)
+    })
+    await waitFor(() => expect(screen.getByTestId('reconnecting')).toHaveTextContent('false'))
+    expect(screen.getByTestId('status')).toHaveTextContent('authenticated')
+  })
+
+  it('retour du réseau pendant la reconnexion : nouvelle tentative immédiate', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    await renderConnected()
+    getSessionMock.mockResolvedValue({
+      data: { session: null },
+      error: new AuthRetryableFetchError('Failed to fetch', 0),
+    })
+    act(() => authCallback()('TOKEN_REFRESHED', null))
+    await waitFor(() => expect(screen.getByTestId('reconnecting')).toHaveTextContent('true'))
+
+    getSessionMock.mockResolvedValue({ data: { session: { user: SESSION_USER } } })
+    act(() => void window.dispatchEvent(new Event('online')))
+    await waitFor(() => expect(screen.getByTestId('reconnecting')).toHaveTextContent('false'))
+  })
+
+  it('deux appareils : un jeton révoqué pour de bon fait repasser en invité (définitif), pas avant', async () => {
+    await renderConnected()
+
+    // L'autre appareil a tourné le jeton : la session est introuvable ET le serveur refuse (définitif).
+    getSessionMock.mockResolvedValue({
+      data: { session: null },
+      error: new AuthApiError(
+        'Invalid Refresh Token: Refresh Token Not Found',
+        400,
+        'refresh_token_not_found',
+      ),
+    })
+    act(() => authCallback()('TOKEN_REFRESHED', null))
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('guest'))
+    expect(screen.getByTestId('profile-username')).toHaveTextContent('')
+  })
+
+  it('session absente sans aucune erreur (rien de stocké) : invité', async () => {
+    getSessionMock.mockResolvedValue({ data: { session: null }, error: null })
+    renderProbe()
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('guest'))
+  })
+
+  it('démarrage sur réseau lent : ni invité ni connecté tant que la session n’est pas relue (loading)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    getSessionMock.mockResolvedValue({
+      data: { session: null },
+      error: new AuthRetryableFetchError('Failed to fetch', 0),
+    })
+    renderProbe()
+    await waitFor(() => expect(screen.getByTestId('reconnecting')).toHaveTextContent('true'))
+    expect(screen.getByTestId('status')).toHaveTextContent('loading')
+
+    fromMock.mockReturnValue(selectQuery({ data: PROFILE_ROW, error: null }))
+    getSessionMock.mockResolvedValue({ data: { session: { user: SESSION_USER } } })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_100)
+    })
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+  })
+
+  it('n’appelle aucune méthode Supabase depuis le callback onAuthStateChange (report à la tâche suivante)', async () => {
+    fromMock.mockReturnValue(selectQuery({ data: PROFILE_ROW, error: null }))
+    renderProbe()
+    await waitFor(() => expect(screen.getByTestId('profile-state')).toHaveTextContent('loaded'))
+    fromMock.mockClear()
+
+    act(() => authCallback()('SIGNED_IN', { user: { id: 'user-2', email: 'autre@exemple.com' } }))
+    expect(fromMock).not.toHaveBeenCalled() // synchrone : rien
+
+    await waitFor(() => expect(fromMock).toHaveBeenCalledTimes(1))
+  })
+})
+
+describe('AuthProvider — profil : cache, délai et nouvelles tentatives (LOT 2)', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function neverResolving() {
+    return { select: () => ({ eq: () => ({ single: () => new Promise(() => undefined) }) }) }
+  }
+
+  it('affiche tout de suite le dernier profil connu pendant que le serveur répond', async () => {
+    window.localStorage.setItem('flowquest.profileCache.user-1', JSON.stringify(PROFILE_ROW))
+    fromMock.mockReturnValue(neverResolving())
+
+    renderProbe()
+
+    await waitFor(() =>
+      expect(screen.getByTestId('profile-username')).toHaveTextContent('sullivan'),
+    )
+    expect(screen.getByTestId('profile-state')).toHaveTextContent('loaded')
+  })
+
+  it('serveur trop lent avec un profil connu : on le garde, aucune erreur ni toast', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    window.localStorage.setItem('flowquest.profileCache.user-1', JSON.stringify(PROFILE_ROW))
+    fromMock.mockReturnValue(neverResolving())
+    renderProbe()
+    await waitFor(() => expect(screen.getByTestId('profile-state')).toHaveTextContent('loaded'))
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000)
+    })
+
+    expect(screen.getByTestId('profile-state')).toHaveTextContent('loaded')
+    expect(screen.getByTestId('profile-username')).toHaveTextContent('sullivan')
+    expect(screen.getByTestId('profile-error')).toHaveTextContent('')
+  })
+
+  it('délai de 8 s puis nouvelle tentative : un serveur lent un instant ne bloque pas le profil', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    fromMock
+      .mockReturnValueOnce(neverResolving())
+      .mockReturnValue(selectQuery({ data: PROFILE_ROW, error: null }))
+    renderProbe()
+    await waitFor(() => expect(screen.getByTestId('profile-state')).toHaveTextContent('loading'))
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8_000 + 1_000 + 50)
+    })
+
+    await waitFor(() => expect(screen.getByTestId('profile-state')).toHaveTextContent('loaded'))
+    expect(fromMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('trois délais dépassés sans profil connu : état d’erreur clair avec « Réessayer », jamais un chargement infini', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    fromMock.mockReturnValue(neverResolving())
+    renderProbe()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8_000 + 1_000 + 8_000 + 3_000 + 8_000 + 100)
+    })
+
+    await waitFor(() => expect(screen.getByTestId('profile-state')).toHaveTextContent('error'))
+    expect(screen.getByTestId('profile-error')).toHaveTextContent(
+      'Le serveur met du temps à répondre.',
+    )
+  })
+
+  it('un refus définitif du serveur n’est jamais rejoué', async () => {
+    fromMock.mockReturnValue(selectQuery({ data: null, error: { message: 'no rows' } }))
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: 'function ensure_profile() does not exist' },
+    })
+    renderProbe()
+    await waitFor(() => expect(screen.getByTestId('profile-state')).toHaveTextContent('error'))
+    expect(fromMock).toHaveBeenCalledTimes(1)
   })
 })

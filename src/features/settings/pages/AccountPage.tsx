@@ -6,6 +6,7 @@ import { ResetPasswordForm } from '@/features/auth/components/ResetPasswordForm'
 import { SignInForm } from '@/features/auth/components/SignInForm'
 import { SignUpForm } from '@/features/auth/components/SignUpForm'
 import { useAuth } from '@/features/auth/useAuth'
+import { ProfileLoading } from '@/features/auth/components/ProfileLoading'
 import { LocalBackupSection } from '@/features/backup/components/LocalBackupSection'
 import { InviteFriendSection } from '@/features/invites/components/InviteFriendSection'
 import { useFeatureFlag } from '@/features/feature-flags/useFeatureFlag'
@@ -69,7 +70,7 @@ export function AccountPage() {
             <InviteFriendSection />
           </>
         ) : (
-          <p className="text-sm text-[var(--panel-muted)]">{strings.auth.profile.loading}</p>
+          <ProfileLoading />
         )
       ) : (
         <div className="flex flex-col gap-6">
