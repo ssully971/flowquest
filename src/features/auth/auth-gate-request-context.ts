@@ -1,8 +1,12 @@
 import { createContext } from 'react'
 
+/** Vue sur laquelle AuthGate s'ouvre quand on la demande (connexion par défaut). */
+export type AuthGateRequestedView = 'signIn' | 'signUp'
+
 export interface AuthGateRequestValue {
   signInRequested: boolean
-  requestSignIn: () => void
+  requestedView: AuthGateRequestedView
+  requestSignIn: (view?: AuthGateRequestedView) => void
   clearSignInRequest: () => void
 }
 
@@ -12,6 +16,7 @@ export interface AuthGateRequestValue {
 // simple bouton sans effet plutôt que de faire planter le rendu.
 const noopValue: AuthGateRequestValue = {
   signInRequested: false,
+  requestedView: 'signIn',
   requestSignIn: () => {},
   clearSignInRequest: () => {},
 }

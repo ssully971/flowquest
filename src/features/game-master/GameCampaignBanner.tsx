@@ -1,6 +1,7 @@
 import { Sparkles, X } from 'lucide-react'
 import { useState } from 'react'
 
+import { useFeatureAccess } from '@/features/access/useFeatureAccess'
 import { useFeatureFlag } from '@/features/feature-flags/useFeatureFlag'
 import { useGlobalTimerState } from '@/features/timer/useGlobalTimerState'
 import { useTimerSettings } from '@/features/timer/timer-settings-context'
@@ -40,6 +41,7 @@ function readDismissed(key: string): boolean {
 export function GameCampaignBanner() {
   const campaign = useCurrentCampaign()
   const deepFocusFlagEnabled = useFeatureFlag('deep_focus')
+  const { isLocked } = useFeatureAccess()
   const { settings: timerSettings } = useTimerSettings()
   const timerState = useGlobalTimerState()
   const dismissedKey = campaign
@@ -50,7 +52,10 @@ export function GameCampaignBanner() {
   if (!campaign || !dismissedKey) return null
 
   const likelyInDeepFocus =
-    deepFocusFlagEnabled && timerSettings.deepFocusEnabled && timerState.liveState === 'focus'
+    deepFocusFlagEnabled &&
+    timerSettings.deepFocusEnabled &&
+    !isLocked('deepFocus') &&
+    timerState.liveState === 'focus'
   if (likelyInDeepFocus) return null
 
   if (dismissedKeys.has(dismissedKey) || readDismissed(dismissedKey)) return null

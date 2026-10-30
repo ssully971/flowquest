@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import { LockedBadge } from '@/features/access/LockedBadge'
+import { useFeatureAccess } from '@/features/access/useFeatureAccess'
 import { KeyboardShortcutsHelp } from '@/features/timer/components/KeyboardShortcutsHelp'
 import {
   COUNTDOWN_MINUTES_RANGE,
@@ -27,6 +29,8 @@ interface TimerPageProps {
 export function TimerPage({ settings, onChange }: TimerPageProps) {
   const s = strings.settings.timer
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
+  const { isLocked, requireAccount } = useFeatureAccess()
+  const deepFocusLocked = isLocked('deepFocus')
 
   return (
     <div className="flex flex-col gap-6">
@@ -125,13 +129,25 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
       </div>
 
       <div className="flex max-w-md flex-col gap-2">
-        <SettingsToggleRow
-          label={s.deepFocusEnabled}
-          hint={s.deepFocusEnabledHint}
-          checked={settings.deepFocusEnabled}
-          onToggle={() => onChange({ ...settings, deepFocusEnabled: !settings.deepFocusEnabled })}
-        />
-        {settings.deepFocusEnabled ? (
+        {/* Verrouillé (invité) : l'interrupteur s'affiche éteint et ouvre la modale d'upsell
+            au lieu de basculer ; le réglage stocké n'est jamais modifié. */}
+        <div className={deepFocusLocked ? 'relative opacity-60' : undefined}>
+          <SettingsToggleRow
+            label={
+              deepFocusLocked
+                ? `${s.deepFocusEnabled}${strings.access.lockedSuffix}`
+                : s.deepFocusEnabled
+            }
+            hint={s.deepFocusEnabledHint}
+            checked={deepFocusLocked ? false : settings.deepFocusEnabled}
+            onToggle={() => {
+              if (!requireAccount('deepFocus')) return
+              onChange({ ...settings, deepFocusEnabled: !settings.deepFocusEnabled })
+            }}
+          />
+          {deepFocusLocked ? <LockedBadge className="right-1 top-1" /> : null}
+        </div>
+        {settings.deepFocusEnabled && !deepFocusLocked ? (
           <NumericStepper
             label={s.deepFocusGraceSeconds}
             value={settings.deepFocusGraceSeconds}
@@ -170,7 +186,10 @@ export function TimerPage({ settings, onChange }: TimerPageProps) {
 
       <AlertSoundSettings settings={settings} onChange={onChange} />
 
-      <KeyboardShortcutsHelp open={isShortcutsHelpOpen} onClose={() => setIsShortcutsHelpOpen(false)} />
+      <KeyboardShortcutsHelp
+        open={isShortcutsHelpOpen}
+        onClose={() => setIsShortcutsHelpOpen(false)}
+      />
     </div>
   )
 }

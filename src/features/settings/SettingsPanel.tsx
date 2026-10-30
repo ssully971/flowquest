@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Lock,
   Clock,
   Compass,
   Info,
@@ -17,6 +18,7 @@ import type { LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import type { AppMode } from '@/app/useAppMode'
+import { useFeatureAccess } from '@/features/access/useFeatureAccess'
 import type { BackgroundSelections } from '@/app/background-selection'
 import { FeatureGate } from '@/features/feature-flags/FeatureGate'
 import { useFeatureFlag } from '@/features/feature-flags/useFeatureFlag'
@@ -132,6 +134,8 @@ export function SettingsPanel({
   const hasUnreadChangelog =
     latestChangelogVersion !== undefined && lastSeenChangelogVersion !== latestChangelogVersion
   const pillarsFlagEnabled = useFeatureFlag('pillars')
+  const { isLocked, requireAccount } = useFeatureAccess()
+  const statsLocked = isLocked('stats')
 
   if (open && !mounted) {
     setMounted(true)
@@ -153,9 +157,16 @@ export function SettingsPanel({
     setActivePage('themes')
   }
 
+  // Statistiques verrouillées (invité) : la page ne s'affiche jamais, même si c'était la
+  // dernière page ouverte ou l'onglet par défaut — on retombe sur Thèmes.
+  if (statsLocked && activePage === 'stats') {
+    setActivePage('themes')
+  }
+
   const visibleNavItems = NAV_ITEMS.filter((item) => item.id !== 'pillars' || pillarsAvailable)
 
   const handleSelectPage = (page: PageId) => {
+    if (page === 'stats' && !requireAccount('stats')) return
     setActivePage(page)
     setLastSettingsPage(page)
   }
@@ -261,12 +272,16 @@ export function SettingsPanel({
           {visibleNavItems.map((item) => {
             const isActive = item.id === activePage
             const Icon = item.icon
+            const itemLocked = item.id === 'stats' && statsLocked
             return (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => handleSelectPage(item.id)}
+                aria-label={itemLocked ? `${item.label}${strings.access.lockedSuffix}` : undefined}
                 className={`flex shrink-0 items-center gap-3 border-l-[3px] px-5 py-3 text-left text-sm transition-colors duration-200 ${
+                  itemLocked ? 'opacity-60' : ''
+                } ${
                   isActive
                     ? 'text-[var(--panel-text)]'
                     : 'border-transparent text-[var(--panel-muted)] hover:text-[var(--panel-text)]'
@@ -279,6 +294,9 @@ export function SettingsPanel({
               >
                 <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
                 {item.label}
+                {itemLocked ? (
+                  <Lock size={12} strokeWidth={2} aria-hidden="true" className="shrink-0" />
+                ) : null}
                 {item.id === 'changelog' && hasUnreadChangelog ? (
                   <span
                     aria-label={strings.settings.changelog.unreadBadge}

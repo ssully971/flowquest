@@ -22,7 +22,7 @@ export function SignInPrompt({ message, ctaLabel }: SignInPromptProps) {
       <p className="max-w-sm text-sm text-[var(--muted)]">{message}</p>
       <button
         type="button"
-        onClick={requestSignIn}
+        onClick={() => requestSignIn()}
         className="h-10 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--on-accent)] transition-opacity duration-200 hover:opacity-90"
       >
         {ctaLabel}

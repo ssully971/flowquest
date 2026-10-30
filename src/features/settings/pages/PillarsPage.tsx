@@ -3,6 +3,8 @@ import type { FormEvent } from 'react'
 import { useRef, useState } from 'react'
 
 import { FeatureGate } from '@/features/feature-flags/FeatureGate'
+import { LockedBlock } from '@/features/access/LockedBlock'
+import { useFeatureAccess } from '@/features/access/useFeatureAccess'
 import { GalaxyView } from '@/features/galaxy/components/GalaxyView'
 import { PillarGoal } from '@/features/pillars/components/PillarGoal'
 import { levelProgressForXp } from '@/features/pillars/pillar-xp'
@@ -143,6 +145,7 @@ function PillarRow({
 
 export function PillarsPage() {
   const s = strings.settings.pillars
+  const statsLocked = useFeatureAccess().isLocked('stats')
   const {
     pillars,
     activePillars,
@@ -241,14 +244,20 @@ export function PillarsPage() {
       {/* Radar et galaxie (lot 4, §2) : déplacés de l'onglet Statistiques général vers la
           section Piliers, sous le radar — les deux visualisations concernent les piliers
           spécifiquement, pas les statistiques générales (tâches/temps de focus). */}
-      <BalanceCard activePillars={activePillars} />
+      {statsLocked ? (
+        <LockedBlock feature="stats" title={strings.settings.nav.stats} />
+      ) : (
+        <>
+          <BalanceCard activePillars={activePillars} />
 
-      <FeatureGate flag="galaxy">
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium text-[var(--panel-muted)]">{s.galaxyTitle}</p>
-          <GalaxyView />
-        </div>
-      </FeatureGate>
+          <FeatureGate flag="galaxy">
+            <div className="flex flex-col gap-3">
+              <p className="text-sm font-medium text-[var(--panel-muted)]">{s.galaxyTitle}</p>
+              <GalaxyView />
+            </div>
+          </FeatureGate>
+        </>
+      )}
     </div>
   )
 }

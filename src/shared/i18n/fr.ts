@@ -733,6 +733,26 @@ export const fr = {
     later: 'Plus tard',
     dismiss: 'Fermer',
   },
+  access: {
+    // Mode invité (entonnoir de conversion) : voir docs/MODE_INVITE.md.
+    lockedSuffix: ', verrouillé : crée un compte pour débloquer',
+    lockedBadge: 'Verrouillé',
+    lockedBlockHint: 'Crée un compte pour débloquer cette section.',
+    features: {
+      stats: 'Statistiques',
+      tasks: 'Tâches',
+      ambientSounds: 'Sons d’ambiance',
+      deepFocus: 'Deep Focus',
+    },
+    upsell: {
+      title: `Débloque le plein potentiel de ${APP_NAME} 🦊`,
+      body: 'Crée un compte pour sauvegarder tes sessions de focus, accéder à tes statistiques détaillées, lier tes tâches et profiter du mixeur de sons.',
+      betaNotice: `Attention : ${APP_NAME} est actuellement en bêta fermée. Un code d’invitation est requis pour s’inscrire.`,
+      signUp: 'S’inscrire (J’ai un code)',
+      signIn: 'Se connecter',
+      later: 'Plus tard',
+    },
+  },
   ambient: {
     soundsButton: 'Sons d’ambiance',
     soundsTitle: 'Sons d’ambiance',

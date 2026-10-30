@@ -37,19 +37,21 @@ interface AuthGateProps {
  */
 export function AuthGate({ children }: AuthGateProps) {
   const { status, isSupabaseConfigured } = useAuth()
-  const { signInRequested, clearSignInRequest } = useAuthGateRequest()
+  const { signInRequested, requestedView, clearSignInRequest } = useAuthGateRequest()
   const [dismissed, setDismissed] = useState(readDismissed)
   const [view, setView] = useState<GateView>('choice')
-  const [handledSignInRequest, setHandledSignInRequest] = useState(signInRequested)
+  // Clé de la demande en cours (vue demandée), '' quand il n'y en a pas.
+  const requestKey = signInRequested ? requestedView : ''
+  const [handledRequestKey, setHandledRequestKey] = useState(requestKey)
   const s = strings.auth.gate
 
-  // `signInRequested` (LOT H1, §3) rouvre la fenêtre directement sur le formulaire de
-  // connexion même si elle a déjà été fermée (« continuer en invité ») plus tôt. Ajusté
+  // `signInRequested` (LOT H1, §3) rouvre la fenêtre directement sur le formulaire demandé
+  // (connexion par défaut, inscription depuis la modale d'upsell) même si elle a déjà été fermée (« continuer en invité ») plus tôt. Ajusté
   // pendant le rendu plutôt que dans un effet (pas de rendu supplémentaire en cascade) :
   // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
-  if (signInRequested !== handledSignInRequest) {
-    setHandledSignInRequest(signInRequested)
-    if (signInRequested) setView('signIn')
+  if (requestKey !== handledRequestKey) {
+    setHandledRequestKey(requestKey)
+    if (signInRequested) setView(requestedView)
   }
 
   const shouldShow = isSupabaseConfigured && status === 'guest' && (!dismissed || signInRequested)

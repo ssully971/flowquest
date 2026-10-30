@@ -1,6 +1,8 @@
 import { Music, Pause, Play } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
+import { LOCKED_DIM_CLASS, LockedBadge } from '@/features/access/LockedBadge'
+import { useFeatureAccess } from '@/features/access/useFeatureAccess'
 import { AmbientSoundsPanel } from '@/features/ambient/components/AmbientSoundsPanel'
 import { useAmbientSounds } from '@/features/ambient/useAmbientSounds'
 import {
@@ -32,6 +34,8 @@ export function AmbientScreen() {
   const timer = useFocusTimer()
   const group = useActiveGroupRoom()
   const sounds = useAmbientSounds()
+  const { isLocked, requireAccount } = useFeatureAccess()
+  const soundsLocked = isLocked('ambientSounds')
   const { settings: clockSettings } = useClockSettings()
   const { settings: timerSettings } = useTimerSettings()
   const [isSoundsOpen, setIsSoundsOpen] = useState(false)
@@ -56,7 +60,8 @@ export function AmbientScreen() {
       onPrimary: handlePrimary,
       onNext: isGroup ? () => undefined : timer.skip,
       onReset: isGroup ? () => undefined : timer.reset,
-      onToggleMute: sounds.toggleMute,
+      // Sons verrouillés (invité) : la touche M ne fait rien.
+      onToggleMute: soundsLocked ? undefined : sounds.toggleMute,
       onOpenHelp: () => setIsShortcutsHelpOpen(true),
     },
     timerSettings.keyboardShortcutsEnabled,
@@ -65,7 +70,10 @@ export function AmbientScreen() {
   // Deep Focus (LOT G2) : mêmes conditions que sur l'écran Focus (voir son commentaire
   // pour le choix de garder `enabled` indépendant du statut running/paused).
   const isDeepFocusEligible =
-    timerSettings.deepFocusEnabled && source.mode === 'pomodoro' && source.segment === 'focus'
+    timerSettings.deepFocusEnabled &&
+    !isLocked('deepFocus') &&
+    source.mode === 'pomodoro' &&
+    source.segment === 'focus'
   const isDeepFocusActive = isDeepFocusEligible && source.status === 'running'
 
   useDeepFocus({
@@ -129,13 +137,20 @@ export function AmbientScreen() {
         <div className="relative">
           <button
             type="button"
-            aria-label={strings.ambient.soundsButton}
-            aria-expanded={isSoundsOpen}
-            onClick={() => setIsSoundsOpen((prev) => !prev)}
+            aria-label={
+              soundsLocked
+                ? `${strings.ambient.soundsButton}${strings.access.lockedSuffix}`
+                : strings.ambient.soundsButton
+            }
+            aria-expanded={soundsLocked ? undefined : isSoundsOpen}
+            onClick={() => {
+              if (requireAccount('ambientSounds')) setIsSoundsOpen((prev) => !prev)
+            }}
             className={
-              sounds.activeIds.length > 0
+              (sounds.activeIds.length > 0
                 ? 'inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--on-accent)] transition-transform duration-200 hover:scale-105'
-                : 'glass-pill inline-flex h-11 w-11 items-center justify-center rounded-full transition-transform duration-200 hover:scale-105'
+                : 'glass-pill inline-flex h-11 w-11 items-center justify-center rounded-full transition-transform duration-200 hover:scale-105') +
+              (soundsLocked ? ` ${LOCKED_DIM_CLASS}` : '')
             }
           >
             <Music
@@ -145,11 +160,14 @@ export function AmbientScreen() {
               className={sounds.activeIds.length === 0 ? 'glass-pill-icon' : undefined}
             />
           </button>
-          <AmbientSoundsPanel
-            open={isSoundsOpen}
-            onClose={() => setIsSoundsOpen(false)}
-            {...sounds}
-          />
+          {soundsLocked ? <LockedBadge /> : null}
+          {soundsLocked ? null : (
+            <AmbientSoundsPanel
+              open={isSoundsOpen}
+              onClose={() => setIsSoundsOpen(false)}
+              {...sounds}
+            />
+          )}
         </div>
 
         {isDeepFocusActive ? <DeepFocusIndicator /> : null}

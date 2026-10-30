@@ -6,6 +6,7 @@ import {
   CLOCK_STYLE_CSS,
   resolveClockColor,
 } from '@/features/home/clock-settings'
+import { useFeatureAccess } from '@/features/access/useFeatureAccess'
 import { FeatureGate } from '@/features/feature-flags/FeatureGate'
 import { useFeatureFlag } from '@/features/feature-flags/useFeatureFlag'
 import { useClockSettings } from '@/features/home/clock-settings-context'
@@ -74,6 +75,7 @@ export function FocusScreen() {
   const timer = useFocusTimer()
   const group = useActiveGroupRoom()
   const { user } = useAuth()
+  const { isLocked } = useFeatureAccess()
   const { activeTaskId } = useActiveTask()
   const { tasks } = useTasks()
   const { settings: timerSettings } = useTimerSettings()
@@ -112,8 +114,10 @@ export function FocusScreen() {
   // groupe : même mise en page minimale, mais jamais de pause automatique (l'horloge est
   // celle de tout le groupe, seul l'hôte peut la mettre en pause).
   const deepFocusFlagEnabled = useFeatureFlag('deep_focus')
+  // Verrouillé pour un invité : se comporte comme désactivé, sans toucher au réglage stocké.
   const isDeepFocusEligible =
     timerSettings.deepFocusEnabled &&
+    !isLocked('deepFocus') &&
     deepFocusFlagEnabled &&
     source.mode === 'pomodoro' &&
     source.segment === 'focus'

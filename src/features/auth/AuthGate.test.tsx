@@ -119,11 +119,11 @@ describe('AuthGate — fenêtre plein écran de connexion (LOT A)', () => {
   })
 })
 
-function RequestSignInButton() {
+function RequestSignInButton({ view }: { view?: 'signIn' | 'signUp' }) {
   const { requestSignIn } = useAuthGateRequest()
   return (
-    <button type="button" onClick={requestSignIn}>
-      Déclencher depuis un écran social
+    <button type="button" onClick={() => requestSignIn(view)}>
+      {view === 'signUp' ? 'Demander l’inscription' : 'Déclencher depuis un écran social'}
     </button>
   )
 }
@@ -157,5 +157,27 @@ describe('AuthGate — réouverture depuis un écran social (LOT H1, §3)', () =
     renderGate()
 
     expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+})
+
+describe('AuthGate — vue demandée (mode invité, modale d’upsell)', () => {
+  it("requestSignIn('signUp') ouvre directement le formulaire d’inscription", async () => {
+    useAuthMock.mockReturnValue(baseAuth())
+    const user = userEvent.setup()
+    render(
+      <ToastProvider>
+        <AuthGateRequestProvider>
+          <AuthGate>
+            <p>Contenu de l’app</p>
+          </AuthGate>
+          <RequestSignInButton view="signUp" />
+        </AuthGateRequestProvider>
+      </ToastProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Continuer sans compte' }))
+    await user.click(screen.getByRole('button', { name: 'Demander l’inscription' }))
+
+    expect(screen.getByLabelText('Pseudo')).toBeInTheDocument()
   })
 })

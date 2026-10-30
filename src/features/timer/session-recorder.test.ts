@@ -263,3 +263,49 @@ describe('recordSession', () => {
     })
   })
 })
+
+describe('recordSession — invité (mode invité, entonnoir de conversion)', () => {
+  beforeEach(async () => {
+    upsertMock.mockReset()
+    maybeSingleMock.mockClear()
+    setCurrentUserId(null)
+    const db = await getDb()
+    const keys = await db.getAllKeys('focusSessions')
+    await Promise.all(keys.map((key) => db.delete('focusSessions', key)))
+    const queueKeys = await db.getAllKeys('syncQueue')
+    await Promise.all(queueKeys.map((key) => db.delete('syncQueue', key)))
+    const pillarKeys = await db.getAllKeys('pillars')
+    await Promise.all(pillarKeys.map((key) => db.delete('pillars', key)))
+    setActivePillarIdRef(null)
+    setPillarsEnabledRef(true)
+  })
+
+  afterEach(() => {
+    setActivePillarIdRef(null)
+    setPillarsEnabledRef(true)
+    vi.restoreAllMocks()
+  })
+
+  it('fin de session sans compte : enregistrée en local, XP local crédité, aucune requête, aucune erreur', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await seedPillar()
+    setActivePillarIdRef('pillar-1')
+    const { recordSession } = await import('./session-recorder')
+
+    const result = await recordSession(RUNNING_STATE, RUNNING_STATE.startedAt! + 1_500_000, true)
+
+    const db = await getDb()
+    // Le statut verrouillé des statistiques n'empêche jamais l'enregistrement local : c'est
+    // lui que l'import d'invité reporte à l'inscription.
+    expect(await db.count('focusSessions')).toBe(1)
+    expect(result).not.toBeNull()
+    expect((await db.getAll('pillars'))[0].currentXp).toBeGreaterThan(0)
+    // Aucune écriture ni lecture Supabase, rien en file d'attente hors ligne.
+    expect(upsertMock).not.toHaveBeenCalled()
+    expect(maybeSingleMock).not.toHaveBeenCalled()
+    expect(await db.count('syncQueue')).toBe(0)
+    expect(errorSpy).not.toHaveBeenCalled()
+    expect(warnSpy).not.toHaveBeenCalled()
+  })
+})

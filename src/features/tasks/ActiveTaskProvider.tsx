@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 
+import { useFeatureAccess } from '@/features/access/useFeatureAccess'
+
 import { ActiveTaskContext } from './active-task-context'
 import { setActiveTaskIdRef } from './active-task-ref'
 
@@ -17,7 +19,11 @@ function readStored(): string | null {
 }
 
 export function ActiveTaskProvider({ children }: { children: ReactNode }) {
-  const [activeTaskId, setActiveTaskIdState] = useState<string | null>(readStored)
+  const [storedTaskId, setActiveTaskIdState] = useState<string | null>(readStored)
+  // Tâches verrouillées (invité) : la tâche active est traitée comme absente, sans toucher
+  // à la valeur stockée — elle reprend à la connexion.
+  const { isLocked } = useFeatureAccess()
+  const activeTaskId = isLocked('tasks') ? null : storedTaskId
 
   useEffect(() => {
     setActiveTaskIdRef(activeTaskId)

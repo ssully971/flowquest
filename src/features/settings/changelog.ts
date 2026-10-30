@@ -13,6 +13,11 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.24.0',
+    date: '2026-11-13',
+    text: 'Le mode invité devient une vraie visite guidée : sans compte, tu utilises librement le minuteur, les citations et l’écran Ambiant. Les statistiques, les tâches, le mixeur de sons et Deep Focus restent visibles avec un cadenas ; en créant un compte, tu les débloques tout de suite, avec tes sessions déjà enregistrées.',
+  },
+  {
     version: '0.23.0',
     date: '2026-11-12',
     text: 'Invitations en direct : quand un ami t’invite dans un salon ou t’envoie une demande, une notification apparaît où que tu sois sur Fokitsu, avec « Rejoindre » ou « Refuser » en un toucher.',

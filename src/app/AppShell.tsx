@@ -13,6 +13,8 @@ import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 
+import { LOCKED_DIM_CLASS, LockedBadge } from '@/features/access/LockedBadge'
+import { useFeatureAccess } from '@/features/access/useFeatureAccess'
 import { GuestImportPrompt } from '@/features/auth/components/GuestImportPrompt'
 import { useCurrentUserSync } from '@/features/auth/useCurrentUserSync'
 import { MaintenanceBanner } from '@/features/feature-flags/MaintenanceBanner'
@@ -86,6 +88,9 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const { settings: clockSettings, setSettings: setClockSettings } = useClockSettings()
   const { settings: quotesSettings, setSettings: setQuotesSettings } = useQuotesSettings()
   const { settings: extrasSettings, setSettings: setExtrasSettings } = useExtrasSettings()
+  const { isLocked, requireAccount } = useFeatureAccess()
+  const statsLocked = isLocked('stats')
+  const tasksLocked = isLocked('tasks')
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isTasksOpen, setIsTasksOpen] = useState(false)
   const [isNotesOpen, setIsNotesOpen] = useState(false)
@@ -258,19 +263,28 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setIsStreakOpen((prev) => !prev)}
-                aria-expanded={isStreakOpen}
-                aria-label={`${strings.common.streak} : ${stats?.currentStreakDays ?? 0}`}
-                className="glass-pill flex h-12 items-center gap-1.5 rounded-full px-4 text-sm text-[var(--glass-icon)] transition-colors duration-200 hover:text-[var(--glass-icon-hover)]"
+                onClick={() => {
+                  if (requireAccount('stats')) setIsStreakOpen((prev) => !prev)
+                }}
+                aria-expanded={statsLocked ? undefined : isStreakOpen}
+                aria-label={
+                  statsLocked
+                    ? `${strings.common.streak}${strings.access.lockedSuffix}`
+                    : `${strings.common.streak} : ${stats?.currentStreakDays ?? 0}`
+                }
+                className={`glass-pill relative flex h-12 items-center gap-1.5 rounded-full px-4 text-sm text-[var(--glass-icon)] transition-colors duration-200 hover:text-[var(--glass-icon-hover)] ${statsLocked ? LOCKED_DIM_CLASS : ''}`}
               >
                 <Flame size={18} strokeWidth={1.75} aria-hidden="true" />
-                <span>{stats?.currentStreakDays ?? 0}</span>
+                {statsLocked ? null : <span>{stats?.currentStreakDays ?? 0}</span>}
+                {statsLocked ? <LockedBadge /> : null}
               </button>
-              <StreakPanel
-                open={isStreakOpen}
-                onClose={() => setIsStreakOpen(false)}
-                stats={stats}
-              />
+              {statsLocked ? null : (
+                <StreakPanel
+                  open={isStreakOpen}
+                  onClose={() => setIsStreakOpen(false)}
+                  stats={stats}
+                />
+              )}
             </div>
           ) : null}
           <SegmentedControl
@@ -285,11 +299,21 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
             <div className="relative">
               <IconButton
                 icon={ListTodo}
-                label={strings.common.tasks}
-                aria-expanded={isTasksOpen}
-                onClick={() => setIsTasksOpen((prev) => !prev)}
+                label={
+                  tasksLocked
+                    ? `${strings.common.tasks}${strings.access.lockedSuffix}`
+                    : strings.common.tasks
+                }
+                aria-expanded={tasksLocked ? undefined : isTasksOpen}
+                className={tasksLocked ? LOCKED_DIM_CLASS : ''}
+                onClick={() => {
+                  if (requireAccount('tasks')) setIsTasksOpen((prev) => !prev)
+                }}
               />
-              <TasksPanel open={isTasksOpen} onClose={() => setIsTasksOpen(false)} />
+              {tasksLocked ? <LockedBadge /> : null}
+              {tasksLocked ? null : (
+                <TasksPanel open={isTasksOpen} onClose={() => setIsTasksOpen(false)} />
+              )}
             </div>
           ) : null}
           {mode !== 'ambient' ? (
