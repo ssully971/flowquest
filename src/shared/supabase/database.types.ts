@@ -286,6 +286,7 @@ export interface Database {
           position: number
           done: boolean
           done_at: string | null
+          archived_at: string | null
           created_at: string
           updated_at: string
         }
@@ -300,6 +301,7 @@ export interface Database {
           position?: number
           done?: boolean
           done_at?: string | null
+          archived_at?: string | null
         }
         Update: {
           title?: string
@@ -310,6 +312,7 @@ export interface Database {
           position?: number
           done?: boolean
           done_at?: string | null
+          archived_at?: string | null
         }
         Relationships: []
       }

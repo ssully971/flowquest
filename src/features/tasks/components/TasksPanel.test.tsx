@@ -87,6 +87,26 @@ describe('TasksPanel', () => {
     })
   })
 
+  it('archive une tâche, la retrouve dans les archives et la restaure', async () => {
+    const user = userEvent.setup()
+    renderPanel()
+
+    await user.type(screen.getByPlaceholderText('Nouvelle tâche…'), 'À archiver')
+    await user.click(screen.getByRole('button', { name: 'Ajouter' }))
+    await screen.findByText('À archiver')
+
+    await user.click(screen.getByRole('button', { name: 'Archiver la tâche' }))
+    await waitFor(() => expect(screen.queryByText('À archiver')).not.toBeInTheDocument())
+    expect(window.confirm).not.toHaveBeenCalled()
+
+    await user.click(await screen.findByRole('button', { name: 'Archives (1)' }))
+    expect(await screen.findByText('À archiver')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Restaurer la tâche : À archiver' }))
+    await user.click(screen.getByRole('button', { name: 'Retour aux tâches' }))
+    expect(await screen.findByText('À archiver')).toBeInTheDocument()
+  })
+
   it('ne supprime rien si on refuse la confirmation (LOT H1, §5)', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(false)
     const user = userEvent.setup()

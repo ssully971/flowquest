@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { getCurrentUserId } from '@/features/auth/current-user'
 import type { TaskRecord } from '@/shared/storage/db'
@@ -16,7 +16,10 @@ export interface TaskDetailsUpdate {
 }
 
 export interface UseTasksResult {
+  /** Tâches actives (non archivées). */
   tasks: TaskRecord[]
+  /** Tâches archivées, de la plus récemment archivée à la plus ancienne. */
+  archivedTasks: TaskRecord[]
   isLoading: boolean
   addTask: (title: string, parentId?: string | null) => Promise<void>
   /** Renvoie true si cette tâche était la dernière non terminée (confettis, §8). */
@@ -28,6 +31,12 @@ export interface UseTasksResult {
    * comprises), plutôt que de recréer des tâches avec de nouveaux id via addTask. */
   restoreTasks: (records: TaskRecord[]) => Promise<void>
   reorderTasks: (orderedIds: string[]) => Promise<void>
+  /** Archive une tâche et ses sous-tâches (même horodatage) : masquées, restaurables. */
+  archiveTask: (id: string) => Promise<void>
+  /** Archive toutes les tâches terminées (et leurs sous-tâches). Renvoie le nombre archivé. */
+  archiveCompleted: () => Promise<number>
+  /** Restaure une tâche archivée avec les sous-tâches archivées en même temps qu'elle. */
+  unarchiveTask: (id: string) => Promise<void>
   updateTaskDetails: (id: string, update: TaskDetailsUpdate) => Promise<void>
 }
 
@@ -37,14 +46,14 @@ function pushIfAuthenticated(task: TaskRecord): void {
 }
 
 export function useTasks(): UseTasksResult {
-  const [tasks, setTasks] = useState<TaskRecord[]>([])
+  const [allTasks, setAllTasks] = useState<TaskRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const unmountedRef = useRef(false)
 
   const refresh = useCallback(() => {
     void repo.listAll().then((loaded) => {
       if (!unmountedRef.current) {
-        setTasks(loaded)
+        setAllTasks(loaded)
         setIsLoading(false)
       }
     })
@@ -59,6 +68,15 @@ export function useTasks(): UseTasksResult {
       unsubscribe()
     }
   }, [refresh])
+
+  const tasks = useMemo(() => allTasks.filter((task) => !task.archivedAt), [allTasks])
+  const archivedTasks = useMemo(
+    () =>
+      allTasks
+        .filter((task) => task.archivedAt)
+        .sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)),
+    [allTasks],
+  )
 
   const addTask = useCallback(async (title: string, parentId: string | null = null) => {
     const trimmed = title.trim()
@@ -97,7 +115,8 @@ export function useTasks(): UseTasksResult {
     await repo.put(updated)
     pushIfAuthenticated(updated)
     notifyTasksChanged()
-    const isLastRemaining = willBeDone && current.filter((t) => t.id !== id).every((t) => t.done)
+    const isLastRemaining =
+      willBeDone && current.filter((t) => t.id !== id && !t.archivedAt).every((t) => t.done)
     return isLastRemaining
   }, [])
 
@@ -156,8 +175,59 @@ export function useTasks(): UseTasksResult {
     notifyTasksChanged()
   }, [])
 
+  const archiveIds = useCallback(async (rootIds: string[]) => {
+    const current = await repo.listAll()
+    const roots = new Set(rootIds)
+    const stamp = Date.now()
+    const updated = current
+      .filter((t) => !t.archivedAt && (roots.has(t.id) || (t.parentId && roots.has(t.parentId))))
+      .map((t) => ({ ...t, archivedAt: stamp, updatedAt: stamp }))
+    if (updated.length === 0) return 0
+    await repo.putMany(updated)
+    updated.forEach(pushIfAuthenticated)
+    notifyTasksChanged()
+    return updated.length
+  }, [])
+
+  const archiveTask = useCallback(
+    async (id: string) => {
+      await archiveIds([id])
+    },
+    [archiveIds],
+  )
+
+  const archiveCompleted = useCallback(async () => {
+    const current = await repo.listAll()
+    const doneRoots = current.filter((t) => t.done && !t.archivedAt && !t.parentId).map((t) => t.id)
+    // Une sous-tâche terminée sous un parent non terminé reste visible : on n'archive que
+    // les parents terminés (avec leurs enfants) et les sous-tâches terminées isolées.
+    const parents = new Set(current.filter((t) => !t.parentId).map((t) => t.id))
+    const orphanDone = current
+      .filter((t) => t.done && !t.archivedAt && t.parentId && !parents.has(t.parentId))
+      .map((t) => t.id)
+    return archiveIds([...doneRoots, ...orphanDone])
+  }, [archiveIds])
+
+  const unarchiveTask = useCallback(async (id: string) => {
+    const current = await repo.listAll()
+    const root = current.find((t) => t.id === id)
+    if (!root?.archivedAt) return
+    const stamp = root.archivedAt
+    const now = Date.now()
+    const updated = current
+      .filter((t) => t.id === id || (t.parentId === id && t.archivedAt === stamp))
+      .map((t) => ({ ...t, archivedAt: null, updatedAt: now }))
+    await repo.putMany(updated)
+    updated.forEach(pushIfAuthenticated)
+    notifyTasksChanged()
+  }, [])
+
   return {
     tasks,
+    archivedTasks,
+    archiveTask,
+    archiveCompleted,
+    unarchiveTask,
     isLoading,
     addTask,
     toggleDone,
