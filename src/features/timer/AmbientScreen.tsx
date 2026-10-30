@@ -139,6 +139,7 @@ export function AmbientScreen() {
                   fontWeight={CLOCK_STYLE_CSS[clockSettings.style].fontWeight}
                   letterSpacing={CLOCK_STYLE_CSS[clockSettings.style].letterSpacing}
                   fontStyle={CLOCK_STYLE_CSS[clockSettings.style].fontStyle}
+                  glass={clockSettings.glassDigits === true}
                 />
               </span>
               {source.readOnly ? null : (
@@ -158,12 +159,18 @@ export function AmbientScreen() {
               )}
             </div>
 
-            <AmbientSoundsControl sounds={sounds} />
-
             {isDeepFocusActive ? <DeepFocusIndicator /> : null}
           </>
         )}
       </DraggableCluster>
+
+      {/* Bouton FIXE (comme les autres boutons de l'écran) : ne suit pas l'horloge déplacée. */}
+      <div
+        data-testid="ambient-sounds-anchor"
+        className="absolute bottom-24 right-4 z-10 sm:right-14"
+      >
+        <AmbientSoundsControl sounds={sounds} direction="up" />
+      </div>
 
       <KeyboardShortcutsHelp
         open={isShortcutsHelpOpen}

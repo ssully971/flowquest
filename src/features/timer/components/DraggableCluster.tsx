@@ -168,7 +168,7 @@ export function DraggableCluster({ positions, onChange, children }: DraggableClu
     <div
       ref={regionRef}
       data-testid="ambient-clock-region"
-      className="pointer-events-none absolute bottom-24 left-4 right-4 top-[max(2rem,env(safe-area-inset-top))] sm:right-14 sm:top-[max(4rem,env(safe-area-inset-top))]"
+      className="pointer-events-none absolute bottom-36 left-4 right-4 top-[max(2rem,env(safe-area-inset-top))] sm:right-14 sm:top-[max(4rem,env(safe-area-inset-top))]"
     >
       <div
         ref={clusterRef}

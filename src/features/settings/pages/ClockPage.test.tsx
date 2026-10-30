@@ -70,6 +70,18 @@ describe('ClockPage — format, taille, secondes, salutation, style et horloge f
     await user.click(screen.getByRole('switch', { name: 'Horloge « flip »' }))
     expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_CLOCK_SETTINGS, flipClock: true })
   })
+
+  it('les chiffres Liquid Glass sont désactivés par défaut et s’activent via un interrupteur', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    renderClockPage(DEFAULT_CLOCK_SETTINGS, onChange)
+
+    const toggle = screen.getByRole('switch', { name: 'Chiffres en Liquid Glass' })
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
+
+    await user.click(toggle)
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_CLOCK_SETTINGS, glassDigits: true })
+  })
 })
 
 describe('ClockPage — couleur de l’horloge (LOT B10)', () => {
@@ -144,7 +156,9 @@ describe('ClockPage — remise en place de l’horloge Ambiant (LOT 2)', () => {
     }
     renderClockPage(settings, onChange)
 
-    await user.click(screen.getByRole('button', { name: 'Remettre l’horloge du mode Ambiant à sa place' }))
+    await user.click(
+      screen.getByRole('button', { name: 'Remettre l’horloge du mode Ambiant à sa place' }),
+    )
 
     expect(onChange).toHaveBeenCalledWith({
       ...settings,

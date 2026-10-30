@@ -13,6 +13,8 @@ interface AmbientSoundsControlProps {
   /** Alignement du panneau par rapport au bouton : au bord (écran Ambiant, bouton en haut à droite)
    * ou centré (écran Focus, bouton au milieu de l'écran). */
   placement?: 'end' | 'center'
+  /** `up` : le panneau s'ouvre au-dessus du bouton (bouton fixe en bas de l'écran Ambiant). */
+  direction?: 'down' | 'up'
 }
 
 /**
@@ -20,7 +22,11 @@ interface AmbientSoundsControlProps {
  * activé) l'écran Focus. Verrouillé pour un invité : cadenas, un clic ouvre la modale d'upsell et
  * jamais le mixeur.
  */
-export function AmbientSoundsControl({ sounds, placement = 'end' }: AmbientSoundsControlProps) {
+export function AmbientSoundsControl({
+  sounds,
+  placement = 'end',
+  direction = 'down',
+}: AmbientSoundsControlProps) {
   const { isLocked, requireAccount } = useFeatureAccess()
   const [isOpen, setIsOpen] = useState(false)
   const locked = isLocked('ambientSounds')
@@ -58,6 +64,7 @@ export function AmbientSoundsControl({ sounds, placement = 'end' }: AmbientSound
           open={isOpen}
           onClose={() => setIsOpen(false)}
           placement={placement}
+          direction={direction}
           {...sounds}
         />
       )}

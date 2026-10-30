@@ -11,6 +11,8 @@ interface BigDigitsProps {
   /** Couleur personnalisée (Réglages > Horloge, LOT B10) — `undefined` garde le
    * comportement par défaut (var(--text), suit automatiquement le thème). */
   color?: string
+  /** Chiffres en « Liquid Glass » (classe `.glass-digits`, global.css) ; ignore `color`. */
+  glass?: boolean
 }
 
 export function BigDigits({
@@ -24,6 +26,7 @@ export function BigDigits({
   flip = false,
   meridiem,
   color,
+  glass = false,
 }: BigDigitsProps) {
   const parts = label.split(':')
   const scaledSizePx = Math.round(sizePx * sizeScale)
@@ -32,7 +35,7 @@ export function BigDigits({
     <div className="inline-flex items-baseline gap-2">
       <div
         data-testid="big-digits"
-        className="text-[var(--text)]"
+        className={glass ? 'glass-digits' : 'text-[var(--text)]'}
         style={{
           fontFamily,
           fontWeight,
@@ -41,7 +44,7 @@ export function BigDigits({
           letterSpacing,
           lineHeight: 1,
           fontVariantNumeric: 'tabular-nums',
-          ...(color ? { color } : {}),
+          ...(color && !glass ? { color } : {}),
         }}
       >
         {parts.map((part, partIndex) => (

@@ -9,7 +9,12 @@ import {
   resolveClockColor,
 } from '@/features/home/clock-settings'
 import type { ClockFormat, ClockSettings, ClockSize } from '@/features/home/clock-settings'
-import { BigDigits, SegmentedControl, SettingsToggleRow, useResolvedTheme } from '@/shared/design-system'
+import {
+  BigDigits,
+  SegmentedControl,
+  SettingsToggleRow,
+  useResolvedTheme,
+} from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import { CategoryChip } from './CategoryChip'
@@ -76,7 +81,13 @@ export function ClockPage({ settings, onChange }: ClockPageProps) {
         <p className="mb-2 text-sm font-medium text-[var(--panel-muted)]">{s.style}</p>
         <div
           className="mb-4 flex h-32 w-full max-w-sm items-center justify-center overflow-hidden rounded-2xl border"
-          style={{ borderColor: 'var(--panel-line)' }}
+          style={{
+            borderColor: 'var(--panel-line)',
+            // Les chiffres en verre sont blancs : un fond sombre dégradé pour les voir en aperçu.
+            ...(settings.glassDigits
+              ? { background: 'linear-gradient(135deg, #1f3a5f 0%, #6a3d7a 55%, #c9774f 100%)' }
+              : {}),
+          }}
         >
           <BigDigits
             label="09:41"
@@ -87,6 +98,7 @@ export function ClockPage({ settings, onChange }: ClockPageProps) {
             letterSpacing={styleCss.letterSpacing}
             fontStyle={styleCss.fontStyle}
             flip={settings.flipClock}
+            glass={settings.glassDigits === true}
             color={resolveClockColor(settings.color)}
           />
         </div>
@@ -157,6 +169,12 @@ export function ClockPage({ settings, onChange }: ClockPageProps) {
         hint={s.flipClockHint}
         checked={settings.flipClock}
         onToggle={() => onChange({ ...settings, flipClock: !settings.flipClock })}
+      />
+      <SettingsToggleRow
+        label={s.glassDigits}
+        hint={s.glassDigitsHint}
+        checked={settings.glassDigits === true}
+        onToggle={() => onChange({ ...settings, glassDigits: !settings.glassDigits })}
       />
 
       <div className="flex max-w-md flex-col gap-2">

@@ -1351,6 +1351,9 @@ export const fr = {
       showSeconds: 'Afficher les secondes',
       showGreeting: 'Afficher la salutation',
       flipClock: 'Horloge « flip »',
+      glassDigits: 'Chiffres en Liquid Glass',
+      glassDigitsHint:
+        'Mode Ambiant : les chiffres de l’horloge deviennent du verre translucide, cerclé de lumière. Ignore la couleur choisie.',
       flipClockHint: 'Anime les chiffres comme une horloge à palettes quand ils changent.',
       ambientPositionHint:
         'En mode Ambiant, l’horloge se déplace en la glissant par sa poignée (ou avec les flèches du clavier).',

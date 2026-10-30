@@ -7,6 +7,20 @@ function getDigitNodes(container: HTMLElement): Element[] {
   return Array.from(container.querySelectorAll('.inline-block'))
 }
 
+describe('BigDigits — chiffres Liquid Glass', () => {
+  it('applique la classe verre seulement quand demandé, et ignore la couleur choisie', () => {
+    const { getByTestId, rerender } = render(
+      <BigDigits label="09:41" sizePx={100} color="#ff0000" />,
+    )
+    expect(getByTestId('big-digits')).not.toHaveClass('glass-digits')
+    expect(getByTestId('big-digits').style.color).toBe('rgb(255, 0, 0)')
+
+    rerender(<BigDigits label="09:41" sizePx={100} color="#ff0000" glass />)
+    expect(getByTestId('big-digits')).toHaveClass('glass-digits')
+    expect(getByTestId('big-digits').style.color).toBe('')
+  })
+})
+
 describe('BigDigits — animation « flip » chiffre par chiffre (lot 2)', () => {
   it('ne remonte (et donc ne réanime) que le chiffre qui change réellement', () => {
     const { container, rerender } = render(<BigDigits label="05:30" sizePx={100} flip />)
