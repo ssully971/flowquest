@@ -3,7 +3,14 @@ import { computeRoomView, phaseDurationMs } from './room-timer'
 import type { RoomState } from './types'
 
 /** Les actions d'un salon qui modifient son état. */
-export type RoomActionKind = 'start' | 'pause' | 'resume' | 'end' | 'leave' | 'transfer'
+export type RoomActionKind =
+  | 'start'
+  | 'pause'
+  | 'resume'
+  | 'end'
+  | 'leave'
+  | 'transfer'
+  | 'invite'
 
 /** Heure du serveur estimée à l'instant local `now` (écart d'horloge déjà lissé). */
 function serverNow(room: RoomState, now: number): number {
@@ -35,6 +42,9 @@ export function applyOptimistic(
 ): RoomState | null {
   const { now, userId, targetUserId } = options
   switch (action) {
+    // Inviter ne change pas l'horloge : la liste des participants se met à jour au rechargement.
+    case 'invite':
+      return null
     case 'start': {
       if (room.status !== 'lobby') return null
       return {

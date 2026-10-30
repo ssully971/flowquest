@@ -11,6 +11,7 @@ import type { RoomsErrorKind } from './rooms-errors'
 import {
   endRoom,
   getRoomState,
+  inviteToRoom,
   leaveRoom,
   pauseRoom,
   resumeRoom,
@@ -297,6 +298,15 @@ export function useActiveRoom(roomId: string | null, options: UseActiveRoomOptio
         : Promise.resolve(false),
     [roomId, perform],
   )
+  const invite = useCallback(
+    (friendIds: string[]) =>
+      roomId
+        ? perform('invite', async () => {
+            await inviteToRoom(roomId, friendIds)
+          })
+        : Promise.resolve(false),
+    [roomId, perform],
+  )
   const dismissActionError = useCallback(() => setActionError(null), [])
 
   return {
@@ -316,5 +326,6 @@ export function useActiveRoom(roomId: string | null, options: UseActiveRoomOptio
     end,
     leave,
     transfer,
+    invite,
   }
 }

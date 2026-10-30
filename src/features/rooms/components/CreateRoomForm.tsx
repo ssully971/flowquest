@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import type { KeyboardEvent } from 'react'
 
-import { Avatar } from '@/features/avatar/components/Avatar'
 import type { Friend } from '@/features/friends/types'
 import { useEditableNumber } from '@/features/settings/pages/useEditableNumber'
 import { strings } from '@/shared/i18n'
 
+import { FriendPicker } from './FriendPicker'
 import { ROOM_MAX_INVITEES, ROOM_MAX_FOCUS_MINUTES, ROOM_MIN_FOCUS_MINUTES } from '../types'
 import type { RoomMode } from '../types'
 
@@ -108,8 +108,6 @@ export function CreateRoomForm({ friends, friendsLoading, defaults, onCreate, on
     if (roomId) onCreated(roomId)
   }
 
-  const atMax = selected.length >= ROOM_MAX_INVITEES
-
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
@@ -206,44 +204,15 @@ export function CreateRoomForm({ friends, friendsLoading, defaults, onCreate, on
 
       <div className="flex flex-col gap-2">
         <span className="text-sm font-medium text-[var(--text)]">{s.friendsLabel}</span>
-        {friendsLoading ? (
-          <p className="text-sm text-[var(--muted)]">{strings.rooms.loading}</p>
-        ) : friends.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">{s.noFriends}</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {friends.map((friend) => {
-              const checked = selected.includes(friend.id)
-              return (
-                <li key={friend.id}>
-                  <label
-                    className={`flex items-center gap-3 rounded-2xl border px-3.5 py-2.5 transition-opacity duration-200 ${
-                      checked ? 'border-[var(--accent)]' : 'border-[var(--line)]'
-                    } ${!checked && atMax ? 'opacity-40' : ''}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      disabled={!checked && atMax}
-                      onChange={() => toggleFriend(friend.id)}
-                      className="h-4 w-4 accent-[var(--accent)]"
-                    />
-                    <Avatar
-                      userId={friend.id}
-                      username={friend.username}
-                      displayName={friend.displayName}
-                      avatarUrl={friend.avatarUrl}
-                      avatarVersion={friend.avatarVersion}
-                      size="sm"
-                    />
-                    <span className="truncate text-sm text-[var(--text)]">{friend.displayName || friend.username}</span>
-                  </label>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-        {atMax ? <p className="text-xs text-[var(--muted)]">{s.maxReached}</p> : null}
+        <FriendPicker
+          friends={friends}
+          loading={friendsLoading}
+          selected={selected}
+          onToggle={toggleFriend}
+          max={ROOM_MAX_INVITEES}
+          emptyText={s.noFriends}
+          maxReachedText={s.maxReached}
+        />
       </div>
 
       <button

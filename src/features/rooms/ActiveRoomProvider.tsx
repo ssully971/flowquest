@@ -186,10 +186,10 @@ export function ActiveRoomProvider({ children }: { children: ReactNode }) {
   }, [refreshRooms, syncSessions])
 
   // ── Actions : verrou anti-double-clic, mise à jour optimiste et rollback dans useActiveRoom.
-  const { start, pause, resume, transfer, end, leave } = api
+  const { start, pause, resume, transfer, end, leave, invite } = api
   const actions = useMemo(
-    () => ({ start, pause, resume, transfer, end, leave }),
-    [start, pause, resume, transfer, end, leave],
+    () => ({ start, pause, resume, transfer, end, leave, invite }),
+    [start, pause, resume, transfer, end, leave, invite],
   )
 
   // Salon connu de la liste mais dont l'état n'est pas encore arrivé : écran de connexion.

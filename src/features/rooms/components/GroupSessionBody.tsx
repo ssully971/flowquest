@@ -5,8 +5,11 @@ import { TimerControls } from '@/features/timer/components/TimerControls'
 import { IconButton } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
+import { useState } from 'react'
+
 import type { ActiveGroupRoomValue } from '../active-room-context'
 import { GroupParticipants } from './GroupParticipants'
+import { InviteToRoomDialog } from './InviteToRoomDialog'
 
 interface GroupSessionBodyProps {
   group: ActiveGroupRoomValue
@@ -33,6 +36,7 @@ export function GroupSessionBody({
 }: GroupSessionBodyProps) {
   const s = strings.rooms.group
   const { room, view, isHost, actions, pendingAction, actionError, dismissActionError } = group
+  const [isInviteOpen, setIsInviteOpen] = useState(false)
   if (!room || !view) return null
 
   // Action en cours : boutons désactivés + libellé (« Lancement… »), jamais un bouton muet.
@@ -147,7 +151,17 @@ export function GroupSessionBody({
         isHost={isHost}
         onTransferHost={(userId) => void actions.transfer(userId)}
         disabled={pendingAction !== null}
+        onInvite={() => setIsInviteOpen(true)}
       />
+
+      {isInviteOpen ? (
+        <InviteToRoomDialog
+          room={room}
+          busy={pendingAction === 'invite'}
+          onInvite={actions.invite}
+          onClose={() => setIsInviteOpen(false)}
+        />
+      ) : null}
 
       <p className="text-xs text-[var(--muted)]">{s.soloPaused}</p>
 

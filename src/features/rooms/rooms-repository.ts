@@ -178,6 +178,18 @@ export async function leaveRoom(roomId: string): Promise<void> {
   if (error) throw rpcError(error.message)
 }
 
+/** Invite des amis dans un salon existant (migration 0053, hôte seulement). Idempotent côté serveur :
+ * un ami déjà invité ou présent est ignoré. Renvoie le nombre d'invitations réellement créées. */
+export async function inviteToRoom(roomId: string, friendIds: string[]): Promise<number> {
+  const client = requireClient()
+  const { data, error } = await client.rpc('invite_to_room', {
+    p_room_id: roomId,
+    p_friend_ids: friendIds,
+  })
+  if (error) throw rpcError(error.message)
+  return data ?? 0
+}
+
 export async function transferHost(roomId: string, newHostId: string): Promise<void> {
   const client = requireClient()
   const { error } = await client.rpc('transfer_host', {

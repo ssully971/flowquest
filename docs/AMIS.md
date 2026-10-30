@@ -494,3 +494,22 @@ sans fin, qui saturait la base (requêtes lentes, « network error », profil et
   première réponse, pour ne pas afficher une heure qui sauterait.
 - La **création** d'un salon n'est volontairement pas rejouée automatiquement après un délai dépassé (elle n'est
   pas idempotente : on risquerait deux salons) ; la liste est rechargée pour montrer un salon créé tardivement.
+
+## Inviter après coup (migration `0053_invite_to_room.sql`)
+
+Un salon déjà ouvert accepte de nouveaux invités sans qu'il faille le quitter ni le recréer : bouton
+**Inviter** dans la liste des participants, qui ouvre le même sélecteur d'amis que la création
+(`FriendPicker`).
+
+- **Qui ?** L'hôte seulement (contrôlé aussi par la RPC). Pour l'ouvrir aux membres, il suffit de
+  retirer le contrôle `host_id <> current_uid` de `invite_to_room` et d'afficher le bouton aux membres.
+- **Règles** (celles de `create_room`) : invités = amis de l'hôte, non bannis ni suspendus (`is_banned`) ;
+  6 personnes au plus, hôte compris (places = participants `joined` ou `invited`) — dépassement refusé en
+  bloc (aucune invitation créée) ; salon non terminé.
+- **Idempotent** : un ami déjà invité ou déjà présent est ignoré sans erreur ; un ami qui avait refusé ou
+  quitté peut être réinvité. La RPC renvoie le nombre d'invitations réellement créées.
+- **Arrivée en cours de route** : accepter (`respond_room_invite`) enregistre `phase_index_joined` et
+  `elapsed_ms_at_join` ; l'horloge se calcule depuis `started_at` comme pour les autres.
+- **Retour visuel** : l'envoi passe par le verrou d'action du salon (bouton « Envoi… », toast de succès,
+  message clair et « Réessayer » en cas d'échec ou de délai de 8 s).
+- Test SQL : `supabase/tests/rooms_invite.sql`.

@@ -677,6 +677,10 @@ export interface Database {
         Args: { p_room_id: string; p_accept: boolean; p_pillar_id?: string | null }
         Returns: undefined
       }
+      invite_to_room: {
+        Args: { p_room_id: string; p_friend_ids: string[] }
+        Returns: number
+      }
       set_room_pillar: {
         Args: { p_room_id: string; p_pillar_id: string | null }
         Returns: undefined

@@ -86,6 +86,7 @@ function groupValue(overrides: Partial<ActiveGroupRoomValue> = {}): ActiveGroupR
       end: vi.fn().mockResolvedValue(true),
       leave: vi.fn().mockResolvedValue(true),
       transfer: vi.fn().mockResolvedValue(true),
+      invite: vi.fn().mockResolvedValue(true),
     },
     dismissEnded: vi.fn(),
     ...overrides,
@@ -363,5 +364,26 @@ describe('FocusScreen — retour visuel des actions et connexion au salon (LOT P
     expect(retry).toHaveBeenCalledTimes(1)
     await user.click(screen.getByRole('button', { name: 'Masquer le message' }))
     expect(dismissActionError).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('FocusScreen — inviter des participants après coup (LOT 5)', () => {
+  it('l’hôte voit « Inviter » dans la liste des participants et ouvre la fenêtre d’invitation', async () => {
+    const user = userEvent.setup()
+    render(tree(groupValue({ isHost: true })))
+
+    await user.click(await screen.findByRole('button', { name: 'Inviter' }))
+    expect(screen.getByRole('dialog', { name: 'Inviter dans le salon' })).toBeInTheDocument()
+  })
+
+  it('un participant non hôte n’a pas de bouton « Inviter »', async () => {
+    render(tree(groupValue({ isHost: false })))
+    await screen.findByText('Participants', { exact: false })
+    expect(screen.queryByRole('button', { name: 'Inviter' })).not.toBeInTheDocument()
+  })
+
+  it('pendant l’envoi, « Inviter » est désactivé avec les autres actions', async () => {
+    render(tree(groupValue({ isHost: true, pendingAction: 'invite' })))
+    expect(await screen.findByRole('button', { name: 'Inviter' })).toBeDisabled()
   })
 })
