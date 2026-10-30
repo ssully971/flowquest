@@ -40,11 +40,49 @@ describe('admin-users — visionneuse et modération (lot I3, §1-2)', () => {
     })
   })
 
-  it('listAdminUsers renvoie un tableau vide en cas d’erreur', async () => {
-    rpcMock.mockResolvedValue({ data: null, error: { message: 'boom' } })
-    const { listAdminUsers } = await import('./admin-users')
+  it('listAdminUsers fait remonter la VRAIE erreur (code + message), jamais une liste vide', async () => {
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: {
+        code: '42804',
+        message: 'structure of query does not match function result type',
+        details:
+          'Returned type character varying(255) does not match expected type text in column 2.',
+      },
+    })
+    const { AdminUsersError, listAdminUsers } = await import('./admin-users')
 
+    const failure = await listAdminUsers(20, 0, null, 'created_at_desc').catch(
+      (err: unknown) => err,
+    )
+
+    expect(failure).toBeInstanceOf(AdminUsersError)
+    const error = failure as InstanceType<typeof AdminUsersError>
+    expect(error.code).toBe('42804')
+    expect(error.message).toBe('structure of query does not match function result type')
+    expect(error.technical).toContain('42804')
+    expect(error.technical).toContain('character varying(255)')
+  })
+
+  it('listAdminUsers distingue une liste vide (succès) d’un échec', async () => {
+    rpcMock.mockResolvedValue({ data: [], error: null })
+    const { listAdminUsers } = await import('./admin-users')
     expect(await listAdminUsers(20, 0, null, 'created_at_desc')).toEqual([])
+
+    rpcMock.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    await expect(listAdminUsers(20, 0, null, 'created_at_desc')).rejects.toThrow('boom')
+  })
+
+  it('exportAdminUsers fait aussi remonter l’erreur', async () => {
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { code: '42501', message: 'permission denied' },
+    })
+    const { exportAdminUsers } = await import('./admin-users')
+    await expect(exportAdminUsers(true)).rejects.toMatchObject({
+      code: '42501',
+      message: 'permission denied',
+    })
   })
 
   it('exportAdminUsers transmet le filtre de consentement', async () => {
@@ -62,21 +100,34 @@ describe('admin-users — visionneuse et modération (lot I3, §1-2)', () => {
     rpcMock.mockResolvedValue({ data: null, error: null })
     const { suspendUser } = await import('./admin-users')
 
-    const ok = await suspendUser('u1', 7, '  spam  ')
+    await suspendUser('u1', 7, '  spam  ')
 
     expect(rpcMock).toHaveBeenCalledWith('admin_suspend_user', {
       p_target_user_id: 'u1',
       p_duration_days: 7,
       p_reason: 'spam',
     })
-    expect(ok).toBe(true)
   })
 
-  it('suspendUser renvoie false en cas d’erreur', async () => {
+  it('les actions de modération rejettent avec le vrai message en cas d’erreur', async () => {
     rpcMock.mockResolvedValue({ data: null, error: { message: 'réservé aux administrateurs' } })
-    const { suspendUser } = await import('./admin-users')
+    const { banUser, removeUserAvatar, suspendUser, unbanUser, unsuspendUser } =
+      await import('./admin-users')
 
-    expect(await suspendUser('u1', 1, null)).toBe(false)
+    await expect(suspendUser('u1', 1, null)).rejects.toThrow('réservé aux administrateurs')
+    await expect(unsuspendUser('u1')).rejects.toThrow('réservé aux administrateurs')
+    await expect(banUser('u1', null)).rejects.toThrow('réservé aux administrateurs')
+    await expect(unbanUser('u1')).rejects.toThrow('réservé aux administrateurs')
+    await expect(removeUserAvatar('u1')).rejects.toThrow('réservé aux administrateurs')
+  })
+
+  it('repairUserProfile appelle admin_repair_profile', async () => {
+    rpcMock.mockResolvedValue({ data: 'u1', error: null })
+    const { repairUserProfile } = await import('./admin-users')
+
+    await repairUserProfile('u1')
+
+    expect(rpcMock).toHaveBeenCalledWith('admin_repair_profile', { p_target_user_id: 'u1' })
   })
 
   it('unsuspendUser/banUser/unbanUser/removeUserAvatar appellent les bonnes RPC', async () => {

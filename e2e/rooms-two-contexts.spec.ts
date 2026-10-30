@@ -37,6 +37,7 @@ async function openRoomsTab(page: Page) {
  * push serveur) diffère dans cet environnement de test.
  */
 test('deux navigateurs voient le même salon se synchroniser', async ({ browser }) => {
+  test.setTimeout(60_000)
   const backend = createFakeBackend()
 
   const hostContext = await browser.newContext()
@@ -75,6 +76,16 @@ test('deux navigateurs voient le même salon se synchroniser', async ({ browser 
   await memberPage.getByRole('button', { name: 'Rejoindre' }).click()
   await expect(memberPage.getByText('En attente de l’hôte')).toBeVisible()
 
+  // 2 bis. LOT P1 : aucune requête en continu. Dans cet environnement le canal Realtime est coupé,
+  // donc seul le repli à 4 s tourne (jamais le filet à 60 s) : sur 9 s, quelques rechargements au
+  // plus (une boucle d'écriture/lecture en produirait des dizaines) et aucun battement de cœur
+  // supplémentaire (2 min). Le membre n'a pas encore rejoint : la mesure se fait chez l'hôte.
+  const quietStart = backend.calls.length
+  await hostPage.waitForTimeout(9_000)
+  const quietCalls = backend.calls.slice(quietStart).filter((call) => call.userId === HOST.id)
+  expect(quietCalls.filter((call) => call.fn === 'get_room_state').length).toBeLessThanOrEqual(5)
+  expect(quietCalls.filter((call) => call.fn === 'touch_my_rooms')).toHaveLength(0)
+
   // 3. L'hôte démarre le minuteur partagé.
   await hostPage.getByRole('button', { name: 'Lancer' }).click()
   await expect(hostPage.getByRole('button', { name: 'Mettre en pause' })).toBeVisible()
@@ -107,6 +118,59 @@ test('deux navigateurs voient le même salon se synchroniser', async ({ browser 
   await expect(hostPage.getByText(/t’invite dans un salon/)).toHaveCount(0)
   await expect(hostPage.getByRole('button', { name: 'Rejoindre' })).toHaveCount(0)
   await expect(hostPage.getByText('Pas encore de salon.')).toBeVisible()
+
+  await hostContext.close()
+  await memberContext.close()
+})
+
+/**
+ * LOT P1 — retour visuel : verrou anti-double-clic, libellé d'action pendant l'attente, échec
+ * réseau traduit avec « Réessayer ». Un seul navigateur (l'hôte), serveur lent simulé.
+ */
+test('chaque action donne un retour immédiat, ignore le double clic et se rejoue après un échec', async ({
+  browser,
+}) => {
+  const backend = createFakeBackend()
+  const hostContext = await browser.newContext()
+  const memberContext = await browser.newContext()
+  const hostPage = await hostContext.newPage()
+  const memberPage = await memberContext.newPage()
+  await signInAs(hostPage, backend, HOST)
+  await signInAs(memberPage, backend, MEMBER)
+  hostPage.on('dialog', (dialog) => void dialog.accept())
+  await hostPage.goto('/')
+  await memberPage.goto('/')
+
+  await openRoomsTab(hostPage)
+  await hostPage.getByRole('tab', { name: 'Créer' }).click()
+  await hostPage.getByRole('button', { name: '15 min' }).click()
+  await hostPage.getByText(MEMBER.username).click()
+  await hostPage.getByRole('button', { name: 'Créer le salon' }).click()
+  await expect(hostPage.getByRole('button', { name: 'Lancer' })).toBeVisible()
+
+  // Serveur lent : le clic sur « Lancer » est suivi, tout de suite, d'un bouton occupé « Lancement… »
+  // (désactivé), même si la réponse n'est pas encore arrivée. Un second clic ne part pas.
+  backend.setLatency(1_200)
+  const startCallsBefore = backend.calls.filter((call) => call.fn === 'start_room').length
+  const launch = hostPage.getByRole('button', { name: 'Lancer' })
+  await launch.click()
+  const busy = hostPage.getByRole('button', { name: 'Lancement…' })
+  await expect(busy).toBeVisible()
+  await expect(busy).toBeDisabled()
+  await busy.click({ force: true }).catch(() => undefined) // double clic : sans effet
+  await expect(hostPage.getByRole('button', { name: 'Mettre en pause' })).toBeVisible({ timeout: 10_000 })
+  expect(backend.calls.filter((call) => call.fn === 'start_room').length - startCallsBefore).toBe(1)
+
+  // Échec réseau sur « Pause » : message français, retour en arrière, puis « Réessayer » aboutit.
+  backend.setLatency(0)
+  backend.failNext('pause_room', 'Failed to fetch')
+  await hostPage.getByRole('button', { name: 'Mettre en pause' }).click()
+  const alert = hostPage.getByRole('alert').filter({ hasText: 'Connexion impossible' })
+  await expect(alert).toBeVisible()
+  await expect(hostPage.getByRole('button', { name: 'Mettre en pause' })).toBeVisible()
+  await alert.getByRole('button', { name: 'Réessayer' }).click()
+  await expect(hostPage.getByRole('button', { name: 'Reprendre' })).toBeVisible()
+  await expect(alert).toHaveCount(0)
 
   await hostContext.close()
   await memberContext.close()

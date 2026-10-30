@@ -12,6 +12,7 @@ import {
 } from '@/features/home/clock-settings'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useActiveGroupRoom } from '@/features/rooms/active-room-context'
+import { GroupConnecting } from '@/features/rooms/components/GroupConnecting'
 import { BigDigits, GlassCard } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 import { useToast } from '@/shared/toast'
@@ -89,6 +90,12 @@ export function AmbientScreen() {
       })
     },
   })
+
+  if (!isGroup && group.connecting) {
+    return (
+      <GroupConnecting room={group.connecting} error={group.loadError} onRetry={group.retryLoad} />
+    )
+  }
 
   if (!isGroup && !source.isReady) {
     return <div className="h-full" />

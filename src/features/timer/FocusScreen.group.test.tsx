@@ -93,7 +93,8 @@ function groupValue(overrides: Partial<ActiveGroupRoomValue> = {}): ActiveGroupR
 }
 
 vi.mock('@/features/auth/useAuth', async () => {
-  const actual = await vi.importActual<typeof import('@/features/auth/useAuth')>('@/features/auth/useAuth')
+  const actual =
+    await vi.importActual<typeof import('@/features/auth/useAuth')>('@/features/auth/useAuth')
   return {
     useAuth: () => ({ ...actual.useAuth(), user: { id: 'me' } }),
   }
@@ -200,7 +201,13 @@ describe('FocusScreen — la session de groupe remplace l’horloge solo (LOT M3
       tree(
         groupValue({
           room: room({ phase: 'short_break', phaseIndex: 1 }),
-          view: view({ phase: 'short_break', phaseIndex: 1, durationMs: 300_000, elapsedMs: 60_000, remainingMs: 240_000 }),
+          view: view({
+            phase: 'short_break',
+            phaseIndex: 1,
+            durationMs: 300_000,
+            elapsedMs: 60_000,
+            remainingMs: 240_000,
+          }),
         }),
       ),
     )
@@ -259,5 +266,102 @@ describe('FocusScreen — la session de groupe remplace l’horloge solo (LOT M3
       )
     })
     await waitFor(() => expect(screen.getByRole('timer')).toHaveAccessibleName(/15:00/))
+  })
+})
+
+describe('FocusScreen — retour visuel des actions et connexion au salon (LOT P1)', () => {
+  const listed = {
+    roomId: 'r1',
+    hostId: 'host',
+    hostUsername: 'hote',
+    hostDisplayName: 'Hôte',
+    status: 'running' as const,
+    focusMinutes: 25,
+    myStatus: 'joined' as const,
+    participantCount: 3,
+    createdAt: 'x',
+    mode: 'pomodoro' as const,
+    phase: 'focus' as const,
+    startedAt: null,
+    durationMs: 1_500_000,
+    elapsedMsAtPause: null,
+  }
+
+  it('salon en cours de chargement : écran « Connexion au salon… » tout de suite, jamais l’horloge solo', async () => {
+    render(tree(groupValue({ room: null, view: null, connecting: listed })))
+
+    expect(await screen.findByText('Connexion au salon…')).toBeInTheDocument()
+    expect(screen.getByText(/Session de groupe · Pomodoro/)).toBeInTheDocument()
+    expect(screen.getByText(/En cours · Focus · 3 participants/)).toBeInTheDocument()
+    expect(screen.getByTestId('group-clock-skeleton')).toBeInTheDocument()
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument()
+  })
+
+  it('échec du chargement : message clair et bouton Réessayer', async () => {
+    const retryLoad = vi.fn()
+    const user = userEvent.setup()
+    render(
+      tree(
+        groupValue({
+          room: null,
+          view: null,
+          connecting: listed,
+          loadError: 'Le serveur met du temps à répondre.',
+          retryLoad,
+        }),
+      ),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Le serveur met du temps à répondre.',
+    )
+    await user.click(screen.getByRole('button', { name: 'Réessayer' }))
+    expect(retryLoad).toHaveBeenCalledTimes(1)
+  })
+
+  it('action en cours : boutons désactivés, libellé « Lancement… », jamais de bouton muet', async () => {
+    render(
+      tree(
+        groupValue({
+          room: room({ status: 'lobby', startedAt: null, durationMs: null }),
+          view: view({ status: 'lobby', elapsedMs: 0, remainingMs: 1_500_000 }),
+          pendingAction: 'start',
+        }),
+      ),
+    )
+
+    const primary = await screen.findByRole('button', { name: 'Lancement…' })
+    expect(primary).toBeDisabled()
+    expect(primary).toHaveAttribute('aria-busy', 'true')
+    expect(screen.getAllByText('Lancement…').length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: 'Quitter la session' })).toBeDisabled()
+    for (const button of screen.getAllByRole('button', { name: 'Nommer hôte' })) {
+      expect(button).toBeDisabled()
+    }
+  })
+
+  it('échec d’une action : message, Réessayer relance l’action, Masquer ferme le message', async () => {
+    const retry = vi.fn()
+    const dismissActionError = vi.fn()
+    const user = userEvent.setup()
+    render(
+      tree(
+        groupValue({
+          actionError: {
+            action: 'pause',
+            kind: 'network',
+            message: 'Connexion impossible. Vérifie ta connexion internet puis réessaie.',
+            retry,
+          },
+          dismissActionError,
+        }),
+      ),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Connexion impossible.')
+    await user.click(screen.getByRole('button', { name: 'Réessayer' }))
+    expect(retry).toHaveBeenCalledTimes(1)
+    await user.click(screen.getByRole('button', { name: 'Masquer le message' }))
+    expect(dismissActionError).toHaveBeenCalledTimes(1)
   })
 })

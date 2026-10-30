@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 
 import { useAuth } from '@/features/auth/useAuth'
 import { useFeatureFlag } from '@/features/feature-flags/useFeatureFlag'
-import { GlassCard } from '@/shared/design-system'
+import { GlassCard, ModalOverlay } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 interface UpsellModalProps {
@@ -78,19 +78,13 @@ export function UpsellModal({ onClose, onSignUp, onSignIn }: UpsellModalProps) {
   }, [onClose])
 
   return (
-    <div className="fixed inset-0 z-[75] flex items-center justify-center p-4">
-      <div
-        data-testid="upsell-backdrop"
-        className="absolute inset-0"
-        style={{ background: 'var(--scrim)' }}
-        onClick={onClose}
-      />
+    <ModalOverlay className="z-[75]" onBackdropClick={onClose} backdropTestId="upsell-backdrop">
       <GlassCard
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="upsell-title"
-        className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col gap-5 overflow-y-auto rounded-3xl p-7"
+        className="relative flex w-full max-w-md flex-col gap-5 rounded-3xl p-7"
       >
         <div className="flex flex-col gap-2 text-center">
           <h2
@@ -140,6 +134,6 @@ export function UpsellModal({ onClose, onSignUp, onSignIn }: UpsellModalProps) {
           </button>
         </div>
       </GlassCard>
-    </div>
+    </ModalOverlay>
   )
 }

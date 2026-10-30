@@ -41,6 +41,7 @@ function buildAuthValue(overrides: Partial<AuthContextValue>): AuthContextValue 
   return {
     status: 'guest',
     isSupabaseConfigured: true,
+    isReconnecting: false,
     user: null,
     session: null,
     profile: null,

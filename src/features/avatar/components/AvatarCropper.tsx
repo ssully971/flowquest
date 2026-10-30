@@ -2,7 +2,7 @@ import { ZoomIn } from 'lucide-react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 
-import { GlassCard } from '@/shared/design-system'
+import { GlassCard, ModalOverlay } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import { clampPan, computeCropRect } from '../process-avatar'
@@ -26,10 +26,21 @@ interface AvatarCropperProps {
  * exactement le même calcul (computeCropRect) que l'export final, donc ce que
  * l'utilisateur voit est garanti être ce qui sera enregistré.
  */
-export function AvatarCropper({ bitmap, isUploading, error, onCancel, onConfirm }: AvatarCropperProps) {
+export function AvatarCropper({
+  bitmap,
+  isUploading,
+  error,
+  onCancel,
+  onConfirm,
+}: AvatarCropperProps) {
   const s = strings.avatar.cropper
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const dragRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null)
+  const dragRef = useRef<{
+    startX: number
+    startY: number
+    originX: number
+    originY: number
+  } | null>(null)
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
 
@@ -68,7 +79,12 @@ export function AvatarCropper({ bitmap, isUploading, error, onCancel, onConfirm 
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId)
-    dragRef.current = { startX: event.clientX, startY: event.clientY, originX: pan.x, originY: pan.y }
+    dragRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: pan.x,
+      originY: pan.y,
+    }
   }
   const handlePointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!dragRef.current) return
@@ -81,12 +97,7 @@ export function AvatarCropper({ bitmap, isUploading, error, onCancel, onConfirm 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0"
-        style={{ background: 'var(--scrim)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
-        onClick={isUploading ? undefined : onCancel}
-      />
+    <ModalOverlay className="z-50" blur onBackdropClick={isUploading ? undefined : onCancel}>
       <GlassCard
         role="dialog"
         aria-label={s.title}
@@ -101,7 +112,11 @@ export function AvatarCropper({ bitmap, isUploading, error, onCancel, onConfirm 
           role="img"
           aria-label={s.previewLabel}
           className="touch-none select-none rounded-full border border-[var(--line)]"
-          style={{ width: VIEWPORT_SIZE, height: VIEWPORT_SIZE, cursor: isUploading ? 'default' : 'grab' }}
+          style={{
+            width: VIEWPORT_SIZE,
+            height: VIEWPORT_SIZE,
+            cursor: isUploading ? 'default' : 'grab',
+          }}
           onPointerDown={isUploading ? undefined : handlePointerDown}
           onPointerMove={isUploading ? undefined : handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -140,7 +155,9 @@ export function AvatarCropper({ bitmap, isUploading, error, onCancel, onConfirm 
           </button>
           <button
             type="button"
-            onClick={() => onConfirm({ viewportSize: VIEWPORT_SIZE, zoom, panX: pan.x, panY: pan.y })}
+            onClick={() =>
+              onConfirm({ viewportSize: VIEWPORT_SIZE, zoom, panX: pan.x, panY: pan.y })
+            }
             disabled={isUploading}
             className="h-10 rounded-xl bg-[var(--accent)] px-4 text-sm font-medium text-[var(--on-accent)] transition-opacity duration-200 disabled:opacity-40"
           >
@@ -148,6 +165,6 @@ export function AvatarCropper({ bitmap, isUploading, error, onCancel, onConfirm 
           </button>
         </div>
       </GlassCard>
-    </div>
+    </ModalOverlay>
   )
 }

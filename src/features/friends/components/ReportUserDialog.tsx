@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react'
 import { useState } from 'react'
 
-import { GlassCard } from '@/shared/design-system'
+import { GlassCard, ModalOverlay } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 interface ReportUserDialogProps {
@@ -24,12 +24,7 @@ export function ReportUserDialog({ onCancel, onSubmit }: ReportUserDialogProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0"
-        style={{ background: 'var(--scrim)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
-        onClick={onCancel}
-      />
+    <ModalOverlay className="z-50" blur onBackdropClick={onCancel}>
       <GlassCard
         role="dialog"
         aria-label={s.title}
@@ -68,6 +63,6 @@ export function ReportUserDialog({ onCancel, onSubmit }: ReportUserDialogProps) 
           </div>
         </form>
       </GlassCard>
-    </div>
+    </ModalOverlay>
   )
 }

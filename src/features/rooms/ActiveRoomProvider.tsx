@@ -16,6 +16,7 @@ import { pickActiveRoom } from './active-room'
 import type { ActiveGroupRoomValue } from './active-room-context'
 import { setRoomPillar } from './rooms-repository'
 import type { RoomPhase, RoomState } from './types'
+import type { RoomActionKind } from './room-optimistic'
 import { useActiveRoom } from './useActiveRoom'
 import { useRoomPresence } from './useRoomPresence'
 import { useRooms } from './useRooms'
@@ -44,7 +45,13 @@ export function ActiveRoomProvider({ children }: { children: ReactNode }) {
   // de fin, les confettis et le rapatriement des sessions seraient perdus.
   const [stickyRoomId, setStickyRoomId] = useState<string | null>(null)
   if (activeListed && stickyRoomId !== activeListed.roomId) setStickyRoomId(activeListed.roomId)
-  const api = useActiveRoom(activeListed?.roomId ?? stickyRoomId)
+  // Après « Terminer » / « Quitter » réussis : liste de mes salons rechargée et sessions
+  // enregistrées par le serveur rapatriées (la fonction est posée plus bas, une fois
+  // `syncSessions` défini, via une référence).
+  const afterActionRef = useRef<(action: RoomActionKind) => Promise<void>>(() => Promise.resolve())
+  const api = useActiveRoom(activeListed?.roomId ?? stickyRoomId, {
+    onActionSuccess: (action) => afterActionRef.current(action),
+  })
 
   // Je ne suis « dans » le salon que tant que le serveur me compte comme participant rejoint
   // (après « Quitter », la liste met un instant à se rafraîchir).
@@ -170,34 +177,30 @@ export function ActiveRoomProvider({ children }: { children: ReactNode }) {
     void pauseStoredSoloTimerIfRunning().catch(() => undefined)
   }, [activeRoomId])
 
-  // ── Actions : après chacune, la liste de mes salons est rechargée et les sessions
-  // enregistrées par le serveur rapatriées.
+  useEffect(() => {
+    afterActionRef.current = async (action) => {
+      if (action !== 'end' && action !== 'leave') return
+      await refreshRooms()
+      await syncSessions()
+    }
+  }, [refreshRooms, syncSessions])
+
+  // ── Actions : verrou anti-double-clic, mise à jour optimiste et rollback dans useActiveRoom.
   const { start, pause, resume, transfer, end, leave } = api
   const actions = useMemo(
-    () => ({
-      start,
-      pause,
-      resume,
-      transfer,
-      end: async () => {
-        const ok = await end()
-        if (ok) {
-          await refreshRooms()
-          await syncSessions()
-        }
-        return ok
-      },
-      leave: async () => {
-        const ok = await leave()
-        if (ok) {
-          await refreshRooms()
-          await syncSessions()
-        }
-        return ok
-      },
-    }),
-    [start, pause, resume, transfer, end, leave, refreshRooms, syncSessions],
+    () => ({ start, pause, resume, transfer, end, leave }),
+    [start, pause, resume, transfer, end, leave],
   )
+
+  // Salon connu de la liste mais dont l'état n'est pas encore arrivé : écran de connexion.
+  const connecting =
+    status === 'authenticated' &&
+    activeListed !== null &&
+    activeListed.myStatus === 'joined' &&
+    api.room === null &&
+    (api.isLoading || api.loadError !== null)
+      ? activeListed
+      : null
 
   const value = useMemo<ActiveGroupRoomValue>(
     () => ({
@@ -208,11 +211,33 @@ export function ActiveRoomProvider({ children }: { children: ReactNode }) {
       isHost: Boolean(room && user && room.hostId === user.id),
       isLoading: api.isLoading,
       loadError: api.loadError,
+      connecting,
+      retryLoad: () => void refresh(),
+      pendingAction: api.pendingAction,
+      actionError: api.actionError,
+      dismissActionError: api.dismissActionError,
       nowMs: api.nowMs,
       actions,
       dismissEnded,
     }),
-    [roomsState, status, room, view, endedRoom, user, api.isLoading, api.loadError, api.nowMs, actions, dismissEnded],
+    [
+      roomsState,
+      status,
+      room,
+      view,
+      endedRoom,
+      user,
+      api.isLoading,
+      api.loadError,
+      refresh,
+      api.pendingAction,
+      api.actionError,
+      api.dismissActionError,
+      connecting,
+      api.nowMs,
+      actions,
+      dismissEnded,
+    ],
   )
 
   return <ActiveGroupRoomContext.Provider value={value}>{children}</ActiveGroupRoomContext.Provider>

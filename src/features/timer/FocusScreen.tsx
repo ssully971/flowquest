@@ -14,6 +14,7 @@ import { useQuotesSettings } from '@/features/home/quotes-settings-context'
 import { useQuotePool } from '@/features/home/useQuotePool'
 import { PillarSelector } from '@/features/pillars/components/PillarSelector'
 import { useActiveGroupRoom } from '@/features/rooms/active-room-context'
+import { GroupConnecting } from '@/features/rooms/components/GroupConnecting'
 import { GroupEndedPanel } from '@/features/rooms/components/GroupEndedPanel'
 import { GroupSessionBody } from '@/features/rooms/components/GroupSessionBody'
 import { groupCycleProgress } from '@/features/rooms/room-timer'
@@ -160,6 +161,14 @@ export function FocusScreen() {
     },
     timerSettings.keyboardShortcutsEnabled,
   )
+
+  // Salon connu de la liste mais pas encore chargé : on l'affiche tout de suite (squelette),
+  // jamais l'horloge solo ni un écran vide.
+  if (!isGroup && group.connecting) {
+    return (
+      <GroupConnecting room={group.connecting} error={group.loadError} onRetry={group.retryLoad} />
+    )
+  }
 
   if (!isGroup && !source.isReady) {
     return <div className="h-full" />

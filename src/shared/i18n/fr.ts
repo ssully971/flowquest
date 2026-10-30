@@ -110,9 +110,16 @@ export const fr = {
     users: {
       searchPlaceholder: 'Chercher par pseudo ou e-mail…',
       loading: 'Chargement des comptes…',
-      loadError: 'Impossible de charger les comptes. Réessaie.',
+      loadError: 'Impossible de charger les comptes.',
+      technicalDetails: 'Détail technique',
       retry: 'Réessayer',
       empty: 'Aucun compte pour ce filtre.',
+      profileMissing: 'Profil manquant',
+      profileMissingHint:
+        'Ce compte existe mais n’a pas de ligne de profil : il ne peut pas être modéré tant qu’elle n’est pas recréée.',
+      repairProfile: 'Réparer le profil',
+      repairing: 'Réparation…',
+      profileRepaired: 'Profil recréé.',
       columnEmail: 'E-mail',
       columnUsername: 'Pseudo',
       columnCreatedAt: 'Inscription',
@@ -155,7 +162,7 @@ export const fr = {
       reasonLabel: 'Motif (optionnel)',
       confirm: 'Confirmer',
       cancel: 'Annuler',
-      actionError: 'L’action a échoué. Réessaie.',
+      actionError: 'L’action a échoué.',
       resetPasswordSent: 'E-mail de réinitialisation envoyé.',
       export: {
         button: 'Exporter les utilisateurs',
@@ -164,6 +171,7 @@ export const fr = {
         warning:
           'L’envoi d’une newsletter exige le consentement explicite du destinataire : seul le mode « comptes ayant consenti » convient pour une campagne marketing.',
         exporting: 'Génération du fichier…',
+        error: 'L’export a échoué.',
         filenameConsented: 'utilisateurs-newsletter.csv',
         filenameAll: 'utilisateurs-tous-comptes.csv',
       },
@@ -608,6 +616,11 @@ export const fr = {
     loading: 'Chargement…',
     loadError: 'Impossible de charger tes salons. Réessaie.',
     retry: 'Réessayer',
+    errors: {
+      network: 'Connexion impossible. Vérifie ta connexion internet puis réessaie.',
+      timeout: 'Le serveur met du temps à répondre.',
+      generic: 'Une erreur est survenue. Réessaie.',
+    },
     empty: 'Pas encore de salon. Crée-en un avec des amis, ou attends une invitation.',
     status: {
       lobby: 'En attente',
@@ -620,6 +633,9 @@ export const fr = {
     accept: 'Accepter',
     decline: 'Refuser',
     join: 'Rejoindre',
+    accepting: 'Connexion…',
+    declining: 'Refus…',
+    joining: 'Ouverture…',
     modes: {
       pomodoro: 'Pomodoro',
       stopwatch: 'Chrono',
@@ -686,6 +702,18 @@ export const fr = {
       makeHost: 'Nommer hôte',
       you: 'toi',
       loading: 'Connexion à la session…',
+      connecting: 'Connexion au salon…',
+      connectingHint: 'Récupération de l’état du salon.',
+      connectingError: 'Impossible de joindre le salon pour l’instant.',
+      pending: {
+        start: 'Lancement…',
+        pause: 'Mise en pause…',
+        resume: 'Reprise…',
+        end: 'Fin de la session…',
+        leave: 'Départ…',
+        transfer: 'Transfert…',
+      },
+      dismissError: 'Masquer le message',
       fabLabel: 'Session en cours',
       fabAria: 'Revenir à la session de groupe en cours',
       fabParticipants: 'participants',
@@ -830,6 +858,7 @@ export const fr = {
   auth: {
     notConfigured: `Les comptes ne sont pas encore configurés sur ce déploiement. ${APP_NAME} reste utilisable en mode invité : tes données restent sur cet appareil.`,
     loading: 'Vérification de ta session…',
+    reconnecting: 'Reconnexion…',
     gate: {
       title: APP_NAME,
       subtitle: 'Connecte-toi pour retrouver tes réglages et tes données sur tous tes appareils.',
@@ -926,6 +955,8 @@ export const fr = {
     },
     profile: {
       loading: 'Chargement de ton profil…',
+      slow: 'Le serveur met du temps à répondre. Réessaie dans un instant.',
+      stillLoading: 'Cela prend plus de temps que d’habitude…',
       retry: 'Réessayer',
       technicalDetails: 'Détails techniques',
     },

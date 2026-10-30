@@ -1,7 +1,9 @@
 import { createContext, useContext } from 'react'
 
+import type { RoomActionKind } from './room-optimistic'
 import type { RoomClockView } from './room-timer'
-import type { RoomState } from './types'
+import type { RoomActionError } from './useActiveRoom'
+import type { MyRoom, RoomState } from './types'
 import type { RoomsState } from './useRooms'
 
 export interface GroupRoomActions {
@@ -29,6 +31,17 @@ export interface ActiveGroupRoomValue {
   isHost: boolean
   isLoading: boolean
   loadError: string | null
+  /** Salon dont l'état est en cours de chargement (je viens de cliquer, le serveur n'a pas
+   * encore répondu) : ce que `list_my_rooms` en sait déjà (statut, mode, phase) permet
+   * d'afficher tout de suite un écran de « Connexion au salon… ». `null` sinon. */
+  connecting: MyRoom | null
+  /** Recharge le salon (bouton « Réessayer » de l'écran de connexion). */
+  retryLoad: () => void
+  /** Action en cours (bouton désactivé + libellé « Lancement… »), `null` sinon. */
+  pendingAction: RoomActionKind | null
+  /** Dernière action en échec (message clair + Réessayer), `null` sinon. */
+  actionError: RoomActionError | null
+  dismissActionError: () => void
   nowMs: number
   actions: GroupRoomActions
   dismissEnded: () => void
@@ -43,6 +56,7 @@ const INERT_ROOMS_STATE: RoomsState = {
   refresh: () => Promise.resolve(),
   create: () => Promise.resolve(null),
   respond: () => Promise.resolve(false),
+  responding: null,
 }
 
 /** Valeur par défaut sans fournisseur (tests, pages hors application) : aucune session. */
@@ -54,6 +68,11 @@ export const INERT_ACTIVE_ROOM: ActiveGroupRoomValue = {
   isHost: false,
   isLoading: false,
   loadError: null,
+  connecting: null,
+  retryLoad: () => undefined,
+  pendingAction: null,
+  actionError: null,
+  dismissActionError: () => undefined,
   nowMs: 0,
   actions: { start: NOOP, pause: NOOP, resume: NOOP, end: NOOP, leave: NOOP, transfer: NOOP },
   dismissEnded: () => undefined,

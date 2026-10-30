@@ -1,7 +1,7 @@
 import { X } from 'lucide-react'
 import { useEffect } from 'react'
 
-import { GlassCard } from '@/shared/design-system'
+import { GlassCard, ModalOverlay } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 interface KeyboardShortcutsHelpProps {
@@ -35,12 +35,7 @@ export function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcutsHelpPr
   ]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0"
-        style={{ background: 'var(--scrim)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
-        onClick={onClose}
-      />
+    <ModalOverlay className="z-50" blur onBackdropClick={onClose}>
       <GlassCard
         role="dialog"
         aria-label={s.title}
@@ -68,6 +63,6 @@ export function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcutsHelpPr
           ))}
         </ul>
       </GlassCard>
-    </div>
+    </ModalOverlay>
   )
 }

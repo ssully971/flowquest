@@ -1,4 +1,4 @@
-import { UserPlus, Users, X } from 'lucide-react'
+import { Loader2, UserPlus, Users, X } from 'lucide-react'
 import { useState } from 'react'
 
 import { useActiveGroupRoom } from '@/features/rooms/active-room-context'
@@ -47,26 +47,22 @@ export function SocialInvitesBanner({
   const notices: Notice[] = [
     ...roomsState.rooms
       .filter((room) => room.myStatus === 'invited')
-      .map(
-        (room): Notice => ({
-          kind: 'room',
-          id: `room:${room.roomId}`,
-          roomId: room.roomId,
-          label: room.hostDisplayName ?? room.hostUsername,
-          detail:
-            strings.rooms.modes[room.mode] +
-            (room.focusMinutes !== null ? ` · ${room.focusMinutes} min` : ''),
-        }),
-      ),
-    ...friendRequests.map(
-      (request): Notice => ({
-        kind: 'friend',
-        id: `friend:${request.friendshipId}`,
-        friendshipId: request.friendshipId,
-        label: request.displayName ?? request.username,
-        detail: '',
-      }),
-    ),
+      .map((room): Notice => ({
+        kind: 'room',
+        id: `room:${room.roomId}`,
+        roomId: room.roomId,
+        label: room.hostDisplayName ?? room.hostUsername,
+        detail:
+          strings.rooms.modes[room.mode] +
+          (room.focusMinutes !== null ? ` · ${room.focusMinutes} min` : ''),
+      })),
+    ...friendRequests.map((request): Notice => ({
+      kind: 'friend',
+      id: `friend:${request.friendshipId}`,
+      friendshipId: request.friendshipId,
+      label: request.displayName ?? request.username,
+      detail: '',
+    })),
   ].filter((notice) => !dismissed.has(notice.id))
 
   if (suppressed || notices.length === 0) return null
@@ -75,6 +71,9 @@ export function SocialInvitesBanner({
   const hidden = notices.length - visible.length
 
   const dismiss = (id: string) => setDismissed((current) => new Set(current).add(id))
+
+  const isResponding = (roomId: string, accept: boolean) =>
+    roomsState.responding?.roomId === roomId && roomsState.responding.accept === accept
 
   const joinRoom = (roomId: string) => {
     void roomsState.respond(roomId, true).then((ok) => {
@@ -126,9 +125,18 @@ export function SocialInvitesBanner({
                     ? joinRoom(notice.roomId)
                     : onAcceptFriend?.(notice.friendshipId)
                 }
-                className="h-9 flex-1 rounded-xl bg-[var(--accent)] text-xs font-medium text-[var(--on-accent)]"
+                disabled={notice.kind === 'room' && Boolean(roomsState.responding)}
+                aria-busy={notice.kind === 'room' && isResponding(notice.roomId, true)}
+                className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] text-xs font-medium text-[var(--on-accent)] disabled:cursor-wait disabled:opacity-60"
               >
-                {notice.kind === 'room' ? s.join : s.accept}
+                {notice.kind === 'room' && isResponding(notice.roomId, true) ? (
+                  <Loader2 size={13} strokeWidth={2} aria-hidden="true" className="animate-spin" />
+                ) : null}
+                {notice.kind === 'room'
+                  ? isResponding(notice.roomId, true)
+                    ? strings.rooms.accepting
+                    : s.join
+                  : s.accept}
               </button>
               <button
                 type="button"
@@ -137,9 +145,12 @@ export function SocialInvitesBanner({
                     ? void roomsState.respond(notice.roomId, false)
                     : onDeclineFriend?.(notice.friendshipId)
                 }
-                className="h-9 flex-1 rounded-xl border border-[var(--line)] text-xs font-medium text-[var(--text)]"
+                disabled={notice.kind === 'room' && Boolean(roomsState.responding)}
+                className="h-9 flex-1 rounded-xl border border-[var(--line)] text-xs font-medium text-[var(--text)] disabled:cursor-wait disabled:opacity-60"
               >
-                {s.decline}
+                {notice.kind === 'room' && isResponding(notice.roomId, false)
+                  ? strings.rooms.declining
+                  : s.decline}
               </button>
             </div>
           </div>

@@ -1,3 +1,5 @@
+import { effectiveOffsetMs, reconcileClockOffset } from './clock-offset'
+import type { ClockOffsetState } from './clock-offset'
 import type { RoomPhase, RoomState } from './types'
 
 /**
@@ -5,7 +7,10 @@ import type { RoomPhase, RoomState } from './types'
  * qu'accumulé localement (même principe que le moteur du minuteur individuel) : reste
  * exact même si l'onglet a été suspendu (iPad Safari) ou l'appareil changé.
  */
-export function computeRoomElapsedMs(room: Pick<RoomState, 'status' | 'startedAt' | 'elapsedMsAtPause'>, now: number): number {
+export function computeRoomElapsedMs(
+  room: Pick<RoomState, 'status' | 'startedAt' | 'elapsedMsAtPause'>,
+  now: number,
+): number {
   if (room.status === 'paused') return room.elapsedMsAtPause ?? 0
   if (room.status === 'running' && room.startedAt) {
     return Math.max(0, now - new Date(room.startedAt).getTime())
@@ -72,7 +77,59 @@ type ViewFields = DurationFields &
     | 'durationMs'
     | 'elapsedMsAtPause'
     | 'clockOffsetMs'
+    | 'clockResidualMs'
+    | 'clockSlewStartedAt'
   >
+
+/** État d'affichage de l'écart d'horloge d'un salon (voir clock-offset.ts). */
+function clockStateOf(
+  room: Pick<RoomState, 'clockOffsetMs' | 'clockResidualMs' | 'clockSlewStartedAt'>,
+  now: number,
+): ClockOffsetState {
+  return {
+    targetMs: room.clockOffsetMs,
+    residualMs: room.clockResidualMs ?? 0,
+    slewStartedAt: room.clockSlewStartedAt ?? now,
+  }
+}
+
+type IdentityFields = Pick<RoomState, 'roomId' | 'status' | 'phaseIndex' | 'startedAt'>
+
+/** Deux états du serveur décrivent la MÊME phase d'horloge (même salon, statut, numéro de
+ * phase et début) : seul alors l'écart d'horloge est lissé, sinon il est appliqué tel quel. */
+export function isSameClockState(a: IdentityFields, b: IdentityFields): boolean {
+  return (
+    a.roomId === b.roomId &&
+    a.status === b.status &&
+    a.phaseIndex === b.phaseIndex &&
+    a.startedAt === b.startedAt
+  )
+}
+
+/**
+ * Intègre un état fraîchement reçu du serveur à celui déjà affiché : l'écart d'horloge
+ * n'est jamais appliqué brutalement tant que la phase est la même (voir
+ * `reconcileClockOffset`) — c'est ce qui empêche le décompte de sauter quand les réponses
+ * arrivent avec une latence différente.
+ */
+export function reconcileRoomClock(
+  prev: RoomState | null,
+  next: RoomState,
+  now: number,
+): RoomState {
+  const reconciled = reconcileClockOffset(
+    prev ? clockStateOf(prev, now) : null,
+    next.clockOffsetMs,
+    now,
+    prev !== null && isSameClockState(prev, next),
+  )
+  return {
+    ...next,
+    clockOffsetMs: reconciled.targetMs,
+    clockResidualMs: reconciled.residualMs,
+    clockSlewStartedAt: reconciled.slewStartedAt,
+  }
+}
 
 /**
  * Ce que l'horloge du salon doit afficher à l'instant `now` (horloge locale). Dérivé
@@ -100,14 +157,27 @@ export function computeRoomView(room: ViewFields, now: number): RoomClockView {
     }
   }
   if (room.status === 'ended') {
-    return { status: 'ended', phase, phaseIndex, durationMs, elapsedMs: 0, remainingMs: 0, isOver: true }
+    return {
+      status: 'ended',
+      phase,
+      phaseIndex,
+      durationMs,
+      elapsedMs: 0,
+      remainingMs: 0,
+      isOver: true,
+    }
   }
 
   let elapsed =
     room.status === 'paused'
       ? (room.elapsedMsAtPause ?? 0)
       : room.startedAt
-        ? Math.max(0, now - room.clockOffsetMs - new Date(room.startedAt).getTime())
+        ? Math.max(
+            0,
+            now -
+              effectiveOffsetMs(clockStateOf(room, now), now) -
+              new Date(room.startedAt).getTime(),
+          )
         : 0
 
   let isOver = false
@@ -152,7 +222,6 @@ export function groupCycleProgress(
   const sessions = Math.max(sessionsBeforeLongBreak ?? 4, 1)
   // Focus entièrement terminés : avant un focus de rang pair k/2, après une pause (k+1)/2.
   const completedTotal = phase === 'focus' ? phaseIndex / 2 : (phaseIndex + 1) / 2
-  const completedInCycle =
-    phase === 'long_break' ? sessions : completedTotal % sessions
+  const completedInCycle = phase === 'long_break' ? sessions : completedTotal % sessions
   return { completedInCycle, completedTotal }
 }

@@ -10,7 +10,6 @@ const respondRoomInviteMock = vi.fn()
 vi.mock('@/features/auth/useAuth', () => ({ useAuth: () => useAuthMock() }))
 vi.mock('@/shared/toast', () => ({ useToast: () => ({ showToast: showToastMock }) }))
 vi.mock('./rooms-repository', () => ({
-  RoomsError: class RoomsError extends Error {},
   listMyRooms: (...args: unknown[]) => listMyRoomsMock(...args),
   createRoom: (...args: unknown[]) => createRoomMock(...args),
   respondRoomInvite: (...args: unknown[]) => respondRoomInviteMock(...args),
@@ -68,7 +67,7 @@ describe('useRooms — mes salons (LOT F3)', () => {
   })
 
   it('expose une erreur de chargement en cas d’échec', async () => {
-    const { RoomsError } = await import('./rooms-repository')
+    const { RoomsError } = await import('./rooms-errors')
     listMyRoomsMock.mockRejectedValue(new RoomsError('Oups'))
     const { useRooms } = await import('./useRooms')
     const { result } = renderHook(() => useRooms())
@@ -93,7 +92,7 @@ describe('useRooms — mes salons (LOT F3)', () => {
   })
 
   it('create affiche une erreur et renvoie null en cas d’échec', async () => {
-    const { RoomsError } = await import('./rooms-repository')
+    const { RoomsError } = await import('./rooms-errors')
     createRoomMock.mockRejectedValue(new RoomsError('Un salon réunit au plus 6 personnes'))
     const { useRooms } = await import('./useRooms')
     const { result } = renderHook(() => useRooms())
@@ -105,7 +104,10 @@ describe('useRooms — mes salons (LOT F3)', () => {
     })
 
     expect(roomId).toBeNull()
-    expect(showToastMock).toHaveBeenCalledWith({ type: 'error', message: 'Un salon réunit au plus 6 personnes' })
+    expect(showToastMock).toHaveBeenCalledWith({
+      type: 'error',
+      message: 'Un salon réunit au plus 6 personnes',
+    })
   })
 
   it('respond accepte ou refuse une invitation puis recharge', async () => {
@@ -142,5 +144,58 @@ describe('useRooms — nouvelles invitations en temps réel (LOT H1, M4)', () =>
     // pour la même invitation.
     expect(result.current.rooms.map((room) => room.roomId)).toEqual(['r1', 'r2'])
     expect(showToastMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('useRooms — réponse à une invitation : verrou et retour visuel (LOT P1)', () => {
+  it('expose la réponse en cours et ignore un second clic (anti-double-clic)', async () => {
+    let finish!: () => void
+    respondRoomInviteMock.mockReset().mockReturnValue(
+      new Promise<void>((resolve) => {
+        finish = resolve
+      }),
+    )
+    const { useRooms } = await import('./useRooms')
+    const { result } = renderHook(() => useRooms())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    let first: Promise<boolean> | undefined
+    act(() => {
+      first = result.current.respond('r1', true)
+    })
+    await waitFor(() => expect(result.current.responding).toEqual({ roomId: 'r1', accept: true }))
+
+    let second = true
+    await act(async () => {
+      second = await result.current.respond('r1', true)
+    })
+    expect(second).toBe(false)
+    expect(respondRoomInviteMock).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      finish()
+      await first
+    })
+    expect(result.current.responding).toBeNull()
+  })
+
+  it('échec réseau : message français + « Réessayer », verrou libéré', async () => {
+    respondRoomInviteMock.mockReset().mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    const { useRooms } = await import('./useRooms')
+    const { result } = renderHook(() => useRooms())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    await act(async () => {
+      await result.current.respond('r1', true)
+    })
+
+    expect(showToastMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'error',
+        message: 'Connexion impossible. Vérifie ta connexion internet puis réessaie.',
+        action: expect.objectContaining({ label: 'Réessayer' }),
+      }),
+    )
+    expect(result.current.responding).toBeNull()
   })
 })

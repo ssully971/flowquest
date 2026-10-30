@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useAuth } from '@/features/auth/useAuth'
 import { getActivePillarId } from '@/features/pillars/active-pillar-ref'
 import { getPillarsEnabled } from '@/features/settings/pillars-enabled-ref'
+import { strings } from '@/shared/i18n'
 import { useToast } from '@/shared/toast'
 
-import { RoomsError, createRoom, listMyRooms, respondRoomInvite } from './rooms-repository'
+import { toRoomsError, withTimeout } from './rooms-errors'
+import { createRoom, listMyRooms, respondRoomInvite } from './rooms-repository'
 import type { RoomDraft } from './components/CreateRoomForm'
 import type { MyRoom } from './types'
 import { useRoomInvitesRealtime } from './useRoomInvitesRealtime'
@@ -16,7 +18,7 @@ function currentPillarId(): string | null {
 }
 
 function errorMessage(err: unknown): string {
-  return err instanceof RoomsError ? err.message : 'Une erreur est survenue. Réessaie.'
+  return toRoomsError(err).message
 }
 
 /** Mes salons (LOT F3) : invitations en attente et salons actifs, pour l'onglet « Mes
@@ -31,6 +33,12 @@ export function useRooms() {
   const [rooms, setRooms] = useState<MyRoom[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  // Réponse à une invitation en cours (bouton désactivé + spinner) et verrou anti-double-clic.
+  const [responding, setResponding] = useState<{ roomId: string; accept: boolean } | null>(null)
+  const respondingRef = useRef(false)
+  const respondRef = useRef<(roomId: string, accept: boolean) => Promise<boolean>>(() =>
+    Promise.resolve(false),
+  )
   const refresh = useCallback(() => {
     return listMyRooms()
       .then((next) => {
@@ -57,11 +65,16 @@ export function useRooms() {
   const create = useCallback(
     async (draft: RoomDraft, friendIds: string[]): Promise<string | null> => {
       try {
-        const roomId = await createRoom({ ...draft, friendIds, pillarId: currentPillarId() })
+        const roomId = await withTimeout(
+          createRoom({ ...draft, friendIds, pillarId: currentPillarId() }),
+        )
         await refresh()
         return roomId
       } catch (err) {
         showToast({ type: 'error', message: errorMessage(err) })
+        // Délai dépassé : le salon a peut-être été créé quand même (la création n'est pas
+        // rejouée automatiquement, pour ne jamais en créer deux) — la liste le montrera.
+        void refresh()
         return null
       }
     },
@@ -70,18 +83,32 @@ export function useRooms() {
 
   const respond = useCallback(
     async (roomId: string, accept: boolean): Promise<boolean> => {
+      if (respondingRef.current) return false
+      respondingRef.current = true
+      setResponding({ roomId, accept })
       try {
-        await respondRoomInvite(roomId, accept, accept ? currentPillarId() : null)
+        await withTimeout(respondRoomInvite(roomId, accept, accept ? currentPillarId() : null))
         await refresh()
         return true
       } catch (err) {
-        showToast({ type: 'error', message: errorMessage(err) })
+        showToast({
+          type: 'error',
+          message: errorMessage(err),
+          action: { label: strings.rooms.retry, onClick: () => void respondRef.current(roomId, accept) },
+        })
         return false
+      } finally {
+        respondingRef.current = false
+        setResponding(null)
       }
     },
     [refresh, showToast],
   )
-  return { rooms, isLoading, loadError, refresh, create, respond }
+  useEffect(() => {
+    respondRef.current = respond
+  }, [respond])
+
+  return { rooms, isLoading, loadError, refresh, create, respond, responding }
 }
 
 export type RoomsState = ReturnType<typeof useRooms>

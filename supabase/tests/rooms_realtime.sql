@@ -93,8 +93,9 @@ begin
   raise notice '--- 6. touch_my_rooms() : battement de cœur global ---';
   perform pg_temp.as_user(host_id);
   perform public.touch_my_rooms();
-  if (select last_seen_at from public.room_participants where room_id = new_room and user_id = host_id) < now() - interval '1 minute' then
-    raise exception 'touch_my_rooms() devrait rafraîchir last_seen_at';
+  -- Depuis 0050 le battement s'écrit dans room_heartbeats (hors Realtime), plus dans room_participants.
+  if coalesce((select last_seen_at from public.room_heartbeats where room_id = new_room and user_id = host_id), '-infinity') < now() - interval '1 minute' then
+    raise exception 'touch_my_rooms() devrait rafraîchir room_heartbeats';
   end if;
 
   raise notice '--- 7. Au bout de 3 h de silence, l''abandon automatique reste possible ---';

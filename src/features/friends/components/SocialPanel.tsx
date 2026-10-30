@@ -241,6 +241,14 @@ export function SocialPanel({
                           onAccept={handleAcceptRoom}
                           onDecline={(roomId) => void roomsState.respond(roomId, false)}
                           onJoin={onOpenRoom}
+                          locked={Boolean(roomsState.responding)}
+                          busy={
+                            roomsState.responding?.roomId === room.roomId
+                              ? roomsState.responding.accept
+                                ? 'accept'
+                                : 'decline'
+                              : null
+                          }
                         />
                       ))}
                     </div>

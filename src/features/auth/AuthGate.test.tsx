@@ -181,3 +181,20 @@ describe('AuthGate — vue demandée (mode invité, modale d’upsell)', () => {
     expect(screen.getByLabelText('Pseudo')).toBeInTheDocument()
   })
 })
+
+describe('AuthGate — reconnexion discrète (LOT 2)', () => {
+  it('affiche « Reconnexion… » sans fermer l’application ni ouvrir la fenêtre de connexion', () => {
+    useAuthMock.mockReturnValue(baseAuth({ status: 'authenticated', isReconnecting: true }))
+    renderGate()
+
+    expect(screen.getByRole('status')).toHaveTextContent('Reconnexion…')
+    expect(screen.getByText('Contenu de l’app')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('n’affiche rien quand la connexion est stable', () => {
+    useAuthMock.mockReturnValue(baseAuth({ status: 'authenticated' }))
+    renderGate()
+    expect(screen.queryByText('Reconnexion…')).not.toBeInTheDocument()
+  })
+})

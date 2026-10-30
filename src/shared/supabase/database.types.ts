@@ -732,6 +732,10 @@ export interface Database {
         Args: { p_limit?: number; p_search?: string | null }
         Returns: AdminLogRow[]
       }
+      admin_repair_profile: {
+        Args: { p_target_user_id: string }
+        Returns: string
+      }
       admin_list_users: {
         Args: { p_limit?: number; p_offset?: number; p_search?: string | null; p_sort?: string }
         Returns: AdminUserRow[]
@@ -858,6 +862,8 @@ export interface AdminUserRow {
   status: AdminUserStatus
   marketing_consent: boolean
   total_count: number
+  /** Compte sans ligne profiles (migration 0051) : à réparer. */
+  profile_missing: boolean
 }
 
 export interface AdminUserExportRow {
@@ -994,6 +1000,8 @@ export interface RoomStateRow {
   sessions_before_long_break: number | null
   /** Heure du serveur au moment de la réponse : sert à corriger l'écart d'horloge. */
   server_now: string
+  /** Version du salon (rooms.updated_at), migration 0050. */
+  room_updated_at: string | null
 }
 
 export interface DuoStreakRow {
