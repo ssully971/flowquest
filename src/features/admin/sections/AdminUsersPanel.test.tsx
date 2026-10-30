@@ -22,6 +22,7 @@ function user(overrides: Record<string, unknown> = {}) {
     status: 'active',
     marketing_consent: false,
     total_count: 1,
+    profile_missing: false,
     ...overrides,
   }
 }
@@ -148,5 +149,97 @@ describe('AdminUsersPanel — visionneuse et modération (lot I3, §1-2-4)', () 
     clickSpy.mockRestore()
     URL.createObjectURL = originalCreateObjectURL
     URL.revokeObjectURL = originalRevokeObjectURL
+  })
+})
+
+describe('AdminUsersPanel — erreur affichée, liste vide, comptes sans profil (LOT 3)', () => {
+  it('affiche la vraie erreur (code + message) avec Réessayer, jamais une liste vide muette', async () => {
+    rpcMock.mockImplementation((name: string) => {
+      if (name === 'admin_list_users') {
+        return Promise.resolve({
+          data: null,
+          error: {
+            code: '42804',
+            message: 'structure of query does not match function result type',
+          },
+        })
+      }
+      return Promise.resolve({ data: null, error: null })
+    })
+    const userEv = userEvent.setup()
+    renderPanel()
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Impossible de charger les comptes.')
+    expect(alert).toHaveTextContent('structure of query does not match function result type')
+    expect(screen.queryByText('Aucun compte pour ce filtre.')).not.toBeInTheDocument()
+    // Détail technique (code Supabase) dans le bloc dépliable.
+    expect(screen.getByText(/42804 — structure of query/)).toBeInTheDocument()
+
+    // Réessayer relance la requête et récupère.
+    rpcMock.mockImplementation((name: string) =>
+      Promise.resolve({ data: name === 'admin_list_users' ? [user()] : null, error: null }),
+    )
+    await userEv.click(screen.getByRole('button', { name: 'Réessayer' }))
+    expect(await screen.findByText('alice')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('une liste vraiment vide affiche « Aucun compte » et pas d’erreur', async () => {
+    rpcMock.mockImplementation((name: string) =>
+      Promise.resolve({ data: name === 'admin_list_users' ? [] : null, error: null }),
+    )
+    renderPanel()
+
+    expect(await screen.findByText('Aucun compte pour ce filtre.')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('un compte sans profil est marqué « Profil manquant » et peut être réparé', async () => {
+    rpcMock.mockImplementation((name: string) => {
+      if (name === 'admin_list_users') {
+        return Promise.resolve({
+          data: [
+            user({
+              id: 'orphan-1',
+              username: 'orphelin',
+              email: 'orphelin@exemple.com',
+              profile_missing: true,
+            }),
+          ],
+          error: null,
+        })
+      }
+      return Promise.resolve({ data: 'orphan-1', error: null })
+    })
+    const userEv = userEvent.setup()
+    renderPanel()
+
+    await userEv.click(await screen.findByText('orphelin'))
+    expect(screen.getByText('Profil manquant')).toBeInTheDocument()
+    // Pas de modération possible sans profil : seule la réparation est proposée.
+    expect(screen.queryByText('Suspendre 1 jour')).not.toBeInTheDocument()
+
+    await userEv.click(screen.getByRole('button', { name: 'Réparer le profil' }))
+    expect(rpcMock).toHaveBeenCalledWith('admin_repair_profile', { p_target_user_id: 'orphan-1' })
+  })
+
+  it('une action de modération qui échoue montre le vrai motif', async () => {
+    rpcMock.mockImplementation((name: string) => {
+      if (name === 'admin_list_users') return Promise.resolve({ data: [user()], error: null })
+      if (name === 'admin_suspend_user') {
+        return Promise.resolve({ data: null, error: { message: 'réservé aux administrateurs' } })
+      }
+      return Promise.resolve({ data: null, error: null })
+    })
+    const userEv = userEvent.setup()
+    renderPanel()
+    await userEv.click(await screen.findByText('alice'))
+    await userEv.click(screen.getByText('Suspendre 1 jour'))
+    await userEv.click(screen.getByRole('button', { name: 'Confirmer' }))
+
+    expect(
+      await screen.findByText(/L’action a échoué\. réservé aux administrateurs/),
+    ).toBeInTheDocument()
   })
 })

@@ -83,7 +83,9 @@ export function AdminGameMasterPanel() {
   useEffect(() => {
     if (!userQuery.trim()) return
     const timeout = window.setTimeout(() => {
-      void listAdminUsers(5, 0, userQuery, 'username_asc').then(setUserResults)
+      void listAdminUsers(5, 0, userQuery, 'username_asc')
+        .then(setUserResults)
+        .catch(() => setUserResults([]))
     }, 200)
     return () => window.clearTimeout(timeout)
   }, [userQuery])

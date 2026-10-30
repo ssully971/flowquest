@@ -110,9 +110,16 @@ export const fr = {
     users: {
       searchPlaceholder: 'Chercher par pseudo ou e-mail…',
       loading: 'Chargement des comptes…',
-      loadError: 'Impossible de charger les comptes. Réessaie.',
+      loadError: 'Impossible de charger les comptes.',
+      technicalDetails: 'Détail technique',
       retry: 'Réessayer',
       empty: 'Aucun compte pour ce filtre.',
+      profileMissing: 'Profil manquant',
+      profileMissingHint:
+        'Ce compte existe mais n’a pas de ligne de profil : il ne peut pas être modéré tant qu’elle n’est pas recréée.',
+      repairProfile: 'Réparer le profil',
+      repairing: 'Réparation…',
+      profileRepaired: 'Profil recréé.',
       columnEmail: 'E-mail',
       columnUsername: 'Pseudo',
       columnCreatedAt: 'Inscription',
@@ -155,7 +162,7 @@ export const fr = {
       reasonLabel: 'Motif (optionnel)',
       confirm: 'Confirmer',
       cancel: 'Annuler',
-      actionError: 'L’action a échoué. Réessaie.',
+      actionError: 'L’action a échoué.',
       resetPasswordSent: 'E-mail de réinitialisation envoyé.',
       export: {
         button: 'Exporter les utilisateurs',
@@ -164,6 +171,7 @@ export const fr = {
         warning:
           'L’envoi d’une newsletter exige le consentement explicite du destinataire : seul le mode « comptes ayant consenti » convient pour une campagne marketing.',
         exporting: 'Génération du fichier…',
+        error: 'L’export a échoué.',
         filenameConsented: 'utilisateurs-newsletter.csv',
         filenameAll: 'utilisateurs-tous-comptes.csv',
       },

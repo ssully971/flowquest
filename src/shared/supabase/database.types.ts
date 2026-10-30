@@ -732,6 +732,10 @@ export interface Database {
         Args: { p_limit?: number; p_search?: string | null }
         Returns: AdminLogRow[]
       }
+      admin_repair_profile: {
+        Args: { p_target_user_id: string }
+        Returns: string
+      }
       admin_list_users: {
         Args: { p_limit?: number; p_offset?: number; p_search?: string | null; p_sort?: string }
         Returns: AdminUserRow[]
@@ -858,6 +862,8 @@ export interface AdminUserRow {
   status: AdminUserStatus
   marketing_consent: boolean
   total_count: number
+  /** Compte sans ligne profiles (migration 0051) : à réparer. */
+  profile_missing: boolean
 }
 
 export interface AdminUserExportRow {

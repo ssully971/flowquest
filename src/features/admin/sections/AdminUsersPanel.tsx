@@ -12,10 +12,12 @@ import {
   exportAdminUsers,
   listAdminUsers,
   removeUserAvatar,
+  repairUserProfile,
   suspendUser,
   unbanUser,
   unsuspendUser,
 } from '../admin-users'
+import { AdminUsersError } from '../admin-users'
 import type { AdminUserSort } from '../admin-users'
 import { downloadUsersCsv } from '../export-users-csv'
 import { AdminUserDetail } from './AdminUserDetail'
@@ -41,6 +43,13 @@ function statusColor(status: AdminUserStatus): string {
   if (status === 'banned') return '#E5484D'
   if (status === 'suspended') return '#F59E0B'
   return '#22C55E'
+}
+
+/** Message lisible + texte technique (code Supabase) d'une erreur de RPC admin. */
+function describeError(err: unknown): { message: string; technical: string } {
+  if (err instanceof AdminUsersError) return { message: err.message, technical: err.technical }
+  const message = err instanceof Error ? err.message : String(err)
+  return { message, technical: message }
 }
 
 type ActionKey =
@@ -69,7 +78,8 @@ export function AdminUsersPanel() {
   const [sort, setSort] = useState<AdminUserSort>('created_at_desc')
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(false)
+  // Vrai message d'erreur (code + texte Supabase) : une liste vide et un échec restent discernables.
+  const [loadError, setLoadError] = useState<{ message: string; technical: string } | null>(null)
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null)
   const [confirmAction, setConfirmAction] = useState<ActionKey | null>(null)
   const [reason, setReason] = useState('')
@@ -79,17 +89,24 @@ export function AdminUsersPanel() {
 
   const refresh = () => {
     setLoading(true)
-    setLoadError(false)
-    void listAdminUsers(PAGE_SIZE, page * PAGE_SIZE, search || null, sort).then((data) => {
-      setLoading(false)
-      if (data.length === 0 && page > 0) {
+    setLoadError(null)
+    void listAdminUsers(PAGE_SIZE, page * PAGE_SIZE, search || null, sort)
+      .then((data) => {
+        setLoading(false)
+        if (data.length === 0 && page > 0) {
+          setRows([])
+          setTotalCount(0)
+          return
+        }
+        setRows(data)
+        setTotalCount(data[0]?.total_count ?? 0)
+      })
+      .catch((err: unknown) => {
+        setLoading(false)
         setRows([])
         setTotalCount(0)
-        return
-      }
-      setRows(data)
-      setTotalCount(data[0]?.total_count ?? 0)
-    })
+        setLoadError(describeError(err))
+      })
   }
 
   useEffect(() => {
@@ -108,18 +125,23 @@ export function AdminUsersPanel() {
     setReason('')
   }
 
-  const runAction = (userId: string, action: () => Promise<boolean>) => {
+  const runAction = (userId: string, action: () => Promise<void>, successMessage?: string) => {
     setPendingUserId(userId)
-    void action().then((ok) => {
-      setPendingUserId(null)
-      setConfirmAction(null)
-      setReason('')
-      if (!ok) {
-        showToast({ type: 'error', message: s.actionError })
-        return
-      }
-      refresh()
-    })
+    void action()
+      .then(() => {
+        setPendingUserId(null)
+        setConfirmAction(null)
+        setReason('')
+        if (successMessage) showToast({ type: 'success', message: successMessage })
+        refresh()
+      })
+      .catch((err: unknown) => {
+        setPendingUserId(null)
+        setConfirmAction(null)
+        setReason('')
+        // Le vrai motif (ex. « réservé aux administrateurs ») est montré, jamais un échec muet.
+        showToast({ type: 'error', message: `${s.actionError} ${describeError(err).message}` })
+      })
   }
 
   const handleConfirmedAction = (userId: string, key: ActionKey) => {
@@ -133,26 +155,28 @@ export function AdminUsersPanel() {
       const target = rows.find((row) => row.id === userId)
       if (!target) return
       runAction(userId, () =>
-        requestPasswordReset(target.email)
-          .then(() => {
-            void logAdminAction(currentAdmin?.id ?? '', 'reset_password_email', userId)
-            showToast({ type: 'success', message: s.resetPasswordSent })
-            return true
-          })
-          .catch(() => false),
+        requestPasswordReset(target.email).then(() => {
+          void logAdminAction(currentAdmin?.id ?? '', 'reset_password_email', userId)
+          showToast({ type: 'success', message: s.resetPasswordSent })
+        }),
       )
     }
   }
 
   const handleExport = (mode: 'consented' | 'all') => {
     setExporting(mode)
-    void exportAdminUsers(mode === 'consented').then((data) => {
-      setExporting(null)
-      downloadUsersCsv(
-        data,
-        mode === 'consented' ? s.export.filenameConsented : s.export.filenameAll,
-      )
-    })
+    void exportAdminUsers(mode === 'consented')
+      .then((data) => {
+        setExporting(null)
+        downloadUsersCsv(
+          data,
+          mode === 'consented' ? s.export.filenameConsented : s.export.filenameAll,
+        )
+      })
+      .catch((err: unknown) => {
+        setExporting(null)
+        showToast({ type: 'error', message: `${s.export.error} ${describeError(err).message}` })
+      })
   }
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
@@ -210,12 +234,18 @@ export function AdminUsersPanel() {
       {loading ? (
         <p className="text-sm text-[var(--muted)]">{s.loading}</p>
       ) : loadError ? (
-        <div className="flex items-center gap-3">
-          <p className="text-sm text-[var(--muted)]">{s.loadError}</p>
+        <div className="flex max-w-xl flex-col gap-2 rounded-xl border border-[var(--line)] p-4">
+          <p role="alert" className="text-sm text-[var(--text)]">
+            {s.loadError} {loadError.message}
+          </p>
+          <details className="text-xs text-[var(--muted)]">
+            <summary className="cursor-pointer select-none">{s.technicalDetails}</summary>
+            <p className="mt-1 whitespace-pre-wrap break-words font-mono">{loadError.technical}</p>
+          </details>
           <button
             type="button"
             onClick={refresh}
-            className="text-sm text-[var(--accent)] underline-offset-2 hover:underline"
+            className="h-9 w-fit rounded-lg border border-[var(--line)] px-3 text-sm text-[var(--text)]"
           >
             {s.retry}
           </button>
@@ -248,6 +278,14 @@ export function AdminUsersPanel() {
                       {s.roleAdmin}
                     </span>
                   ) : null}
+                  {row.profile_missing ? (
+                    <span
+                      className="rounded-full px-2 py-0.5 font-medium text-white"
+                      style={{ background: '#E5484D' }}
+                    >
+                      {s.profileMissing}
+                    </span>
+                  ) : null}
                   <span
                     className="rounded-full px-2 py-0.5 font-medium text-white"
                     style={{ background: statusColor(row.status) }}
@@ -259,15 +297,32 @@ export function AdminUsersPanel() {
 
               {expandedUserId === row.id ? (
                 <div className="flex flex-col gap-3 border-t border-[var(--line)] px-4 py-3">
+                  {row.profile_missing ? (
+                    <div className="flex flex-col items-start gap-2">
+                      <p className="text-xs text-[var(--muted)]">{s.profileMissingHint}</p>
+                      <button
+                        type="button"
+                        disabled={pendingUserId === row.id}
+                        onClick={() =>
+                          runAction(row.id, () => repairUserProfile(row.id), s.profileRepaired)
+                        }
+                        className="h-9 rounded-lg bg-[var(--accent)] px-3 text-xs font-medium text-[var(--on-accent)] disabled:opacity-50"
+                      >
+                        {pendingUserId === row.id ? s.repairing : s.repairProfile}
+                      </button>
+                    </div>
+                  ) : null}
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setDetailUserId(row.id)}
-                      className="h-9 rounded-lg border border-[var(--line)] px-3 text-xs text-[var(--text)]"
-                    >
-                      {s.openProfile}
-                    </button>
-                    {row.role !== 'admin' && row.id !== currentAdmin?.id ? (
+                    {row.profile_missing ? null : (
+                      <button
+                        type="button"
+                        onClick={() => setDetailUserId(row.id)}
+                        className="h-9 rounded-lg border border-[var(--line)] px-3 text-xs text-[var(--text)]"
+                      >
+                        {s.openProfile}
+                      </button>
+                    )}
+                    {row.role !== 'admin' && row.id !== currentAdmin?.id && !row.profile_missing ? (
                       <>
                         {row.status === 'suspended' ? (
                           <button
