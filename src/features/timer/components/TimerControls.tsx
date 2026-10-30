@@ -1,4 +1,12 @@
-import { Pause, PictureInPicture2, Play, RotateCcw, SkipForward, Square } from 'lucide-react'
+import {
+  Loader2,
+  Pause,
+  PictureInPicture2,
+  Play,
+  RotateCcw,
+  SkipForward,
+  Square,
+} from 'lucide-react'
 
 import { IconButton } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
@@ -18,6 +26,9 @@ interface TimerControlsProps {
   showPip?: boolean
   /** Masque « Réinitialiser » (session de groupe : l'horloge est celle du salon). */
   showReset?: boolean
+  /** Action en cours (session de groupe) : tous les boutons sont désactivés et le bouton
+   * principal affiche un indicateur de chargement avec ce libellé (« Lancement… »). */
+  busyLabel?: string | null
 }
 
 export function TimerControls({
@@ -32,7 +43,9 @@ export function TimerControls({
   pipAvailable,
   showPip = true,
   showReset = true,
+  busyLabel = null,
 }: TimerControlsProps) {
+  const busy = busyLabel !== null
   const isRunning = status === 'running'
   const isIdle = status === 'idle'
   const PrimaryIcon = isRunning ? Pause : Play
@@ -50,29 +63,50 @@ export function TimerControls({
   return (
     <div className="flex items-center gap-4">
       {showReset ? (
-        <IconButton icon={RotateCcw} label={strings.focus.controls.reset} onClick={onReset} />
+        <IconButton
+          icon={RotateCcw}
+          label={strings.focus.controls.reset}
+          onClick={onReset}
+          disabled={busy}
+        />
       ) : null}
       <button
         type="button"
-        aria-label={primaryLabel}
+        aria-label={busy ? busyLabel : primaryLabel}
+        aria-busy={busy}
+        disabled={busy}
         onClick={onPrimary}
-        className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--on-accent)] transition-transform duration-200 hover:scale-105"
+        className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--on-accent)] transition-transform duration-200 hover:scale-105 disabled:cursor-wait disabled:opacity-70 disabled:hover:scale-100"
       >
-        <PrimaryIcon
-          size={26}
-          strokeWidth={1.75}
-          aria-hidden="true"
-          fill={isRunning ? 'none' : 'currentColor'}
-        />
+        {busy ? (
+          <Loader2 size={26} strokeWidth={1.75} aria-hidden="true" className="animate-spin" />
+        ) : (
+          <PrimaryIcon
+            size={26}
+            strokeWidth={1.75}
+            aria-hidden="true"
+            fill={isRunning ? 'none' : 'currentColor'}
+          />
+        )}
       </button>
       {showSkip ? (
         <span className={idleMobileOnlyClassName}>
-          <IconButton icon={SkipForward} label={strings.focus.controls.skip} onClick={onSkip} />
+          <IconButton
+            icon={SkipForward}
+            label={strings.focus.controls.skip}
+            onClick={onSkip}
+            disabled={busy}
+          />
         </span>
       ) : null}
       {showEndSession && onEndSession ? (
         <span className={idleMobileOnlyClassName}>
-          <IconButton icon={Square} label={strings.focus.controls.endSession} onClick={onEndSession} />
+          <IconButton
+            icon={Square}
+            label={strings.focus.controls.endSession}
+            onClick={onEndSession}
+            disabled={busy}
+          />
         </span>
       ) : null}
       {showPip ? (

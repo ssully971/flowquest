@@ -47,11 +47,27 @@ interface FakeParticipant {
   joinedAt: string | null
 }
 
+export interface FakeCall {
+  userId: string
+  fn: string
+  at: number
+}
+
 export interface FakeBackend {
   handleRpc: (userId: string, fn: string, params: Record<string, unknown>) => unknown
+  /** Journal de toutes les RPC reçues (pour vérifier qu'aucune requête ne part en continu). */
+  calls: FakeCall[]
+  /** Latence simulée de chaque RPC (ms) : permet de voir le retour visuel pendant l'attente. */
+  setLatency: (ms: number) => void
+  latencyMs: () => number
+  /** La prochaine RPC `fn` échoue avec ce message (ex. 'Failed to fetch') puis tout redevient normal. */
+  failNext: (fn: string, message?: string) => void
 }
 
 export function createFakeBackend(): FakeBackend {
+  const calls: FakeCall[] = []
+  let latency = 0
+  const failures = new Map<string, string>()
   const rooms = new Map<string, FakeRoom>()
   const participants = new Map<string, FakeParticipant>()
   let nextId = 1
@@ -101,6 +117,7 @@ export function createFakeBackend(): FakeBackend {
         long_break_minutes: 15,
         sessions_before_long_break: 4,
         server_now: new Date().toISOString(),
+        room_updated_at: new Date().toISOString(),
         started_at: room.startedAt,
         duration_ms: room.durationMs,
         elapsed_ms_at_pause: room.elapsedMsAtPause,
@@ -154,7 +171,8 @@ export function createFakeBackend(): FakeBackend {
     start_room(userId, params) {
       const room = requireRoom(params.p_room_id as string)
       requireHost(userId, room)
-      if (room.status !== 'lobby') throw new Error('Le salon a déjà démarré')
+      // Idempotent comme la migration 0050 : un double clic ne lève jamais d'erreur.
+      if (room.status !== 'lobby') return null
       room.status = 'running'
       room.startedAt = new Date().toISOString()
       room.durationMs = room.mode === 'stopwatch' ? null : room.focusMinutes * 60_000
@@ -163,7 +181,7 @@ export function createFakeBackend(): FakeBackend {
     pause_room(userId, params) {
       const room = requireRoom(params.p_room_id as string)
       requireHost(userId, room)
-      if (room.status !== 'running') throw new Error('Le salon n’est pas en cours')
+      if (room.status !== 'running') return null
       room.elapsedMsAtPause = Date.now() - new Date(room.startedAt!).getTime()
       room.status = 'paused'
       return null
@@ -171,7 +189,7 @@ export function createFakeBackend(): FakeBackend {
     resume_room(userId, params) {
       const room = requireRoom(params.p_room_id as string)
       requireHost(userId, room)
-      if (room.status !== 'paused') throw new Error('Le salon n’est pas en pause')
+      if (room.status !== 'paused') return null
       room.startedAt = new Date(Date.now() - (room.elapsedMsAtPause ?? 0)).toISOString()
       room.elapsedMsAtPause = null
       room.status = 'running'
@@ -179,6 +197,7 @@ export function createFakeBackend(): FakeBackend {
     },
     end_room(userId, params) {
       const room = requireRoom(params.p_room_id as string)
+      if (room.status === 'ended') return null
       requireHost(userId, room)
       room.status = 'ended'
       room.endedAt = new Date().toISOString()
@@ -256,7 +275,21 @@ export function createFakeBackend(): FakeBackend {
   }
 
   return {
+    calls,
+    setLatency(ms) {
+      latency = ms
+    },
+    latencyMs: () => latency,
+    failNext(fn, message = 'Failed to fetch') {
+      failures.set(fn, message)
+    },
     handleRpc(userId, fn, params) {
+      calls.push({ userId, fn, at: Date.now() })
+      const failure = failures.get(fn)
+      if (failure !== undefined) {
+        failures.delete(fn)
+        throw new Error(failure)
+      }
       const handler = handlers[fn]
       if (!handler) return []
       return handler(userId, params)
@@ -326,6 +359,7 @@ export async function signInAs(page: Page, backend: FakeBackend, profile: FakePr
     const fn = new URL(route.request().url()).pathname.split('/').pop() ?? ''
     const params = (route.request().postDataJSON() as Record<string, unknown>) ?? {}
     try {
+      if (backend.latencyMs() > 0) await new Promise((resolve) => setTimeout(resolve, backend.latencyMs()))
       const data = backend.handleRpc(profile.id, fn, params)
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data ?? null) })
     } catch (err) {

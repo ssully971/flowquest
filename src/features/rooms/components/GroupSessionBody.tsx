@@ -1,4 +1,4 @@
-import { PictureInPicture2 } from 'lucide-react'
+import { Loader2, PictureInPicture2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { TimerControls } from '@/features/timer/components/TimerControls'
@@ -24,12 +24,22 @@ interface GroupSessionBodyProps {
  * contrôles (démarrer / pause / reprendre / terminer) ; les autres voient l'horloge en
  * lecture seule et un bouton « Quitter ». Le minuteur personnel est masqué (en pause).
  */
-export function GroupSessionBody({ group, currentUserId, face, cycle, pip }: GroupSessionBodyProps) {
+export function GroupSessionBody({
+  group,
+  currentUserId,
+  face,
+  cycle,
+  pip,
+}: GroupSessionBodyProps) {
   const s = strings.rooms.group
-  const { room, view, isHost, actions } = group
+  const { room, view, isHost, actions, pendingAction, actionError, dismissActionError } = group
   if (!room || !view) return null
 
-  const status = view.status === 'running' ? 'running' : view.status === 'paused' ? 'paused' : 'idle'
+  // Action en cours : boutons désactivés + libellé (« Lancement… »), jamais un bouton muet.
+  const busyLabel = pendingAction ? s.pending[pendingAction] : null
+
+  const status =
+    view.status === 'running' ? 'running' : view.status === 'paused' ? 'paused' : 'idle'
 
   const handleLeave = () => {
     if (window.confirm(s.confirmLeave)) void actions.leave()
@@ -78,6 +88,7 @@ export function GroupSessionBody({ group, currentUserId, face, cycle, pip }: Gro
           onPictureInPicture={pip.toggle}
           pipAvailable={pip.isSupported}
           showPip={pip.show}
+          busyLabel={busyLabel}
         />
       ) : (
         <div className="flex flex-col items-center gap-3">
@@ -97,12 +108,45 @@ export function GroupSessionBody({ group, currentUserId, face, cycle, pip }: Gro
         </div>
       )}
 
+      {busyLabel ? (
+        <p role="status" className="flex items-center gap-2 text-sm font-medium text-[var(--text)]">
+          <Loader2 size={14} strokeWidth={2} aria-hidden="true" className="animate-spin" />
+          {busyLabel}
+        </p>
+      ) : null}
+
+      {actionError ? (
+        <div
+          role="alert"
+          className="flex w-full max-w-md flex-col items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text)]"
+        >
+          <p>{actionError.message}</p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={actionError.retry}
+              className="h-9 rounded-xl bg-[var(--accent)] px-4 text-xs font-semibold text-[var(--on-accent)]"
+            >
+              {strings.rooms.retry}
+            </button>
+            <button
+              type="button"
+              onClick={dismissActionError}
+              className="text-xs text-[var(--muted)] underline-offset-2 hover:underline"
+            >
+              {s.dismissError}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <GroupParticipants
         participants={room.participants}
         view={view}
         currentUserId={currentUserId}
         isHost={isHost}
         onTransferHost={(userId) => void actions.transfer(userId)}
+        disabled={pendingAction !== null}
       />
 
       <p className="text-xs text-[var(--muted)]">{s.soloPaused}</p>
@@ -110,9 +154,13 @@ export function GroupSessionBody({ group, currentUserId, face, cycle, pip }: Gro
       <button
         type="button"
         onClick={handleLeave}
-        className="h-10 rounded-xl border border-[var(--line)] px-5 text-sm font-medium text-[var(--text)] transition-opacity duration-200"
+        disabled={pendingAction !== null}
+        className="inline-flex h-10 items-center gap-2 rounded-xl border border-[var(--line)] px-5 text-sm font-medium text-[var(--text)] transition-opacity duration-200 disabled:cursor-wait disabled:opacity-60"
       >
-        {s.leave}
+        {pendingAction === 'leave' ? (
+          <Loader2 size={14} strokeWidth={2} aria-hidden="true" className="animate-spin" />
+        ) : null}
+        {pendingAction === 'leave' ? s.pending.leave : s.leave}
       </button>
     </>
   )

@@ -420,3 +420,77 @@ l'horloge de groupe.
 - Jusqu'à 3 bannières empilées (« +N autres notifications » au-delà) ; masquée tant que le
   panneau social, qui liste déjà les mêmes demandes, est ouvert. Sur les pages hors application
   (conditions, admin…), seules les invitations de salon sont affichées.
+
+## Performance des salons : fin de la boucle d'écriture (LOT P1, migration `0050_rooms_performance.sql`)
+
+### Cause racine
+
+`get_room_state` (0049) était une **lecture qui écrivait** : `UPDATE room_participants SET last_seen_at = now()`
+et `_room_tick`, qui prend `SELECT … FOR UPDATE` sur la ligne `rooms`, à chaque appel. Comme
+`room_participants` est publiée dans Realtime et que chaque client relisait l'état à chaque évènement,
+chaque lecture produisait un évènement qui déclenchait des relectures chez tous les clients : une boucle
+sans fin, qui saturait la base (requêtes lentes, « network error », profil et réglages lents). S'y ajoutaient
+`touch_my_rooms` (écriture toutes les 30 s par participant) et le filet de 15 s + repli à 4 s.
+
+### Côté serveur
+
+- `get_room_state` est **en lecture seule** : plus d'`UPDATE`. `_room_tick` n'est appelé que si
+  `_room_tick_due()` (lecture SANS verrou) répond « une transition est due » : fin de phase, hôte absent,
+  participant muet depuis plus de 3 h.
+- Battement de cœur : table **`room_heartbeats`** `(room_id, user_id, last_seen_at)`, **hors publication
+  Realtime**, alimentée par `touch_my_rooms()` (upsert seulement si la dernière valeur a plus de 60 s).
+  `_room_tick` (abandon à 3 h, tolérance de 0048 conservée) et `participant_is_present` (indicateur de
+  secours : battement de moins de 5 min) la lisent ; les `last_seen_at` existants sont migrés.
+- `REPLICA IDENTITY` de `rooms` et `room_participants` revenue à `DEFAULT` : le client ne lit jamais l'ancienne
+  ligne d'un évènement (il recharge via `get_room_state`) et les filtres Realtime (`id=eq.`, `room_id=eq.`)
+  s'évaluent sur la nouvelle ligne. `live_status` garde `FULL` (hors périmètre).
+- `start_room`, `pause_room`, `resume_room`, `end_room`, `leave_room`, `transfer_host` sont **idempotents** :
+  un double clic ou un « Réessayer » ne lève plus d'erreur (l'état est verrouillé le temps de l'action).
+- `get_room_state` renvoie `room_updated_at` (`rooms.updated_at`, déjà tenu à jour par trigger) : c'est la
+  version du salon, pas besoin de nouvelle colonne.
+- Test : `supabase/tests/rooms_performance.sql` (compteurs de lignes modifiées de la transaction + `ctid`
+  avant/après N lectures : zéro écriture).
+
+### Côté client
+
+- **Un seul chargement à la fois** (`useActiveRoom`) avec coalescence : des évènements qui arrivent pendant un
+  chargement n'en déclenchent qu'UN de plus. Chaque chargement est numéroté : une réponse plus ancienne que la
+  dernière appliquée est ignorée (y compris après une mise à jour optimiste).
+- **Évènements Realtime** : on ne recharge ni pour un évènement `rooms` dont `updated_at` est déjà connu, ni
+  pour l'écho de sa propre action en cours (le rechargement qui la suit suffit).
+- **Décision : `postgres_changes` reste le transport.** Abonnements : `rooms` filtré par `id` (rare :
+  transitions d'état) et `room_participants` filtré par salon (arrivées, départs, rôles — plus jamais le
+  battement). Le canal porte aussi **Supabase Presence** : l'indicateur « en ligne » vient de
+  `channel.track`, sans aucune écriture en base ; le battement en base (~2 min, au plus une écriture par
+  minute) ne sert plus que de filet d'abandon (3 h).
+- `useRealtimeSync` : au `focus` / `visibilitychange` / `pageshow` ordinaire, on recharge l'état **sans**
+  recréer le canal ; il n'est recréé que s'il n'est pas `SUBSCRIBED`, après `online` ou après un `pageshow`
+  persisté (page restaurée du cache). Filet de sécurité des salons : 60 s ; repli à 4 s seulement tant que le
+  canal n'est pas `SUBSCRIBED`.
+- **Proposition (non faite) : Realtime Broadcast.** On pourrait remplacer `postgres_changes` par un trigger SQL
+  qui appelle `realtime.send` / `realtime.broadcast_changes` sur un canal privé `room:<id>`, avec une politique
+  RLS sur `realtime.messages` via `is_room_participant`. Gain : plus d'évaluation RLS par abonné et par ligne
+  modifiée côté Realtime. Coût : une migration (trigger + politique RLS sur `realtime.messages`), un canal
+  privé (authentification Realtime à configurer), et les tests Realtime à refaire. Pas justifié tant que les
+  évènements `rooms` restent rares ; à reconsidérer au-delà de quelques centaines de salons simultanés.
+
+### Horloge sans saut
+
+- `clock-offset.ts` : écart appareil − serveur estimé **à la NTP** (milieu de l'aller-retour, `performance.now()`
+  et `Date.now()`), on garde l'échantillon au plus faible RTT et on ignore ceux au-delà de 2 s ; un échantillon
+  incohérent (heure de l'appareil changée) ou trop vieux (5 min) est renouvelé.
+- À l'affichage : un recalage de moins de 1 s est absorbé ; un plus grand est résorbé à la vitesse de 0,5 s par
+  seconde (`reconcileClockOffset`), donc le temps restant ne remonte **jamais** tant que le salon (statut, phase,
+  `startedAt`) est le même. L'heure du tick est elle-même monotone.
+
+### Retour utilisateur
+
+- Chaque action (lancer, pause, reprise, terminer, quitter, transférer ; accepter/refuser une invitation) :
+  verrou anti-double-clic, bouton désactivé + indicateur + libellé (« Lancement… »), mise à jour **optimiste**
+  (`room-optimistic.ts`) avec rollback, message clair et « Réessayer » en cas d'échec, délai de 8 s
+  (« Le serveur met du temps à répondre. »). Les échecs réseau (« Failed to fetch »…) sont traduits.
+- L'écran du salon s'ouvre aussitôt avec « Connexion au salon… » (`GroupConnecting`), à partir de ce que
+  `list_my_rooms` sait déjà (mode, statut, nombre de participants) ; l'horloge reste un squelette jusqu'à la
+  première réponse, pour ne pas afficher une heure qui sauterait.
+- La **création** d'un salon n'est volontairement pas rejouée automatiquement après un délai dépassé (elle n'est
+  pas idempotente : on risquerait deux salons) ; la liste est rechargée pour montrer un salon créé tardivement.

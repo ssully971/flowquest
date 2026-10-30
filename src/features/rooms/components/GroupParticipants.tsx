@@ -23,6 +23,8 @@ interface GroupParticipantsProps {
   currentUserId: string | null
   isHost: boolean
   onTransferHost: (userId: string) => void
+  /** Une action du salon est en cours : « Nommer hôte » est désactivé le temps qu'elle aboutisse. */
+  disabled?: boolean
 }
 
 /** Liste des participants avec leur statut en direct (concentré, en pause, parti...), mise
@@ -33,6 +35,7 @@ export function GroupParticipants({
   currentUserId,
   isHost,
   onTransferHost,
+  disabled = false,
 }: GroupParticipantsProps) {
   const s = strings.rooms.group
   return (
@@ -80,7 +83,8 @@ export function GroupParticipants({
                 <button
                   type="button"
                   onClick={() => onTransferHost(participant.userId)}
-                  className="shrink-0 rounded-full border border-[var(--line)] px-2.5 py-1 text-[11px] font-medium text-[var(--text)]"
+                  disabled={disabled}
+                  className="shrink-0 disabled:cursor-wait disabled:opacity-60 rounded-full border border-[var(--line)] px-2.5 py-1 text-[11px] font-medium text-[var(--text)]"
                 >
                   {s.makeHost}
                 </button>

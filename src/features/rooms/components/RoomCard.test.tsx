@@ -53,3 +53,29 @@ describe('RoomCard — LOT F3', () => {
     expect(onJoin).toHaveBeenCalledWith('r1')
   })
 })
+
+describe('RoomCard — retour visuel de la réponse (LOT P1)', () => {
+  it('pendant l’acceptation : bouton désactivé avec libellé « Connexion… », l’autre bouton verrouillé', () => {
+    render(
+      <RoomCard
+        room={BASE_ROOM}
+        onAccept={vi.fn()}
+        onDecline={vi.fn()}
+        onJoin={vi.fn()}
+        busy="accept"
+        locked
+      />,
+    )
+
+    const accepting = screen.getByRole('button', { name: 'Connexion…' })
+    expect(accepting).toBeDisabled()
+    expect(accepting).toHaveAttribute('aria-busy', 'true')
+    expect(screen.getByRole('button', { name: 'Refuser' })).toBeDisabled()
+  })
+
+  it('une réponse en cours ailleurs verrouille aussi les boutons de cette carte', () => {
+    render(<RoomCard room={BASE_ROOM} onAccept={vi.fn()} onDecline={vi.fn()} onJoin={vi.fn()} locked />)
+    expect(screen.getByRole('button', { name: 'Accepter' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Refuser' })).toBeDisabled()
+  })
+})
