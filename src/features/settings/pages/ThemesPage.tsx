@@ -98,9 +98,9 @@ export function ThemesPage({
   const categories = disableAnimatedThemes
     ? CATEGORY_ORDER.filter((cat) => cat !== 'animated')
     : CATEGORY_ORDER
-  // Fond personnel exclu de la grille : il n'est pas un fond du catalogue, il se choisit
-  // depuis sa propre section au-dessus (voir le composant <CustomBackgroundSection>).
-  const catalogBackgrounds = BACKGROUNDS.filter((bg) => bg.id !== 'custom')
+  // Les photos personnelles ne font pas partie du catalogue : elles se choisissent depuis leur
+  // propre section (voir <CustomBackgroundSection>).
+  const catalogBackgrounds = BACKGROUNDS
   const availableBackgrounds = disableAnimatedThemes
     ? catalogBackgrounds.filter((bg) => bg.category !== 'animated')
     : catalogBackgrounds
@@ -234,8 +234,9 @@ export function ThemesPage({
 
       <CustomBackgroundSection
         mode={mode}
-        currentId={currentId}
-        onSelect={(m, id) => onSelect(m, editingTheme, id)}
+        theme={editingTheme}
+        selections={selections}
+        onSelect={onSelect}
       />
 
       <div>

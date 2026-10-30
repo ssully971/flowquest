@@ -1,3 +1,4 @@
+import { photoIdFromBackgroundId } from '@/features/settings/custom-photos'
 import { getBackgroundDefinition } from '@/shared/design-system'
 import type { BackgroundId } from '@/shared/design-system'
 
@@ -42,18 +43,18 @@ const POSITIONS = { top: 'center top', center: 'center center', bottom: 'center 
 export function resolvePipBackground(
   id: BackgroundId,
   options: {
-    customUrl: string | null
-    customPosition?: keyof typeof POSITIONS
+    /** Photo de la bibliothèque personnelle quand `id` en désigne une (`custom:<id>`). */
+    customPhoto?: { url: string; position: keyof typeof POSITIONS } | null
     colors?: ThemeColors
   },
 ): PipBackground {
   const colors = options.colors ?? readThemeColors()
   const base = { colorFrom: colors.bg, colorTo: colors.surface2 }
-  if (id === 'custom') {
+  if (photoIdFromBackgroundId(id) !== null) {
     return {
       ...base,
-      imageSrc: options.customUrl,
-      position: POSITIONS[options.customPosition ?? 'center'],
+      imageSrc: options.customPhoto?.url ?? null,
+      position: POSITIONS[options.customPhoto?.position ?? 'center'],
     }
   }
   const definition = getBackgroundDefinition(id)
