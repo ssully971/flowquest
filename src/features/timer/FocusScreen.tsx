@@ -7,6 +7,8 @@ import {
   resolveClockColor,
 } from '@/features/home/clock-settings'
 import { useFeatureAccess } from '@/features/access/useFeatureAccess'
+import { AmbientSoundsControl } from '@/features/ambient/components/AmbientSoundsControl'
+import { useAmbientSounds } from '@/features/ambient/useAmbientSounds'
 import { FeatureGate } from '@/features/feature-flags/FeatureGate'
 import { useFeatureFlag } from '@/features/feature-flags/useFeatureFlag'
 import { useClockSettings } from '@/features/home/clock-settings-context'
@@ -81,6 +83,9 @@ export function FocusScreen() {
   const group = useActiveGroupRoom()
   const { user } = useAuth()
   const { isLocked } = useFeatureAccess()
+  // Le moteur de sons ne crée son AudioContext qu'à la première activation d'un son : l'appeler
+  // toujours ne coûte rien tant que le bouton (optionnel) n'est pas utilisé.
+  const sounds = useAmbientSounds()
   const { activeTaskId } = useActiveTask()
   const { tasks } = useTasks()
   const { settings: timerSettings } = useTimerSettings()
@@ -207,6 +212,12 @@ export function FocusScreen() {
       onPrimary: handlePrimary,
       onNext: isGroup ? () => undefined : timer.skip,
       onReset: isGroup ? () => undefined : timer.reset,
+      // M coupe les sons seulement quand leur bouton est affiché sur l'écran Focus (réglage) :
+      // sinon la touche ne fait rien, comme avant. Verrouillés pour un invité : inerte aussi.
+      onToggleMute:
+        extrasSettings.showFocusSoundsButton && !isLocked('ambientSounds')
+          ? sounds.toggleMute
+          : undefined,
       onOpenHelp: () => setIsShortcutsHelpOpen(true),
     },
     timerSettings.keyboardShortcutsEnabled,
@@ -452,6 +463,12 @@ export function FocusScreen() {
             )}
           </>
         )}
+
+        {/* Sons d'ambiance (réglage Extras, désactivé par défaut) : même bouton et même panneau que
+            le mode Ambiant, partagés (AmbientSoundsControl). */}
+        {extrasSettings.showFocusSoundsButton ? (
+          <AmbientSoundsControl sounds={sounds} placement="center" />
+        ) : null}
       </div>
 
       {pipPortal}

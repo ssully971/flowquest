@@ -8,6 +8,8 @@ import type { UseAmbientSoundsResult } from '../useAmbientSounds'
 interface AmbientSoundsPanelProps extends UseAmbientSoundsResult {
   open: boolean
   onClose: () => void
+  /** `end` : aligné sur le bord droit du bouton ; `center` : centré sous lui. */
+  placement?: 'end' | 'center'
 }
 
 export function AmbientSoundsPanel({
@@ -21,6 +23,7 @@ export function AmbientSoundsPanel({
   sleepTimerMinutes,
   setSleepTimerMinutes,
   remainingSleepMs,
+  placement = 'end',
 }: AmbientSoundsPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const s = strings.ambient
@@ -49,7 +52,9 @@ export function AmbientSoundsPanel({
       ref={panelRef}
       role="dialog"
       aria-label={s.soundsTitle}
-      className="absolute right-0 top-full z-40 mt-3 flex w-[min(20rem,calc(100vw-2rem))] flex-col gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[0_10px_24px_var(--glow)]"
+      className={`absolute top-full z-40 mt-3 flex w-[min(20rem,calc(100vw-2rem))] flex-col gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[0_10px_24px_var(--glow)] ${
+        placement === 'center' ? 'left-1/2 -translate-x-1/2' : 'right-0'
+      }`}
     >
       <div>
         <p className="text-sm font-medium text-[var(--text)]">{s.soundsTitle}</p>

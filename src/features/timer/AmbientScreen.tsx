@@ -1,9 +1,8 @@
-import { Music, Pause, Play } from 'lucide-react'
+import { Pause, Play } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-import { LOCKED_DIM_CLASS, LockedBadge } from '@/features/access/LockedBadge'
 import { useFeatureAccess } from '@/features/access/useFeatureAccess'
-import { AmbientSoundsPanel } from '@/features/ambient/components/AmbientSoundsPanel'
+import { AmbientSoundsControl } from '@/features/ambient/components/AmbientSoundsControl'
 import { useAmbientSounds } from '@/features/ambient/useAmbientSounds'
 import {
   CLOCK_SIZE_SCALE,
@@ -38,11 +37,10 @@ export function AmbientScreen() {
   const timer = useFocusTimer()
   const group = useActiveGroupRoom()
   const sounds = useAmbientSounds()
-  const { isLocked, requireAccount } = useFeatureAccess()
+  const { isLocked } = useFeatureAccess()
   const soundsLocked = isLocked('ambientSounds')
   const { settings: clockSettings, setSettings: setClockSettings } = useClockSettings()
   const { settings: timerSettings } = useTimerSettings()
-  const [isSoundsOpen, setIsSoundsOpen] = useState(false)
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
   const { showToast } = useToast()
 
@@ -160,41 +158,7 @@ export function AmbientScreen() {
               )}
             </div>
 
-            <div className="relative">
-              <button
-                type="button"
-                aria-label={
-                  soundsLocked
-                    ? `${strings.ambient.soundsButton}${strings.access.lockedSuffix}`
-                    : strings.ambient.soundsButton
-                }
-                aria-expanded={soundsLocked ? undefined : isSoundsOpen}
-                onClick={() => {
-                  if (requireAccount('ambientSounds')) setIsSoundsOpen((prev) => !prev)
-                }}
-                className={
-                  (sounds.activeIds.length > 0
-                    ? 'inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--on-accent)] transition-transform duration-200 hover:scale-105'
-                    : 'glass-pill inline-flex h-11 w-11 items-center justify-center rounded-full transition-transform duration-200 hover:scale-105') +
-                  (soundsLocked ? ` ${LOCKED_DIM_CLASS}` : '')
-                }
-              >
-                <Music
-                  size={18}
-                  strokeWidth={1.75}
-                  aria-hidden="true"
-                  className={sounds.activeIds.length === 0 ? 'glass-pill-icon' : undefined}
-                />
-              </button>
-              {soundsLocked ? <LockedBadge /> : null}
-              {soundsLocked ? null : (
-                <AmbientSoundsPanel
-                  open={isSoundsOpen}
-                  onClose={() => setIsSoundsOpen(false)}
-                  {...sounds}
-                />
-              )}
-            </div>
+            <AmbientSoundsControl sounds={sounds} />
 
             {isDeepFocusActive ? <DeepFocusIndicator /> : null}
           </>

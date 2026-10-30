@@ -1354,6 +1354,9 @@ export const fr = {
       preview: 'Aperçu',
     },
     extras: {
+      showFocusSoundsButton: 'Afficher le bouton des sons d’ambiance sur l’écran Focus',
+      showFocusSoundsButtonHint:
+        'Désactivé par défaut. Ajoute le mixeur de sons d’ambiance (et la touche M pour les couper) à l’écran Focus ; le mode Ambiant garde le sien.',
       title: 'Extras',
       displayName: 'Nom affiché',
       displayNamePlaceholder: 'Ton prénom (optionnel)',

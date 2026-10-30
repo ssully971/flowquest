@@ -140,3 +140,19 @@ describe('ExtrasPage — nom affiché, thèmes animés, mode épuré, veille, ra
     })
   })
 })
+
+describe('ExtrasPage — bouton des sons d’ambiance sur l’écran Focus', () => {
+  it('désactivé par défaut ; le réglage se bascule', async () => {
+    const userEvent = (await import('@testing-library/user-event')).default
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<ExtrasPage settings={DEFAULT_EXTRAS_SETTINGS} onChange={onChange} />)
+
+    const toggle = screen.getByRole('switch', {
+      name: 'Afficher le bouton des sons d’ambiance sur l’écran Focus',
+    })
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
+    await user.click(toggle)
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_EXTRAS_SETTINGS, showFocusSoundsButton: true })
+  })
+})

@@ -42,6 +42,15 @@ export function ExtrasPage({ settings, onChange }: ExtrasPageProps) {
       </div>
 
       <SettingsToggleRow
+        label={s.showFocusSoundsButton}
+        hint={s.showFocusSoundsButtonHint}
+        checked={settings.showFocusSoundsButton}
+        onToggle={() =>
+          onChange({ ...settings, showFocusSoundsButton: !settings.showFocusSoundsButton })
+        }
+      />
+
+      <SettingsToggleRow
         label={s.disableAnimatedThemes}
         hint={s.disableAnimatedThemesHint}
         checked={settings.disableAnimatedThemes}
