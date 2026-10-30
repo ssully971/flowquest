@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { vi } from 'vitest'
 
+import { serverClock } from './clock-offset'
+
 const rpcMock = vi.fn()
 
 vi.mock('@/shared/supabase/client', () => ({
@@ -10,6 +12,7 @@ vi.mock('@/shared/supabase/client', () => ({
 describe('rooms-repository — appels RPC et mise en forme (LOT F3)', () => {
   beforeEach(() => {
     rpcMock.mockReset()
+    serverClock.reset()
   })
 
   it('listMyRooms appelle list_my_rooms et met les colonnes en camelCase', async () => {
@@ -63,7 +66,11 @@ describe('rooms-repository — appels RPC et mise en forme (LOT F3)', () => {
     rpcMock.mockResolvedValue({ data: 'new-room-id', error: null })
     const { createRoom } = await import('./rooms-repository')
 
-    const result = await createRoom({ mode: 'countdown', focusMinutes: 25, friendIds: ['f1', 'f2'] })
+    const result = await createRoom({
+      mode: 'countdown',
+      focusMinutes: 25,
+      friendIds: ['f1', 'f2'],
+    })
 
     expect(rpcMock).toHaveBeenCalledWith('create_room', {
       p_focus_minutes: 25,
@@ -116,25 +123,110 @@ describe('rooms-repository — appels RPC et mise en forme (LOT F3)', () => {
     rpcMock.mockResolvedValue({
       data: [
         {
-          room_id: 'r1', host_id: 'h', status: 'running', focus_minutes: 25,
-          started_at: '2026-01-01T11:50:00Z', duration_ms: 1_500_000, elapsed_ms_at_pause: null,
-          created_at: 'x', ended_at: null, participant_user_id: 'h', participant_username: 'h',
-          participant_display_name: null, participant_avatar_url: null, participant_avatar_version: 0,
-          participant_role: 'host', participant_status: 'joined', participant_is_present: true,
-          mode: 'pomodoro', phase: 'focus', phase_index: 2, short_break_minutes: 5,
-          long_break_minutes: 15, sessions_before_long_break: 4, server_now: '2026-01-01T12:00:00Z',
+          room_id: 'r1',
+          host_id: 'h',
+          status: 'running',
+          focus_minutes: 25,
+          started_at: '2026-01-01T11:50:00Z',
+          duration_ms: 1_500_000,
+          elapsed_ms_at_pause: null,
+          created_at: 'x',
+          ended_at: null,
+          participant_user_id: 'h',
+          participant_username: 'h',
+          participant_display_name: null,
+          participant_avatar_url: null,
+          participant_avatar_version: 0,
+          participant_role: 'host',
+          participant_status: 'joined',
+          participant_is_present: true,
+          mode: 'pomodoro',
+          phase: 'focus',
+          phase_index: 2,
+          short_break_minutes: 5,
+          long_break_minutes: 15,
+          sessions_before_long_break: 4,
+          server_now: '2026-01-01T12:00:00Z',
         },
       ],
       error: null,
     })
     const { getRoomState } = await import('./rooms-repository')
     vi.useFakeTimers()
+    serverClock.reset()
     vi.setSystemTime(serverNow + 7_000) // l'appareil avance de 7 s
     const state = await getRoomState('r1')
     vi.useRealTimers()
 
     expect(state?.clockOffsetMs).toBe(7_000)
-    expect(state).toMatchObject({ mode: 'pomodoro', phase: 'focus', phaseIndex: 2, sessionsBeforeLongBreak: 4 })
+    expect(state).toMatchObject({
+      mode: 'pomodoro',
+      phase: 'focus',
+      phaseIndex: 2,
+      sessionsBeforeLongBreak: 4,
+    })
+  })
+
+  it('traduit un échec réseau en message français compréhensible (RoomsError de type network)', async () => {
+    rpcMock.mockResolvedValue({ data: null, error: { message: 'TypeError: Failed to fetch' } })
+    const { endRoom, RoomsError } = await import('./rooms-repository')
+
+    const failure = await endRoom('r1').catch((err: unknown) => err)
+    expect(failure).toBeInstanceOf(RoomsError)
+    expect((failure as InstanceType<typeof RoomsError>).kind).toBe('network')
+    expect((failure as Error).message).toBe(
+      'Connexion impossible. Vérifie ta connexion internet puis réessaie.',
+    )
+  })
+
+  it('garde tel quel un message serveur déjà rédigé en français', async () => {
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: 'Seul l’hôte peut terminer le salon' },
+    })
+    const { endRoom } = await import('./rooms-repository')
+    await expect(endRoom('r1')).rejects.toMatchObject({
+      message: 'Seul l’hôte peut terminer le salon',
+      kind: 'server',
+    })
+  })
+
+  it('getRoomState expose la version du salon (updatedAt)', async () => {
+    rpcMock.mockResolvedValue({
+      data: [
+        {
+          room_id: 'r1',
+          host_id: 'h',
+          status: 'lobby',
+          focus_minutes: 25,
+          started_at: null,
+          duration_ms: null,
+          elapsed_ms_at_pause: null,
+          created_at: 'x',
+          ended_at: null,
+          participant_user_id: 'h',
+          participant_username: 'h',
+          participant_display_name: null,
+          participant_avatar_url: null,
+          participant_avatar_version: 0,
+          participant_role: 'host',
+          participant_status: 'joined',
+          participant_is_present: true,
+          mode: 'countdown',
+          phase: 'focus',
+          phase_index: 0,
+          short_break_minutes: null,
+          long_break_minutes: null,
+          sessions_before_long_break: null,
+          server_now: '2026-01-01T12:00:00Z',
+          room_updated_at: '2026-01-01T11:59:00Z',
+        },
+      ],
+      error: null,
+    })
+    const { getRoomState } = await import('./rooms-repository')
+    const state = await getRoomState('r1')
+    expect(state?.updatedAt).toBe('2026-01-01T11:59:00Z')
   })
 
   it('respondRoomInvite transmet p_accept', async () => {

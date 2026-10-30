@@ -994,6 +994,8 @@ export interface RoomStateRow {
   sessions_before_long_break: number | null
   /** Heure du serveur au moment de la réponse : sert à corriger l'écart d'horloge. */
   server_now: string
+  /** Version du salon (rooms.updated_at), migration 0050. */
+  room_updated_at: string | null
 }
 
 export interface DuoStreakRow {

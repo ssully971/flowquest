@@ -82,24 +82,70 @@ describe('useRealtimeSync — repli et resynchronisation', () => {
     expect(onChange).toHaveBeenCalledTimes(2)
   })
 
-  it('se resynchronise et reconnecte au retour au premier plan, au retour réseau et à pageshow', async () => {
+  it('retour réseau (online) : recharge et recrée le canal (WebSocket probablement mort)', async () => {
     const { channels, onChange } = await setup()
     act(() => channels[0].statusCallback?.('SUBSCRIBED'))
     onChange.mockClear()
 
     act(() => void window.dispatchEvent(new Event('online')))
     expect(onChange).toHaveBeenCalledTimes(1)
-    act(() => channels[1].statusCallback?.('SUBSCRIBED'))
-    expect(onChange).toHaveBeenCalledTimes(2) // rattrapage après resynchronisation
-    onChange.mockClear()
     expect(channels).toHaveLength(2)
+    expect(removeChannelMock).toHaveBeenCalledTimes(1)
+    act(() => channels[1].statusCallback?.('SUBSCRIBED'))
+    expect(onChange).toHaveBeenCalledTimes(2) // rattrapage après reconnexion
+  })
 
-    act(() => void window.dispatchEvent(new Event('pageshow')))
-    expect(channels).toHaveLength(3)
+  it('focus / visibilitychange / pageshow ordinaire : recharge l’état SANS recréer un canal SUBSCRIBED', async () => {
+    const { channels, onChange } = await setup()
+    act(() => channels[0].statusCallback?.('SUBSCRIBED'))
+    onChange.mockClear()
 
+    act(() => void window.dispatchEvent(new Event('focus')))
     act(() => void document.dispatchEvent(new Event('visibilitychange')))
-    expect(channels).toHaveLength(4)
-    expect(removeChannelMock).toHaveBeenCalledTimes(3)
+    act(() => void window.dispatchEvent(new Event('pageshow')))
+
+    expect(onChange).toHaveBeenCalledTimes(3)
+    expect(channels).toHaveLength(1)
+    expect(removeChannelMock).not.toHaveBeenCalled()
+  })
+
+  it('pageshow persisté (page restaurée du cache) : recrée le canal', async () => {
+    const { channels } = await setup()
+    act(() => channels[0].statusCallback?.('SUBSCRIBED'))
+    const event = new Event('pageshow') as PageTransitionEvent
+    Object.defineProperty(event, 'persisted', { value: true })
+    act(() => void window.dispatchEvent(event))
+    expect(channels).toHaveLength(2)
+  })
+
+  it('au focus, recrée le canal seulement s’il n’est pas SUBSCRIBED', async () => {
+    const { channels } = await setup()
+    // Jamais passé SUBSCRIBED (connexion bloquée) : le focus relance la connexion.
+    act(() => void window.dispatchEvent(new Event('focus')))
+    expect(channels).toHaveLength(2)
+    act(() => channels[1].statusCallback?.('SUBSCRIBED'))
+    act(() => void window.dispatchEvent(new Event('focus')))
+    expect(channels).toHaveLength(2)
+  })
+
+  it('transmet les options de canal et appelle onSubscribed à chaque SUBSCRIBED', async () => {
+    const channels: ReturnType<typeof makeChannel>[] = []
+    channelMock.mockImplementation(() => {
+      const channel = makeChannel()
+      channels.push(channel)
+      return channel
+    })
+    const onSubscribed = vi.fn()
+    const { useRealtimeSync } = await import('./useRealtimeSync')
+    renderHook(() =>
+      useRealtimeSync('test', () => undefined, vi.fn(), true, {
+        channelOptions: { config: { presence: { key: 'u1' } } },
+        onSubscribed,
+      }),
+    )
+    expect(channelMock).toHaveBeenCalledWith('test', { config: { presence: { key: 'u1' } } })
+    act(() => channels[0].statusCallback?.('SUBSCRIBED'))
+    expect(onSubscribed).toHaveBeenCalledWith(channels[0])
   })
 
   it('ignore les rappels d’un ancien canal (pas d’interrogation fantôme)', async () => {

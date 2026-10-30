@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import type { RealtimeChannel } from '@supabase/supabase-js'
+import type { RealtimeChannel, RealtimeChannelOptions } from '@supabase/supabase-js'
 
 import { supabase } from './client'
 
@@ -13,15 +13,21 @@ interface RealtimeSyncOptions {
    * canal « zombie » (Safari qui laisse le WebSocket mourir sans prévenir). Désactivé par
    * défaut ; les salons de focus l'activent. */
   safetyPollMs?: number
+  /** Options du canal (ex. clé de Presence), passées à `client.channel(nom, options)`. */
+  channelOptions?: RealtimeChannelOptions
+  /** Appelé à chaque SUBSCRIBED (première connexion et reconnexions) : c'est le moment de
+   * `channel.track(...)` pour Presence, qui ne survit pas à une reconnexion. */
+  onSubscribed?: (channel: RealtimeChannel) => void
 }
 
 /**
  * Brique Realtime générique (règles transversales du Mode Amis) : abonnement sur un canal
- * nommé, resynchronisation complète (rechargement de l'état + nouvelle connexion) à chaque
- * retour au premier plan (`visibilitychange`, `pageshow`, `focus`) et au retour du réseau
- * (`online`) — iPad Safari suspend les onglets en arrière-plan et le canal peut être mort
- * au retour — et repli par interrogation toutes les 4 s tant que le canal n'est pas dans
- * l'état SUBSCRIBED. `configure` attache les écouteurs `.on('postgres_changes', ...)` propres
+ * nommé, resynchronisation à chaque retour au premier plan (`visibilitychange`, `focus`,
+ * `pageshow`) et au retour du réseau (`online`) : l'état est TOUJOURS rechargé, mais le canal
+ * n'est recréé que s'il n'est pas SUBSCRIBED (ou après `online` / une restauration de page
+ * `pageshow` persistée, où le WebSocket est probablement mort) — recréer un canal sain à
+ * chaque `focus` ferait une salve de désabonnements/abonnements inutiles. Repli par
+ * interrogation toutes les 4 s tant que le canal n'est pas dans l'état SUBSCRIBED. `configure` attache les écouteurs `.on('postgres_changes', ...)` propres
  * à l'appelant sur le canal fraîchement créé, et reçoit `notify` (stable, toujours la
  * dernière version de `onChange`) à utiliser comme callback plutôt que de fermer sur
  * `onChange` directement.
@@ -36,7 +42,7 @@ export function useRealtimeSync(
   enabled: boolean,
   options: RealtimeSyncOptions = {},
 ): void {
-  const { safetyPollMs = 0 } = options
+  const { safetyPollMs = 0, channelOptions, onSubscribed } = options
   const onChangeRef = useRef(onChange)
   useEffect(() => {
     onChangeRef.current = onChange
@@ -48,6 +54,16 @@ export function useRealtimeSync(
     configureRef.current = configure
   }, [configure])
 
+  const onSubscribedRef = useRef(onSubscribed)
+  useEffect(() => {
+    onSubscribedRef.current = onSubscribed
+  }, [onSubscribed])
+  // Les options de canal ne sont lues qu'à la création de l'abonnement.
+  const channelOptionsRef = useRef(channelOptions)
+  useEffect(() => {
+    channelOptionsRef.current = channelOptions
+  }, [channelOptions])
+
   useEffect(() => {
     if (!enabled || !supabase) return
     const client = supabase
@@ -57,6 +73,7 @@ export function useRealtimeSync(
     // l'état pour combler la fenêtre pendant laquelle des évènements ont pu être manqués.
     let needsCatchUp = false
     let channel: RealtimeChannel | null = null
+    let isSubscribed = false
     let pollInterval: number | null = null
     let safetyInterval: number | null = null
 
@@ -77,9 +94,11 @@ export function useRealtimeSync(
       const previous = channel
       channel = null
       if (previous) client.removeChannel(previous)
-      const next = client.channel(channelName)
+      const options = channelOptionsRef.current
+      const next = options ? client.channel(channelName, options) : client.channel(channelName)
       configureRef.current(next, notify)
       channel = next
+      isSubscribed = false
       // Connexion en cours : on rattrape par interrogation jusqu'au SUBSCRIBED.
       startPollFallback()
       next.subscribe((subStatus) => {
@@ -87,34 +106,46 @@ export function useRealtimeSync(
         // doivent ni réarmer l'interrogation ni effacer celle du canal courant.
         if (disposed || channel !== next) return
         if (subStatus === 'SUBSCRIBED') {
+          isSubscribed = true
           clearPoll()
+          onSubscribedRef.current?.(next)
           if (needsCatchUp) {
             needsCatchUp = false
             notify()
           }
         } else if (subStatus === 'CHANNEL_ERROR' || subStatus === 'TIMED_OUT' || subStatus === 'CLOSED') {
+          isSubscribed = false
           needsCatchUp = true
           startPollFallback()
         }
       })
     }
 
-    const resync = () => {
+    // `force` : le canal est probablement mort (retour du réseau, page restaurée du cache) ;
+    // sinon on ne recrée le canal que s'il n'est pas SUBSCRIBED.
+    const resync = (force: boolean) => {
       if (disposed) return
-      needsCatchUp = true
+      if (force || !isSubscribed) {
+        needsCatchUp = true
+        notify()
+        connect()
+        return
+      }
       notify()
-      connect()
     }
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') resync()
+      if (document.visibilityState === 'visible') resync(false)
     }
+    const handleOnline = () => resync(true)
+    const handlePageShow = (event: PageTransitionEvent) => resync(event.persisted === true)
+    const handleFocus = () => resync(false)
 
     connect()
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('online', resync)
-    window.addEventListener('pageshow', resync)
-    window.addEventListener('focus', resync)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('pageshow', handlePageShow)
+    window.addEventListener('focus', handleFocus)
     if (safetyPollMs > 0) {
       safetyInterval = window.setInterval(() => {
         if (document.visibilityState === 'visible') notify()
@@ -124,9 +155,9 @@ export function useRealtimeSync(
     return () => {
       disposed = true
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('online', resync)
-      window.removeEventListener('pageshow', resync)
-      window.removeEventListener('focus', resync)
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('pageshow', handlePageShow)
+      window.removeEventListener('focus', handleFocus)
       clearPoll()
       if (safetyInterval !== null) window.clearInterval(safetyInterval)
       if (channel) client.removeChannel(channel)

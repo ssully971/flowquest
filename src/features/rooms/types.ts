@@ -58,6 +58,13 @@ export interface RoomState {
   /** Écart d'horloge appareil − serveur (ms) mesuré à la dernière réponse : `Date.now() -
    * clockOffsetMs` ≈ heure serveur, même sur un appareil à l'heure fausse. */
   clockOffsetMs: number
+  /** Reliquat d'écart d'horloge encore à résorber (ms) et heure locale de son début : voir
+   * clock-offset.ts. Absents = aucun recalage en cours. */
+  clockResidualMs?: number
+  clockSlewStartedAt?: number
+  /** Version du salon (rooms.updated_at, ISO) : sert à ignorer les évènements Realtime déjà
+   * pris en compte. */
+  updatedAt?: string | null
   participants: RoomParticipant[]
 }
 

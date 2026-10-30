@@ -1,20 +1,20 @@
 import { supabase } from '@/shared/supabase/client'
 import type { MyRoomRow, RoomStateRow } from '@/shared/supabase/database.types'
 
+import { serverClock } from './clock-offset'
+import { RoomsError, rpcError } from './rooms-errors'
 import type { MyRoom, RoomMode, RoomState } from './types'
 
-export class RoomsError extends Error {}
+export { RoomsError }
 
 function requireClient() {
   if (!supabase) throw new RoomsError('Supabase non configuré')
   return supabase
 }
 
-function translateRpcError(message: string): string {
-  // Les messages RPC (supabase/migrations/0029) sont déjà rédigés en français pour
-  // l'utilisateur final (raise exception) : rien à traduire, juste un filet par défaut.
-  return message || 'Une erreur est survenue. Réessaie.'
-}
+// Les messages RPC (supabase/migrations/0029) sont déjà rédigés en français pour
+// l'utilisateur final (raise exception) : rien à traduire, sauf les échecs réseau
+// (« Failed to fetch »…), convertis par rpcError en message compréhensible.
 
 function mapMyRoom(row: MyRoomRow): MyRoom {
   return {
@@ -35,10 +35,9 @@ function mapMyRoom(row: MyRoomRow): MyRoom {
   }
 }
 
-function mapRoomState(rows: RoomStateRow[], receivedAt: number = Date.now()): RoomState | null {
+function mapRoomState(rows: RoomStateRow[], clockOffsetMs: number): RoomState | null {
   const first = rows[0]
   if (!first) return null
-  const serverNow = new Date(first.server_now).getTime()
   return {
     roomId: first.room_id,
     hostId: first.host_id,
@@ -50,7 +49,8 @@ function mapRoomState(rows: RoomStateRow[], receivedAt: number = Date.now()): Ro
     sessionsBeforeLongBreak: first.sessions_before_long_break,
     phase: first.phase,
     phaseIndex: first.phase_index,
-    clockOffsetMs: Number.isNaN(serverNow) ? 0 : receivedAt - serverNow,
+    clockOffsetMs,
+    updatedAt: first.room_updated_at ?? null,
     startedAt: first.started_at,
     durationMs: first.duration_ms,
     elapsedMsAtPause: first.elapsed_ms_at_pause,
@@ -72,7 +72,7 @@ function mapRoomState(rows: RoomStateRow[], receivedAt: number = Date.now()): Ro
 export async function listMyRooms(): Promise<MyRoom[]> {
   const client = requireClient()
   const { data, error } = await client.rpc('list_my_rooms')
-  if (error) throw new RoomsError(translateRpcError(error.message))
+  if (error) throw rpcError(error.message)
   return (data ?? []).map(mapMyRoom)
 }
 
@@ -103,7 +103,7 @@ export async function createRoom(params: CreateRoomParams): Promise<string> {
       : {}),
     p_pillar_id: params.pillarId ?? null,
   })
-  if (error) throw new RoomsError(translateRpcError(error.message))
+  if (error) throw rpcError(error.message)
   return data
 }
 
@@ -118,56 +118,73 @@ export async function respondRoomInvite(
     p_accept: accept,
     p_pillar_id: pillarId,
   })
-  if (error) throw new RoomsError(translateRpcError(error.message))
+  if (error) throw rpcError(error.message)
 }
 
 export async function setRoomPillar(roomId: string, pillarId: string | null): Promise<void> {
   const client = requireClient()
-  const { error } = await client.rpc('set_room_pillar', { p_room_id: roomId, p_pillar_id: pillarId })
-  if (error) throw new RoomsError(translateRpcError(error.message))
+  const { error } = await client.rpc('set_room_pillar', {
+    p_room_id: roomId,
+    p_pillar_id: pillarId,
+  })
+  if (error) throw rpcError(error.message)
 }
 
 export async function getRoomState(roomId: string): Promise<RoomState | null> {
   const client = requireClient()
+  const sentAt = Date.now()
+  const perfStart = performance.now()
   const { data, error } = await client.rpc('get_room_state', { p_room_id: roomId })
-  if (error) throw new RoomsError(translateRpcError(error.message))
-  return mapRoomState(data ?? [])
+  const receivedAt = Date.now()
+  const perfRttMs = performance.now() - perfStart
+  if (error) throw rpcError(error.message)
+  const rows = data ?? []
+  // Écart d'horloge « à la NTP » (voir clock-offset.ts) : mesuré sur l'aller-retour, jamais
+  // sur la seule heure de réception, que la latence des réponses fait varier.
+  const serverNowMs = rows[0] ? new Date(rows[0].server_now).getTime() : Number.NaN
+  const clockOffsetMs = Number.isNaN(serverNowMs)
+    ? (serverClock.offsetMs ?? 0)
+    : serverClock.addExchange({ sentAt, receivedAt, perfRttMs, serverNowMs })
+  return mapRoomState(rows, clockOffsetMs)
 }
 
 export async function startRoom(roomId: string): Promise<void> {
   const client = requireClient()
   const { error } = await client.rpc('start_room', { p_room_id: roomId })
-  if (error) throw new RoomsError(translateRpcError(error.message))
+  if (error) throw rpcError(error.message)
 }
 
 export async function pauseRoom(roomId: string): Promise<void> {
   const client = requireClient()
   const { error } = await client.rpc('pause_room', { p_room_id: roomId })
-  if (error) throw new RoomsError(translateRpcError(error.message))
+  if (error) throw rpcError(error.message)
 }
 
 export async function resumeRoom(roomId: string): Promise<void> {
   const client = requireClient()
   const { error } = await client.rpc('resume_room', { p_room_id: roomId })
-  if (error) throw new RoomsError(translateRpcError(error.message))
+  if (error) throw rpcError(error.message)
 }
 
 export async function endRoom(roomId: string): Promise<void> {
   const client = requireClient()
   const { error } = await client.rpc('end_room', { p_room_id: roomId })
-  if (error) throw new RoomsError(translateRpcError(error.message))
+  if (error) throw rpcError(error.message)
 }
 
 export async function leaveRoom(roomId: string): Promise<void> {
   const client = requireClient()
   const { error } = await client.rpc('leave_room', { p_room_id: roomId })
-  if (error) throw new RoomsError(translateRpcError(error.message))
+  if (error) throw rpcError(error.message)
 }
 
 export async function transferHost(roomId: string, newHostId: string): Promise<void> {
   const client = requireClient()
-  const { error } = await client.rpc('transfer_host', { p_room_id: roomId, p_new_host_id: newHostId })
-  if (error) throw new RoomsError(translateRpcError(error.message))
+  const { error } = await client.rpc('transfer_host', {
+    p_room_id: roomId,
+    p_new_host_id: newHostId,
+  })
+  if (error) throw rpcError(error.message)
 }
 
 /** Battement de cœur GLOBAL (migration 0048) : met à jour ma présence dans tous mes salons
@@ -175,5 +192,5 @@ export async function transferHost(roomId: string, newHostId: string): Promise<v
 export async function touchMyRooms(): Promise<void> {
   const client = requireClient()
   const { error } = await client.rpc('touch_my_rooms')
-  if (error) throw new RoomsError(translateRpcError(error.message))
+  if (error) throw rpcError(error.message)
 }
