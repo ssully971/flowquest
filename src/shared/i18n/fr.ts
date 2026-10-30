@@ -430,11 +430,17 @@ export const fr = {
       focusDuration: 'Temps de focus',
       sessionsCount: 'Sessions',
       pausesCount: 'Pauses',
+      pausedTime: 'Temps de pause',
+      manualPauses: 'Pauses manuelles',
+      xpGained: 'XP de pilier',
       tasksCompleted: 'Tâches validées',
       acknowledge: 'Nouvelle session',
       levelUpReached: 'a atteint le niveau',
       goalReached: 'a atteint son objectif : niveau',
     },
+    confirmEndShort:
+      'Moins d’une minute de focus : terminer sans enregistrer cette session ?',
+    confirmEndShortPomodoro: 'Moins d’une minute de focus : terminer cette session ?',
     deepFocus: {
       indicatorLabel: 'Deep Focus actif',
       pausedToastMessage: 'Ton minuteur a été mis en pause. Reprends quand tu veux.',

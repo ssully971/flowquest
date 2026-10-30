@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ClockSettingsProvider } from '@/features/home/ClockSettingsProvider'
@@ -266,6 +266,8 @@ describe('FocusScreen — mise en page Deep Focus (lot 3 bis, §6)', () => {
   })
 
   it('revient à la mise en page normale en terminant la session depuis l’écran minimal', async () => {
+    // Moins d'une minute de focus : « Terminer » demande d'abord confirmation (erreur de clic).
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     seedDeepFocusSettings()
     renderFocusScreen()
     await screen.findByText('Sur quoi veux-tu te concentrer ?')
@@ -275,6 +277,8 @@ describe('FocusScreen — mise en page Deep Focus (lot 3 bis, §6)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Terminer' }))
 
     expect(await screen.findByText('Session terminée')).toBeInTheDocument()
+    expect(confirmSpy).toHaveBeenCalledTimes(1)
+    confirmSpy.mockRestore()
   })
 })
 

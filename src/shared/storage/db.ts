@@ -19,6 +19,10 @@ export interface FocusSessionRecord {
   completed: boolean
   taskId: string | null
   pillarId: string | null
+  /** Temps de pause (s) et nombre de pauses manuelles — absents des sessions enregistrées avant
+   * la migration 0052 (comptés 0). */
+  pausedSeconds?: number
+  pauseCount?: number
   syncedAt: number | null
 }
 

@@ -42,6 +42,7 @@ import { TimerFace } from './components/TimerFace'
 import { useDeepFocus } from './useDeepFocus'
 import { buildGroupClockSource, buildSoloClockSource } from './clock-source'
 import { fireSessionEndConfetti } from './session-end-confetti'
+import { MIN_RECORDED_SECONDS } from './session-recorder'
 import { getGoalFocusSessions } from './session-goal'
 import { toDurationsMs } from './timer-settings'
 import { useTimerSettings } from './timer-settings-context'
@@ -152,6 +153,23 @@ export function FocusScreen() {
 
   const handlePrimary = source.onPrimary
 
+  // Terminer à la main : sous une minute de focus rien n'est enregistré, on demande donc
+  // confirmation d'abord (évite l'erreur de clic) — pour tous les modes.
+  const handleEndSession = () => {
+    const live = timer.snapshot
+    const inProgress = live !== null && (live.status === 'running' || live.status === 'paused')
+    if (
+      inProgress &&
+      live.elapsedMs < MIN_RECORDED_SECONDS * 1000 &&
+      !window.confirm(
+        timer.mode === 'pomodoro' ? strings.focus.confirmEndShortPomodoro : strings.focus.confirmEndShort,
+      )
+    ) {
+      return
+    }
+    timer.endSession()
+  }
+
   useKeyboardShortcuts(
     {
       onPrimary: handlePrimary,
@@ -240,7 +258,7 @@ export function FocusScreen() {
           clockStyle={clockSettings.style}
           status={snapshot.status}
           onPrimary={handlePrimary}
-          onEndSession={isGroup ? () => void group.actions.end() : timer.endSession}
+          onEndSession={isGroup ? () => void group.actions.end() : handleEndSession}
           readOnly={source.readOnly}
         />
         {pipPortal}
@@ -356,7 +374,7 @@ export function FocusScreen() {
           />
         ) : group.endedRoom ? (
           <GroupEndedPanel onClose={group.dismissEnded} />
-        ) : timer.mode === 'pomodoro' && timer.cycleEnded ? (
+        ) : timer.cycleEnded ? (
           <SessionEndScreen
             summary={timer.sessionSummary}
             showSummary={timerSettings.sessionSummaryEnabled}
@@ -403,8 +421,8 @@ export function FocusScreen() {
                   onPrimary={handlePrimary}
                   onSkip={timer.skip}
                   showSkip={timer.mode === 'pomodoro'}
-                  onEndSession={timer.endSession}
-                  showEndSession={timer.mode === 'pomodoro'}
+                  onEndSession={handleEndSession}
+                  showEndSession
                   onPictureInPicture={pip.toggle}
                   pipAvailable={pip.isSupported}
                   showPip={!isIOSDevice()}

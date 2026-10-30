@@ -50,3 +50,27 @@ describe('TimerControls — compact sur mobile tant que rien n’a démarré (LO
     expect(screen.getByRole('button', { name: 'Lancer' })).toBeVisible()
   })
 })
+
+describe('TimerControls — Terminer pour tous les modes (LOT T)', () => {
+  it('le bouton Terminer appelle onEndSession, aussi pour un Chrono (sans Passer)', async () => {
+    const userEvent = (await import('@testing-library/user-event')).default
+    const user = userEvent.setup()
+    const onEndSession = vi.fn()
+    renderControls({ status: 'running', showSkip: false, showEndSession: true, onEndSession })
+
+    expect(screen.queryByRole('button', { name: 'Passer' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Terminer' }))
+    expect(onEndSession).toHaveBeenCalledTimes(1)
+  })
+
+  it('pendant une action en cours (busyLabel), Terminer est désactivé avec le bouton principal', () => {
+    renderControls({
+      status: 'running',
+      showEndSession: true,
+      onEndSession: vi.fn(),
+      busyLabel: 'Fin…',
+    })
+    expect(screen.getByRole('button', { name: 'Terminer' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Fin…' })).toBeDisabled()
+  })
+})

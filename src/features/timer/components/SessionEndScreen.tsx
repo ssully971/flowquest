@@ -56,12 +56,28 @@ export function SessionEndScreen({
           </dd>
           <dt className="text-[var(--muted)]">{s.sessionsCount}</dt>
           <dd className="text-right font-medium text-[var(--text)]">{summary.sessionsCount}</dd>
-          <dt className="text-[var(--muted)]">{s.pausesCount}</dt>
-          <dd className="text-right font-medium text-[var(--text)]">{summary.pausesCount}</dd>
+          {summary.pausesCount > 0 ? (
+            <>
+              <dt className="text-[var(--muted)]">{s.pausesCount}</dt>
+              <dd className="text-right font-medium text-[var(--text)]">{summary.pausesCount}</dd>
+            </>
+          ) : null}
+          <dt className="text-[var(--muted)]">{s.pausedTime}</dt>
+          <dd className="text-right font-medium text-[var(--text)]">
+            {formatPlanDuration(summary.pausedSeconds * 1000)}
+          </dd>
+          <dt className="text-[var(--muted)]">{s.manualPauses}</dt>
+          <dd className="text-right font-medium text-[var(--text)]">{summary.manualPauseCount}</dd>
           <dt className="text-[var(--muted)]">{s.tasksCompleted}</dt>
           <dd className="text-right font-medium text-[var(--text)]">
             {summary.completedTasksCount}
           </dd>
+          {summary.xpGained > 0 ? (
+            <>
+              <dt className="text-[var(--muted)]">{s.xpGained}</dt>
+              <dd className="text-right font-medium text-[var(--text)]">+{summary.xpGained} XP</dd>
+            </>
+          ) : null}
         </dl>
       ) : null}
 

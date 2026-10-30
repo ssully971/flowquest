@@ -2,12 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { getCurrentUserId } from '@/features/auth/current-user'
 import { useAuth } from '@/features/auth/useAuth'
+import { getActivePillarId } from '@/features/pillars/active-pillar-ref'
 import type { PillarXpResult } from '@/features/pillars/apply-session-xp'
+import { getPillarsEnabled } from '@/features/settings/pillars-enabled-ref'
 import { getDb } from '@/shared/storage/db'
 
 import type { CycleSummary } from './cycle-summary'
-import { computeCycleSummary } from './cycle-summary'
-import type { SegmentKind, TimerMode, TimerSnapshot } from './engine/timer-engine'
+import { computeCycleSummary, summarizeSoloSession } from './cycle-summary'
+import { getEndedAt } from './engine/timer-engine'
+import type { SegmentKind, TimerMode, TimerSnapshot, TimerState } from './engine/timer-engine'
 import { getDefaultSegmentForMode, getDurationForSegment, getDurationMsForMode } from './durations'
 import { notifySegmentFinished, requestNotificationPermission } from './notifications'
 import {
@@ -17,7 +20,7 @@ import {
   effectiveSessionsBeforeLongBreak,
 } from './pomodoro-cycle'
 import type { PomodoroCycleState } from './pomodoro-cycle'
-import { recordSession } from './session-recorder'
+import { MIN_RECORDED_SECONDS, recordSession } from './session-recorder'
 import { getGoalFocusSessions, isGoalReached } from './session-goal'
 import { IndexedDbTimerStateRepository } from './storage/indexed-db-timer-state-repository'
 import { SupabaseTimerStateRepository } from './storage/supabase-timer-state-repository'
@@ -196,6 +199,15 @@ export function useFocusTimer(): UseFocusTimerResult {
     setCycleEnded(true)
   }, [])
 
+  /** Bilan d'une session Chrono / Minuteur (une seule phase) puis écran de fin. */
+  const finishSolo = useCallback(async (state: TimerState, endedAt: number) => {
+    const db = await getDb()
+    const tasks = await db.getAll('tasks')
+    const pillarActive = getPillarsEnabled() && getActivePillarId() !== null
+    setSessionSummary(summarizeSoloSession(state, endedAt, tasks, pillarActive))
+    setCycleEnded(true)
+  }, [])
+
   const skip = useCallback(() => {
     void (async () => {
       if (!controller || controller.getState().mode !== 'pomodoro') return
@@ -224,6 +236,11 @@ export function useFocusTimer(): UseFocusTimerResult {
     })
     void recordSession(state, snapshot.endedAt, true).then((result) => {
       if (result?.leveledUp) setPillarLevelUp(result)
+      if (state.mode === 'countdown') {
+        // Fin naturelle du Minuteur : bilan de la session, comme après « Terminer ».
+        void finishSolo(state, snapshot.endedAt as number)
+        return
+      }
       if (state.mode !== 'pomodoro') return
 
       // Réglage « Fin de cycle » (LOT E5) : en mode « s'arrêter après N sessions », on ne
@@ -247,7 +264,8 @@ export function useFocusTimer(): UseFocusTimerResult {
           sessionsBeforeLongBreak: config.sessionsBeforeLongBreak,
         })
         const nextProgress = goalProgress + 1
-        const justReached = !isGoalReached(goalProgress, target) && isGoalReached(nextProgress, target)
+        const justReached =
+          !isGoalReached(goalProgress, target) && isGoalReached(nextProgress, target)
         setGoalProgress(nextProgress)
         if (justReached) {
           setGoalReached(true)
@@ -261,7 +279,7 @@ export function useFocusTimer(): UseFocusTimerResult {
         void nextController.start().then(refresh)
       })
     })
-  }, [controller, snapshot, advanceToNext, refresh, goalProgress, cycle, finishCycle])
+  }, [controller, snapshot, advanceToNext, refresh, goalProgress, cycle, finishCycle, finishSolo])
 
   const continueAfterGoal = useCallback(() => {
     setGoalReached(false)
@@ -274,26 +292,54 @@ export function useFocusTimer(): UseFocusTimerResult {
 
   const endSession = useCallback(() => {
     void (async () => {
-      if (controller) {
-        const state = controller.getState()
-        const liveSnapshot = controller.getSnapshot()
-        if (state.startedAt !== null && liveSnapshot.status !== 'completed') {
-          const result = await recordSession(state, Date.now(), false)
+      if (!controller) {
+        await finishCycle()
+        return
+      }
+      const state = controller.getState()
+      const now = Date.now()
+      const liveSnapshot = controller.getSnapshot(now)
+      const isCompleted = liveSnapshot.status === 'completed'
+      // Chrono / Minuteur : sous une minute de focus, terminer à la main n'enregistre rien
+      // (clic accidentel).
+      const longEnough = liveSnapshot.elapsedMs >= MIN_RECORDED_SECONDS * 1000
+      const wasStarted = state.startedAt !== null && !isCompleted
+
+      if (state.mode !== 'pomodoro') {
+        // Chrono / Minuteur : jamais lancé, ou trop court → rien à enregistrer ni à résumer.
+        if (state.startedAt === null || !longEnough) {
+          await controller.reset()
+          refresh()
+          return
+        }
+        if (wasStarted) {
+          const result = await recordSession(state, now, false)
           if (result?.leveledUp) setPillarLevelUp(result)
         }
+        await finishSolo(
+          state,
+          isCompleted ? (liveSnapshot.endedAt ?? getEndedAt(state) ?? now) : now,
+        )
+        await controller.reset()
+        return
+      }
+
+      // Pomodoro : comportement historique, toute phase démarrée est enregistrée.
+      if (wasStarted) {
+        const result = await recordSession(state, now, false)
+        if (result?.leveledUp) setPillarLevelUp(result)
       }
       await finishCycle()
     })()
-  }, [controller, finishCycle])
+  }, [controller, finishCycle, finishSolo, refresh])
 
   const acknowledgeSessionEnd = useCallback(() => {
     void (async () => {
-      const nextController = await createSelectedController(
-        'pomodoro',
-        'focus',
-        timerSettingsRef.current,
-      )
-      setCycle(createPomodoroCycle('focus'))
+      // Le Chrono et le Minuteur restent dans leur mode ; le Pomodoro repart sur un focus neuf.
+      const mode = controller?.getState().mode ?? 'pomodoro'
+      const segment = mode === 'pomodoro' ? 'focus' : getDefaultSegmentForMode(mode)
+      const nextController = await createSelectedController(mode, segment, timerSettingsRef.current)
+      setCycle(createPomodoroCycle(segment))
       setController(nextController)
       setGoalProgress(0)
       setGoalReached(false)
@@ -301,7 +347,7 @@ export function useFocusTimer(): UseFocusTimerResult {
       setSessionSummary(null)
       setPillarLevelUp(null)
     })()
-  }, [])
+  }, [controller])
 
   const selectSegment = useCallback(
     (segment: SegmentKind) => {
@@ -336,7 +382,7 @@ export function useFocusTimer(): UseFocusTimerResult {
           const liveSnapshot = controller.getSnapshot()
           if (state.startedAt !== null && liveSnapshot.status !== 'completed') {
             const result = await recordSession(state, Date.now(), false)
-          if (result?.leveledUp) setPillarLevelUp(result)
+            if (result?.leveledUp) setPillarLevelUp(result)
           }
         }
         const segment = getDefaultSegmentForMode(mode)

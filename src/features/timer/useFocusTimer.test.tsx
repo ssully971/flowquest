@@ -8,6 +8,9 @@ import { getDb } from '@/shared/storage/db'
 import type { FocusSessionRecord, PillarRecord } from '@/shared/storage/db'
 import { ToastProvider } from '@/shared/toast'
 
+import { createTimerState, start } from './engine/timer-engine'
+import type { TimerState } from './engine/timer-engine'
+import { IndexedDbTimerStateRepository } from './storage/indexed-db-timer-state-repository'
 import { TimerSettingsProvider } from './TimerSettingsProvider'
 import { useFocusTimer } from './useFocusTimer'
 
@@ -578,4 +581,112 @@ describe('useFocusTimer — pillarLevelUp (LOT G3)', () => {
     await waitFor(() => expect(result.current.cycleEnded).toBe(false))
     expect(result.current.pillarLevelUp).toBeNull()
   }, 10_000)
+})
+
+describe('useFocusTimer — Terminer en Chrono et en Minuteur (LOT T)', () => {
+  const MIN = 60_000
+
+  async function seedState(state: TimerState) {
+    await new IndexedDbTimerStateRepository().save(state)
+  }
+
+  function runningState(
+    mode: 'stopwatch' | 'countdown',
+    startedAgoMs: number,
+    extra: Partial<TimerState> = {},
+  ) {
+    const segment = mode
+    return {
+      ...start(
+        createTimerState(mode, segment, mode === 'countdown' ? 30 * MIN : null),
+        Date.now() - startedAgoMs,
+      ),
+      ...extra,
+    }
+  }
+
+  async function sessions() {
+    return (await getDb()).getAll('focusSessions')
+  }
+
+  it('Chrono : enregistre le focus réel (kind focus) avec temps de pause et pauses manuelles, puis affiche le bilan', async () => {
+    await seedState(runningState('stopwatch', 10 * MIN, { pauseCount: 1, pausedTotalMs: 2 * MIN }))
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+    expect(result.current.mode).toBe('stopwatch')
+
+    act(() => result.current.endSession())
+
+    await waitFor(() => expect(result.current.cycleEnded).toBe(true))
+    const [recorded] = await sessions()
+    expect(recorded.kind).toBe('focus')
+    expect(recorded.completed).toBe(false)
+    expect(Math.abs(recorded.actualSeconds - 8 * 60)).toBeLessThanOrEqual(2)
+    expect(recorded.pausedSeconds).toBe(120)
+    expect(recorded.pauseCount).toBe(1)
+    expect(result.current.sessionSummary).toMatchObject({
+      sessionsCount: 1,
+      pausedSeconds: 120,
+      manualPauseCount: 1,
+    })
+    expect(
+      Math.abs((result.current.sessionSummary?.focusSeconds ?? 0) - 8 * 60),
+    ).toBeLessThanOrEqual(2)
+  })
+
+  it('Chrono de moins d’une minute : rien n’est enregistré, pas d’écran de fin, le chrono est remis à zéro', async () => {
+    await seedState(runningState('stopwatch', 20_000))
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    await act(async () => {
+      result.current.endSession()
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    })
+
+    expect(await sessions()).toHaveLength(0)
+    expect(result.current.cycleEnded).toBe(false)
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('idle'))
+  })
+
+  it('Minuteur arrêté en cours de route : enregistre le temps réellement écoulé, non terminé', async () => {
+    await seedState(runningState('countdown', 10 * MIN))
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.endSession())
+
+    await waitFor(() => expect(result.current.cycleEnded).toBe(true))
+    const [recorded] = await sessions()
+    expect(recorded).toMatchObject({ kind: 'focus', completed: false, plannedSeconds: 30 * 60 })
+    expect(Math.abs(recorded.actualSeconds - 10 * 60)).toBeLessThanOrEqual(2)
+  })
+
+  it('Chrono oublié 6 h : seules les 4 h confirmées sont enregistrées, l’absence est du temps de pause', async () => {
+    await seedState(runningState('stopwatch', 6 * 60 * MIN))
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    act(() => result.current.endSession())
+
+    await waitFor(() => expect(result.current.cycleEnded).toBe(true))
+    const [recorded] = await sessions()
+    expect(recorded.actualSeconds).toBe(4 * 3600)
+    expect(Math.abs((recorded.pausedSeconds ?? 0) - 2 * 3600)).toBeLessThanOrEqual(2)
+    expect(recorded.pauseCount).toBe(0)
+  })
+
+  it('« Nouvelle session » après un Chrono reste en mode Chrono', async () => {
+    await seedState(runningState('stopwatch', 5 * MIN))
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+    act(() => result.current.endSession())
+    await waitFor(() => expect(result.current.cycleEnded).toBe(true))
+
+    act(() => result.current.acknowledgeSessionEnd())
+
+    await waitFor(() => expect(result.current.cycleEnded).toBe(false))
+    expect(result.current.mode).toBe('stopwatch')
+    expect(result.current.snapshot?.status).toBe('idle')
+  })
 })

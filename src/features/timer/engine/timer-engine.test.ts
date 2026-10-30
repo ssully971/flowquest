@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
-import { createTimerState, getSnapshot, pause, reset, resume, settle, start } from './timer-engine'
+import {
+  applyGuard,
+  confirmPresence,
+  createTimerState,
+  getPausedMs,
+  getSnapshot,
+  pause,
+  reset,
+  resume,
+  settle,
+  start,
+} from './timer-engine'
 
 const MIN = 60_000
 
@@ -113,12 +124,161 @@ describe('timer-engine — réinitialisation et chronomètre', () => {
     expect(getSnapshot(state, 5000).elapsedMs).toBe(0)
   })
 
-  it('le chronomètre compte indéfiniment, sans restant ni fin', () => {
+  it('le chronomètre compte sans restant ni fin, jusqu’à la garde anti-oubli de 4 h', () => {
     const state = start(createTimerState('stopwatch', 'stopwatch', null), 0)
-    const snap = getSnapshot(state, 10 * 60 * MIN)
+    const snap = getSnapshot(state, 3 * 60 * MIN)
 
     expect(snap.remainingMs).toBeNull()
     expect(snap.isFinished).toBe(false)
-    expect(snap.elapsedMs).toBe(10 * 60 * MIN)
+    expect(snap.elapsedMs).toBe(3 * 60 * MIN)
+    // Au-delà de 4 h sans « Je suis là », le temps est figé (voir la garde plus bas).
+    expect(getSnapshot(state, 10 * 60 * MIN).elapsedMs).toBe(4 * 60 * MIN)
+  })
+})
+
+describe('garde anti-oubli de 4 h — Chrono et Minuteur (applyGuard, confirmPresence)', () => {
+  const T0 = 1_700_000_000_000
+  const H = 3_600_000
+  const stopwatch = () => start(createTimerState('stopwatch', 'stopwatch', null), T0)
+
+  it('rien ne se passe avant 4 h de focus effectif', () => {
+    const state = stopwatch()
+    expect(applyGuard(state, T0 + 4 * H - 1)).toBe(state)
+    expect(getSnapshot(state, T0 + 4 * H - 1)).toMatchObject({
+      status: 'running',
+      guardPending: false,
+    })
+  })
+
+  it('fige le temps à l’instant EXACT des 4 h, quel que soit le moment où on regarde', () => {
+    const state = stopwatch()
+    for (const looksAt of [T0 + 4 * H, T0 + 4 * H + 1, T0 + 9 * H, T0 + 30 * H]) {
+      const snapshot = getSnapshot(state, looksAt)
+      expect(snapshot.elapsedMs).toBe(4 * H)
+      expect(snapshot.status).toBe('paused')
+      expect(snapshot.guardPending).toBe(true)
+    }
+    expect(applyGuard(state, T0 + 9 * H).pausedAt).toBe(T0 + 4 * H)
+  })
+
+  it('la pause automatique n’est pas une pause manuelle (pauseCount inchangé)', () => {
+    const frozen = applyGuard(stopwatch(), T0 + 5 * H)
+    expect(frozen.pauseCount).toBe(0)
+  })
+
+  it('« Je suis là » : l’absence est du temps de pause, le temps repart de 4 h, prochain contrôle à 8 h', () => {
+    const frozen = applyGuard(stopwatch(), T0 + 4 * H)
+    const confirmedAt = T0 + 6 * H // absent 2 h
+    const running = confirmPresence(frozen, confirmedAt)
+
+    expect(running.status).toBe('running')
+    expect(running.pausedTotalMs).toBe(2 * H)
+    expect(getSnapshot(running, confirmedAt).elapsedMs).toBe(4 * H)
+    expect(getPausedMs(running, confirmedAt)).toBe(2 * H)
+    // 8 h de focus effectif = 4 h + 4 h après la confirmation.
+    expect(getSnapshot(running, confirmedAt + 4 * H - 1).guardPending).toBe(false)
+    const second = getSnapshot(running, confirmedAt + 4 * H)
+    expect(second.guardPending).toBe(true)
+    expect(second.elapsedMs).toBe(8 * H)
+  })
+
+  it('franchissements exacts à 4 h, 8 h puis 12 h', () => {
+    let state = stopwatch()
+    let now = T0
+    for (const hours of [4, 8, 12]) {
+      now += 4 * H
+      const frozen = applyGuard(state, now + 10 * H) // on regarde bien plus tard
+      expect(getSnapshot(frozen, now + 10 * H).elapsedMs).toBe(hours * H)
+      state = confirmPresence(frozen, now + 10 * H)
+      now += 10 * H // l'absence ne compte pas
+    }
+  })
+
+  it('une pause manuelle dans l’intervalle repousse le franchissement (seul le temps effectif compte)', () => {
+    let state = pause(stopwatch(), T0 + 1 * H)
+    expect(state.pauseCount).toBe(1)
+    state = resume(state, T0 + 3 * H) // 2 h de pause manuelle
+    // Le temps effectif atteint 4 h à T0 + 6 h (pas T0 + 4 h).
+    expect(applyGuard(state, T0 + 4 * H + 1)).toBe(state)
+    const frozen = applyGuard(state, T0 + 7 * H)
+    expect(frozen.pausedAt).toBe(T0 + 6 * H)
+    expect(getSnapshot(frozen, T0 + 7 * H).elapsedMs).toBe(4 * H)
+  })
+
+  it('une pause manuelle en cours au moment des 4 h ne déclenche pas la garde', () => {
+    const state = pause(stopwatch(), T0 + 3 * H)
+    expect(applyGuard(state, T0 + 10 * H)).toBe(state)
+    expect(getSnapshot(state, T0 + 10 * H).guardPending).toBe(false)
+  })
+
+  it('Reprendre ne relance pas un temps figé par la garde : seul « Je suis là » le fait', () => {
+    const frozen = applyGuard(stopwatch(), T0 + 5 * H)
+    expect(resume(frozen, T0 + 5 * H)).toBe(frozen)
+  })
+
+  it('reprise après suspension : settle reconstitue l’état figé à l’instant exact du franchissement', () => {
+    const settled = settle(stopwatch(), T0 + 20 * H)
+    expect(settled).toMatchObject({ status: 'paused', pausedAt: T0 + 4 * H, guardPending: true })
+    // Idempotent : un second settle ne change plus rien.
+    expect(settle(settled, T0 + 21 * H)).toBe(settled)
+  })
+
+  it('Terminer sans répondre : seules les heures confirmées sont comptées (4 h)', () => {
+    const frozen = applyGuard(stopwatch(), T0 + 11 * H)
+    expect(getSnapshot(frozen, T0 + 11 * H).elapsedMs).toBe(4 * H)
+    expect(getPausedMs(frozen, T0 + 11 * H)).toBe(7 * H) // l'absence est du temps de pause
+  })
+
+  it('Minuteur plus court que 4 h : jamais concerné', () => {
+    const state = start(createTimerState('countdown', 'countdown', 20 * 60_000), T0)
+    expect(applyGuard(state, T0 + 30 * H)).toBe(state)
+    expect(getSnapshot(state, T0 + 30 * H)).toMatchObject({
+      status: 'completed',
+      guardPending: false,
+    })
+  })
+
+  it('Minuteur de plus de 4 h : la garde passe avant la fin naturelle', () => {
+    const state = start(createTimerState('countdown', 'countdown', 6 * H), T0)
+    const snapshot = getSnapshot(state, T0 + 5 * H)
+    expect(snapshot).toMatchObject({ status: 'paused', guardPending: true, elapsedMs: 4 * H })
+    expect(snapshot.remainingMs).toBe(2 * H)
+    const resumed = confirmPresence(state, T0 + 5 * H)
+    // Il reste 2 h de minuteur : la fin naturelle (6 h de focus) arrive avant la limite de 8 h.
+    expect(getSnapshot(resumed, T0 + 5 * H + 2 * H)).toMatchObject({
+      status: 'completed',
+      guardPending: false,
+    })
+  })
+
+  it('un état enregistré avant la garde (sans champs) est géré avec la limite par défaut', () => {
+    const legacy = { ...stopwatch(), pauseCount: undefined, guardLimitMs: undefined }
+    expect(getSnapshot(legacy, T0 + 5 * H).guardPending).toBe(true)
+  })
+})
+
+describe('temps de pause et pauses manuelles (récapitulatif)', () => {
+  const T0 = 1_700_000_000_000
+
+  it('compte les pauses manuelles et additionne leur durée', () => {
+    let state = start(createTimerState('stopwatch', 'stopwatch', null), T0)
+    state = pause(state, T0 + 60_000)
+    state = resume(state, T0 + 120_000) // 1 min de pause
+    state = pause(state, T0 + 300_000)
+    state = resume(state, T0 + 360_000) // 1 min de pause
+    expect(state.pauseCount).toBe(2)
+    expect(getPausedMs(state, T0 + 400_000)).toBe(120_000)
+  })
+
+  it('une pause en cours est comptée jusqu’à maintenant', () => {
+    const state = pause(start(createTimerState('stopwatch', 'stopwatch', null), T0), T0 + 60_000)
+    expect(getPausedMs(state, T0 + 100_000)).toBe(40_000)
+  })
+
+  it('un nouveau démarrage remet les compteurs à zéro', () => {
+    let state = start(createTimerState('stopwatch', 'stopwatch', null), T0)
+    state = pause(state, T0 + 1000)
+    expect(start(state, T0 + 5000).pauseCount).toBe(0)
+    expect(reset(state).pauseCount).toBe(0)
   })
 })

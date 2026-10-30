@@ -10,6 +10,9 @@ const SUMMARY: CycleSummary = {
   sessionsCount: 2,
   pausesCount: 1,
   completedTasksCount: 3,
+  pausedSeconds: 600,
+  manualPauseCount: 2,
+  xpGained: 0,
 }
 
 describe('SessionEndScreen — confirmation de fin de session (LOT E6)', () => {
@@ -49,10 +52,26 @@ describe('SessionEndScreen — confirmation de fin de session (LOT E6)', () => {
     expect(screen.getByText('Temps de focus')).toBeInTheDocument()
     expect(screen.getByText('43 min')).toBeInTheDocument()
     expect(screen.getByText('Sessions')).toBeInTheDocument()
-    expect(screen.getByText('2')).toBeInTheDocument()
     expect(screen.getByText('Pauses')).toBeInTheDocument()
     expect(screen.getByText('Tâches validées')).toBeInTheDocument()
     expect(screen.getByText('3')).toBeInTheDocument()
+    // Temps de pause total (10 min) et pauses manuelles (2).
+    expect(screen.getByText('Temps de pause').nextElementSibling).toHaveTextContent('10 min')
+    expect(screen.getByText('Pauses manuelles').nextElementSibling).toHaveTextContent('2')
+    // Pas de ligne XP sans pilier.
+    expect(screen.queryByText('XP de pilier')).not.toBeInTheDocument()
+  })
+
+  it('affiche l’XP de pilier gagnée quand il y en a', () => {
+    render(
+      <SessionEndScreen
+        summary={{ ...SUMMARY, xpGained: 42 }}
+        showSummary
+        pillarLevelUp={null}
+        onAcknowledge={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('XP de pilier').nextElementSibling).toHaveTextContent('+42 XP')
   })
 
   it('appelle onAcknowledge au clic sur le bouton', async () => {
