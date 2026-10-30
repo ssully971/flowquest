@@ -197,3 +197,29 @@ describe('AmbientScreen — Deep Focus (LOT G2)', () => {
     expect(within(toastContainer).getByRole('button', { name: 'Reprendre' })).toBeInTheDocument()
   })
 })
+
+describe('AmbientScreen — horloge Liquid Glass déplaçable (LOT 2)', () => {
+  it('la carte d’horloge est un verre très transparent avec une poignée de déplacement', async () => {
+    renderAmbientScreen()
+    await screen.findByTestId('big-digits')
+
+    const grip = screen.getByRole('button', { name: 'Déplacer l’horloge' })
+    const card = grip.parentElement as HTMLElement
+    expect(card.className).toContain('glass-clock')
+    expect(card.className).not.toContain('glass-panel')
+    expect(screen.getByTestId('big-digits').closest('.glass-clock-text')).not.toBeNull()
+  })
+
+  it('le bouton Lancer et le panneau de sons restent utilisables dans le bloc déplaçable', async () => {
+    const user = userEvent.setup()
+    renderAmbientScreen()
+    await screen.findByTestId('big-digits')
+    const primary = await screen.findByRole('button', { name: /Lancer|Mettre en pause|Reprendre/ })
+    const wasRunning = primary.getAttribute('aria-label') === 'Mettre en pause'
+    await user.click(primary)
+    expect(
+      await screen.findByRole('button', { name: wasRunning ? 'Reprendre' : 'Mettre en pause' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sons d’ambiance' })).toBeInTheDocument()
+  })
+})

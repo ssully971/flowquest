@@ -281,3 +281,53 @@ h3 {
   background: var(--accent);
   border-color: var(--accent);
 }
+
+/*
+ * Carte d'horloge du mode Ambiant, « Liquid Glass » (LOT 2) : bien plus transparente que
+ * .glass-panel (qui porte la couleur de surface du thème) — un voile blanc à ~7 %, flou et
+ * saturation renforcée du fond, fine bordure lumineuse, reflet en haut et ombre douce, pour que
+ * l'horloge se fonde dans l'image sans rien changer aux couleurs du thème. Mêmes replis que les
+ * autres surfaces de verre (navigateur sans backdrop-filter, prefers-reduced-transparency).
+ * `.glass-clock-text` : halo de la couleur de fond du thème autour des chiffres, lisible quel que
+ * soit le fond (photo claire ou sombre).
+ */
+.glass-clock {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.04) 55%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.glass-clock-text {
+  text-shadow: 0 0 14px color-mix(in srgb, var(--bg) 55%, transparent);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-clock {
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-clock {
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-clock,
+  .ambient-clock-cluster {
+    transition: none !important;
+  }
+}

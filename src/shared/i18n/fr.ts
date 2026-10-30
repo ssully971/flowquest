@@ -807,6 +807,9 @@ export const fr = {
     sleepTimer: 'Minuteur d’arrêt',
     sleepTimerNone: 'Aucun',
     close: 'Fermer les sons d’ambiance',
+    moveClock: 'Déplacer l’horloge',
+    moveClockHint:
+      'Glisse la poignée, ou utilise les flèches du clavier (Maj pour de plus grands pas). Double-clic ou Début : remettre à sa place.',
   },
   invites: {
     code: {
@@ -1304,6 +1307,9 @@ export const fr = {
       showGreeting: 'Afficher la salutation',
       flipClock: 'Horloge « flip »',
       flipClockHint: 'Anime les chiffres comme une horloge à palettes quand ils changent.',
+      ambientPositionHint:
+        'En mode Ambiant, l’horloge se déplace en la glissant par sa poignée (ou avec les flèches du clavier).',
+      resetAmbientPosition: 'Remettre l’horloge du mode Ambiant à sa place',
       color: 'Couleur de l’horloge',
       colorHint: 'S’applique à l’horloge de l’accueil, à celle du Focus et du mode Ambiant.',
       colorAuto: 'Auto',
