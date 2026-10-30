@@ -196,6 +196,27 @@ h3 {
   }
 }
 
+/* Flamme du panneau de série : léger souffle, sobre (coupé sous prefers-reduced-motion). */
+@keyframes streak-flame-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+.streak-flame {
+  animation: streak-flame-breathe 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streak-flame {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

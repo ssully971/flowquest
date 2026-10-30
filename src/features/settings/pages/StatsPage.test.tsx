@@ -6,6 +6,10 @@ import { getDb } from '@/shared/storage/db'
 
 import { StatsPage } from './StatsPage'
 
+vi.mock('@/features/auth/useAuth', () => ({
+  useAuth: () => ({ status: 'unauthenticated', user: null }),
+}))
+
 async function clearFocusSessions() {
   const db = await getDb()
   const keys = await db.getAllKeys('focusSessions')

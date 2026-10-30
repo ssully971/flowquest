@@ -16,6 +16,13 @@
   --tone-b: #b497e8;
   --tone-c: #e6dafa;
 
+  /* Série (panneau de série) : flamme chaude pour « validé », bleu glacé pour « gelé » —
+   * volontairement hors de la famille violette. Contraste ≥ 4.5:1 sur --panel-surface. */
+  --streak-flame: #b4470f;
+  --streak-flame-soft: rgba(180, 71, 15, 0.14);
+  --streak-ice: #17688f;
+  --streak-ice-soft: rgba(23, 104, 143, 0.14);
+
   --panel-surface: #fbfafd;
   --panel-surface-2: #eeeaf6;
   --panel-line: rgba(40, 20, 80, 0.12);
@@ -50,6 +57,10 @@
     --text: #f2ecfc;
     --muted: #a99bc8;
     --accent: #a35cff;
+    --streak-flame: #ff9a4d;
+    --streak-flame-soft: rgba(255, 154, 77, 0.18);
+    --streak-ice: #7cc8ee;
+    --streak-ice-soft: rgba(124, 200, 238, 0.18);
     --on-accent: #1a0b33;
     --glow: rgba(163, 92, 255, 0.16);
     --contour: rgba(163, 92, 255, 0.24);
@@ -79,6 +90,10 @@
   --text: #f2ecfc;
   --muted: #a99bc8;
   --accent: #a35cff;
+  --streak-flame: #ff9a4d;
+  --streak-flame-soft: rgba(255, 154, 77, 0.18);
+  --streak-ice: #7cc8ee;
+  --streak-ice-soft: rgba(124, 200, 238, 0.18);
   --on-accent: #1a0b33;
   --glow: rgba(163, 92, 255, 0.16);
   --contour: rgba(163, 92, 255, 0.24);

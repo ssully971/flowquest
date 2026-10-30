@@ -677,6 +677,10 @@ export interface Database {
         Args: { p_room_id: string; p_accept: boolean; p_pillar_id?: string | null }
         Returns: undefined
       }
+      sync_streak_freezes: {
+        Args: { p_goal_minutes?: number }
+        Returns: unknown
+      }
       invite_to_room: {
         Args: { p_room_id: string; p_friend_ids: string[] }
         Returns: number

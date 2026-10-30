@@ -7,6 +7,7 @@ import {
   Moon,
   NotebookPen,
   Settings,
+  Snowflake,
   Timer,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -39,6 +40,7 @@ import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { SettingsPanel } from '@/features/settings/SettingsPanel'
 import { useSettingsSync } from '@/features/settings/useSettingsSync'
 import { StreakPanel } from '@/features/stats/components/StreakPanel'
+import { FREEZE_STOCK_CAP } from '@/features/stats/streak-freezes'
 import { useDailyGoal } from '@/features/stats/useDailyGoal'
 import { useDashboardStats } from '@/features/stats/useDashboardStats'
 import { useSessionSync } from '@/features/stats/useSessionSync'
@@ -276,6 +278,18 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
               >
                 <Flame size={18} strokeWidth={1.75} aria-hidden="true" />
                 {statsLocked ? null : <span>{stats?.currentStreakDays ?? 0}</span>}
+                {!statsLocked && stats?.freezes && stats.freezes.stock > 0 ? (
+                  <span
+                    className="flex items-center gap-0.5 text-xs"
+                    aria-label={strings.streak.freezes.stockLabel(
+                      stats.freezes.stock,
+                      FREEZE_STOCK_CAP,
+                    )}
+                  >
+                    <Snowflake size={13} strokeWidth={1.75} aria-hidden="true" />
+                    {stats.freezes.stock}
+                  </span>
+                ) : null}
                 {statsLocked ? <LockedBadge /> : null}
               </button>
               {statsLocked ? null : (

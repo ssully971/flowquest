@@ -69,8 +69,18 @@ describe('StreakPanel', () => {
   it('affiche une pastille par jour de la semaine, étiquetée par jour', () => {
     mockWeek.mockReturnValueOnce([
       // Minuit LOCAL : l'étiquette vient du jour de la semaine local, pas de l'UTC.
-      { dayStart: new Date(2026, 0, 14).getTime(), focusSeconds: 0, sessionsCount: 0, goalMet: false },
-      { dayStart: new Date(2026, 0, 15).getTime(), focusSeconds: 7200, sessionsCount: 3, goalMet: true },
+      {
+        dayStart: new Date(2026, 0, 14).getTime(),
+        focusSeconds: 0,
+        sessionsCount: 0,
+        goalMet: false,
+      },
+      {
+        dayStart: new Date(2026, 0, 15).getTime(),
+        focusSeconds: 7200,
+        sessionsCount: 3,
+        goalMet: true,
+      },
     ])
     renderPanel({ stats: stats({ currentStreakDays: 1, longestStreakDays: 1 }) })
 
@@ -78,6 +88,66 @@ describe('StreakPanel', () => {
     // 2026-01-14 = mercredi, 2026-01-15 = jeudi
     expect(screen.getByText('M')).toBeInTheDocument()
     expect(screen.getByText('J')).toBeInTheDocument()
+  })
+
+  it('affiche les 7 jours avec leur état, dont un jour gelé', () => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const yesterday = new Date(today)
+    yesterday.setDate(today.getDate() - 1)
+    mockWeek.mockReturnValueOnce([
+      { dayStart: yesterday.getTime(), focusSeconds: 0, sessionsCount: 0, goalMet: false },
+      { dayStart: today.getTime(), focusSeconds: 0, sessionsCount: 0, goalMet: false },
+    ])
+    renderPanel({
+      stats: stats({
+        currentStreakDays: 4,
+        longestStreakDays: 4,
+        freezes: {
+          stock: 1,
+          progressSeconds: 12000,
+          capped: false,
+          usedDays: [yesterday.getTime()],
+        },
+      }),
+    })
+
+    expect(screen.getByLabelText(/: gelé$/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/: aujourd’hui, en cours$/)).toBeInTheDocument()
+  })
+
+  it('affiche le stock de gels, la progression « 3 h 20 / 10 h » et l’historique', async () => {
+    const user = userEvent.setup()
+    const used = new Date(2026, 0, 14).getTime()
+    renderPanel({
+      stats: stats({
+        currentStreakDays: 2,
+        longestStreakDays: 2,
+        freezes: { stock: 2, progressSeconds: 12000, capped: false, usedDays: [used] },
+      }),
+    })
+
+    expect(screen.getByLabelText('2 gels sur 3')).toBeInTheDocument()
+    expect(screen.getByText('3 h 20 / 10 h')).toBeInTheDocument()
+    expect(screen.getByText(/mercredi 14 janvier/)).toBeInTheDocument()
+    expect(screen.queryByText(/Stock plein/)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Comment ça marche ?' }))
+    expect(screen.getByText(/1 gel pour 10 h de focus/)).toBeInTheDocument()
+  })
+
+  it('stock plein : message clair, la progression continue', () => {
+    renderPanel({
+      stats: stats({
+        currentStreakDays: 2,
+        longestStreakDays: 2,
+        freezes: { stock: 3, progressSeconds: 3600, capped: true, usedDays: [] },
+      }),
+    })
+
+    expect(screen.getByText(/Stock plein/)).toBeInTheDocument()
+    expect(screen.getByText('1 h / 10 h')).toBeInTheDocument()
+    expect(screen.getByText('Aucun gel utilisé pour l’instant.')).toBeInTheDocument()
   })
 
   it('ferme le panneau via Échap', async () => {

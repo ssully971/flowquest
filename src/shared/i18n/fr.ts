@@ -782,6 +782,31 @@ export const fr = {
     // Index = Date#getDay() (0 = dimanche ... 6 = samedi), pas l'ordre d'affichage.
     weekdayLetters: ['D', 'L', 'M', 'M', 'J', 'V', 'S'],
     empty: 'Termine ta première session de focus pour démarrer ta série.',
+    dayStates: {
+      validated: 'validé',
+      frozen: 'gelé',
+      missed: 'manqué',
+      today: 'aujourd’hui, en cours',
+    },
+    milestoneProgressLabel: 'Progression vers le prochain palier',
+    freezes: {
+      title: 'Gels de série',
+      stockLabel: (stock: number, cap: number) => `${stock} gel${stock > 1 ? 's' : ''} sur ${cap}`,
+      progressLabel: 'Progression vers le prochain gel',
+      progressValue: (done: string, goal: string) => `${done} / ${goal}`,
+      cappedMessage:
+        'Stock plein : ta progression continue, mais elle ne rapporte plus de gel tant que tu n’en as pas utilisé.',
+      historyTitle: 'Gels utilisés',
+      historyEmpty: 'Aucun gel utilisé pour l’instant.',
+      info: 'Comment ça marche ?',
+      infoClose: 'Masquer l’explication',
+      infoText: [
+        'Tu gagnes 1 gel pour 10 h de focus cumulées (le temps figé ou plafonné par la garde de 4 h ne compte pas).',
+        'Tu peux en garder 3 au maximum.',
+        'Si tu manques un jour alors que ta série est en cours, un gel est utilisé automatiquement : la série continue, mais le jour gelé n’ajoute pas +1. Un gel couvre un seul jour.',
+        'Sans gel, la série retombe à zéro. Les séries à deux et le classement ne sont pas concernés.',
+      ],
+    },
   },
   pwa: {
     installMessage: `Ajoute ${APP_NAME} à l’écran d’accueil pour recevoir l’alerte de fin.`,

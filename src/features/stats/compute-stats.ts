@@ -1,27 +1,35 @@
 import type { FocusSessionRecord, TaskRecord } from '@/shared/storage/db'
 
+import type { FreezeView } from './streak-freezes'
+
 export interface DashboardStats {
   todayFocusSeconds: number
   weekFocusSeconds: number
   currentStreakDays: number
   longestStreakDays: number
   dailyGoalMinutes: number
+  /** Gels de série (hook useDashboardStats) ; absent de computeStats seul. */
+  freezes?: FreezeView
 }
+
+/** État d'un jour dans la grille « 7 derniers jours » du panneau de série. */
+export type WeekDayState = 'validated' | 'frozen' | 'missed' | 'today'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 export const DEFAULT_DAILY_GOAL_MINUTES = 120
+const NO_FROZEN_DAYS: ReadonlySet<number> = new Set()
 
 /** Décale un début de jour de `days` jours CALENDAIRES (minuit local → minuit local). Ne
  * jamais soustraire `n * DAY_MS` : un jour de changement d'heure dure 23 h ou 25 h, et le
  * résultat ne tomberait plus sur minuit (clés de jour introuvables, séries cassées). */
-function shiftDays(dayStart: number, days: number): number {
+export function shiftDays(dayStart: number, days: number): number {
   const date = new Date(dayStart)
   date.setDate(date.getDate() + days)
   date.setHours(0, 0, 0, 0)
   return date.getTime()
 }
 
-function startOfDay(timestamp: number): number {
+export function startOfDay(timestamp: number): number {
   const date = new Date(timestamp)
   date.setHours(0, 0, 0, 0)
   return date.getTime()
@@ -44,6 +52,7 @@ export function computeStats(
   sessions: FocusSessionRecord[],
   now: number = Date.now(),
   dailyGoalMinutes: number = DEFAULT_DAILY_GOAL_MINUTES,
+  frozenDays: ReadonlySet<number> = NO_FROZEN_DAYS,
 ): DashboardStats {
   const focusSessions = sessions.filter((session) => session.kind === 'focus')
 
@@ -69,19 +78,22 @@ export function computeStats(
       .map(([day]) => day),
   )
 
+  // Un jour gelé fait le pont entre deux jours validés mais n'ajoute pas +1 à la série.
   let currentStreakDays = 0
   let cursor = daysWithGoalMet.has(todayStart) ? todayStart : shiftDays(todayStart, -1)
-  while (daysWithGoalMet.has(cursor)) {
-    currentStreakDays += 1
+  while (daysWithGoalMet.has(cursor) || frozenDays.has(cursor)) {
+    if (daysWithGoalMet.has(cursor)) currentStreakDays += 1
     cursor = shiftDays(cursor, -1)
   }
 
-  const sortedDays = Array.from(daysWithGoalMet).sort((a, b) => a - b)
+  const sortedDays = Array.from(new Set([...daysWithGoalMet, ...frozenDays])).sort((a, b) => a - b)
   let longestStreakDays = 0
   let runningStreak = 0
   let previousDay: number | null = null
   for (const day of sortedDays) {
-    runningStreak = previousDay !== null && shiftDays(previousDay, 1) === day ? runningStreak + 1 : 1
+    const continues = previousDay !== null && shiftDays(previousDay, 1) === day
+    if (!continues) runningStreak = 0
+    if (daysWithGoalMet.has(day)) runningStreak += 1
     longestStreakDays = Math.max(longestStreakDays, runningStreak)
     previousDay = day
   }
@@ -95,6 +107,18 @@ export function computeStats(
   }
 }
 
+/** État de chaque jour d'une fenêtre (7 derniers jours) : validé, gelé, manqué ou
+ * aujourd'hui (jamais « manqué » tant que la journée n'est pas finie). */
+export function getWeekDayState(
+  day: DayFocus,
+  todayStart: number,
+  frozenDays: ReadonlySet<number>,
+): WeekDayState {
+  if (day.dayStart === todayStart) return day.goalMet ? 'validated' : 'today'
+  if (day.goalMet) return 'validated'
+  return frozenDays.has(day.dayStart) ? 'frozen' : 'missed'
+}
+
 const STREAK_MILESTONES = [3, 7, 14, 30, 60, 100, 200, 365]
 
 /** Prochain palier de série (lot 4, panneau de détail) : le plus petit palier connu
@@ -102,6 +126,11 @@ const STREAK_MILESTONES = [3, 7, 14, 30, 60, 100, 200, 365]
 export function getNextStreakMilestone(currentStreakDays: number): number {
   const next = STREAK_MILESTONES.find((milestone) => milestone > currentStreakDays)
   return next ?? Math.ceil((currentStreakDays + 1) / 100) * 100
+}
+
+/** Palier précédent (0 au départ) : borne basse de la barre de progression du panneau. */
+export function getPreviousStreakMilestone(nextMilestone: number): number {
+  return [0, ...STREAK_MILESTONES].filter((milestone) => milestone < nextMilestone).pop() ?? 0
 }
 
 export interface DayFocus {
@@ -170,7 +199,15 @@ export function aggregateWeeklyFocus(days: DayFocus[]): WeekFocus[] {
   return Array.from(byWeek.values()).sort((a, b) => a.weekStart - b.weekStart)
 }
 
-export const STATS_PERIODS = ['today', 'week', 'month', '3months', '6months', 'year', 'all'] as const
+export const STATS_PERIODS = [
+  'today',
+  'week',
+  'month',
+  '3months',
+  '6months',
+  'year',
+  'all',
+] as const
 export type StatsPeriod = (typeof STATS_PERIODS)[number]
 
 /** Longueur en jours de chaque période du §9 (fenêtres glissantes, cohérentes avec
@@ -225,7 +262,9 @@ function sumPeriodStats(
       (session.kind === 'short_break' || session.kind === 'long_break') &&
       inWindow(session.startedAt),
   )
-  const completedTasks = tasks.filter((task) => task.done && task.doneAt !== null && inWindow(task.doneAt))
+  const completedTasks = tasks.filter(
+    (task) => task.done && task.doneAt !== null && inWindow(task.doneAt),
+  )
 
   return {
     focusSeconds: focusSessions.reduce((sum, session) => sum + session.actualSeconds, 0),
@@ -307,7 +346,9 @@ function computeFocusScoreForWindow(
 ): FocusScore {
   const inWindow = (timestamp: number) =>
     (windowStart === null || timestamp >= windowStart) && timestamp <= windowEnd
-  const startedFocus = sessions.filter((session) => session.kind === 'focus' && inWindow(session.startedAt))
+  const startedFocus = sessions.filter(
+    (session) => session.kind === 'focus' && inWindow(session.startedAt),
+  )
   if (startedFocus.length === 0 || totalDays <= 0) return EMPTY_FOCUS_SCORE
 
   const completionRate =
