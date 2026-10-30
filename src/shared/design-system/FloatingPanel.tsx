@@ -5,6 +5,9 @@ import { GlassCard } from './GlassCard'
 import { ModalOverlay } from './ModalOverlay'
 import type { PanelDisplayMode } from './panel-display-mode'
 
+/** Direction visuelle des panneaux de contenu (voir panel-styles.css). */
+export type FloatingPanelStyle = 'paper' | 'glass'
+
 interface FloatingPanelProps {
   panelRef: RefObject<HTMLDivElement | null>
   mode: PanelDisplayMode
@@ -15,6 +18,8 @@ interface FloatingPanelProps {
    * différentes), séparées du chrome commun pour rester spécifiques à chaque mode. */
   panelSizeClassName: string
   windowSizeClassName: string
+  /** Style choisi dans les réglages ; absent = ancien rendu (GlassCard / surface de thème). */
+  panelStyle?: FloatingPanelStyle
   children: ReactNode
 }
 
@@ -32,8 +37,18 @@ export function FloatingPanel({
   onClose,
   panelSizeClassName,
   windowSizeClassName,
+  panelStyle,
   children,
 }: FloatingPanelProps) {
+  const styledHeader = (
+    <div className="flex items-center justify-between">
+      <h2 className="fq-title">{title}</h2>
+      <button type="button" onClick={onClose} aria-label={closeLabel} className="fq-icon-btn -m-2">
+        <X size={18} strokeWidth={1.75} aria-hidden="true" />
+      </button>
+    </div>
+  )
+
   const header = (
     <div className="flex items-center justify-between">
       <h2 className="text-sm font-semibold text-[var(--text)]">{title}</h2>
@@ -47,6 +62,37 @@ export function FloatingPanel({
       </button>
     </div>
   )
+
+  if (panelStyle) {
+    if (mode === 'window') {
+      return (
+        <ModalOverlay className="z-40" blur onBackdropClick={onClose}>
+          <div
+            ref={panelRef}
+            role="dialog"
+            aria-label={title}
+            data-panel-style={panelStyle}
+            className={`fq-panel relative z-10 flex flex-col gap-4 p-6 ${windowSizeClassName}`}
+          >
+            {styledHeader}
+            {children}
+          </div>
+        </ModalOverlay>
+      )
+    }
+    return (
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-label={title}
+        data-panel-style={panelStyle}
+        className={`fq-panel absolute bottom-full right-0 z-40 mb-3 flex flex-col gap-3 p-4 max-sm:fixed max-sm:inset-x-4 max-sm:bottom-24 max-sm:mb-0 max-sm:w-auto ${panelSizeClassName}`}
+      >
+        {styledHeader}
+        {children}
+      </div>
+    )
+  }
 
   if (mode === 'window') {
     return (

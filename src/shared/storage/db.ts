@@ -38,6 +38,8 @@ export interface TaskRecord {
   doneAt: number | null
   /** Tâche archivée (masquée de la liste active, restaurable) ; absent ou `null` = active. */
   archivedAt?: number | null
+  /** Pilier rattaché (optionnel) ; `null`/absent = aucun. */
+  pillarId?: string | null
   createdAt: number
   updatedAt: number
 }

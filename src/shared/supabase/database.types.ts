@@ -287,6 +287,7 @@ export interface Database {
           done: boolean
           done_at: string | null
           archived_at: string | null
+          pillar_id: string | null
           created_at: string
           updated_at: string
         }
@@ -302,6 +303,7 @@ export interface Database {
           done?: boolean
           done_at?: string | null
           archived_at?: string | null
+          pillar_id?: string | null
         }
         Update: {
           title?: string
@@ -313,6 +315,7 @@ export interface Database {
           done?: boolean
           done_at?: string | null
           archived_at?: string | null
+          pillar_id?: string | null
         }
         Relationships: []
       }

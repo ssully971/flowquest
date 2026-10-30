@@ -92,6 +92,13 @@ export function NotesPanel({ open, onClose }: NotesPanelProps) {
     commitFromEditor()
   }
 
+  const handleQuote = () => {
+    editorRef.current?.focus()
+    const isQuote = document.queryCommandValue('formatBlock').toLowerCase() === 'blockquote'
+    document.execCommand('formatBlock', false, isQuote ? 'p' : 'blockquote')
+    commitFromEditor()
+  }
+
   const handleChecklist = () => {
     const editor = editorRef.current
     if (!editor) return
@@ -142,11 +149,13 @@ export function NotesPanel({ open, onClose }: NotesPanelProps) {
       onClose={onClose}
       panelSizeClassName="h-[min(24rem,60vh)] w-[min(22rem,calc(100vw-2rem))]"
       windowSizeClassName="h-[min(80vh,46rem)] w-[min(36rem,calc(100vw-2rem))]"
+      panelStyle={extrasSettings.panelStyle}
     >
       <NoteToolbar
         onBold={() => exec('bold')}
         onItalic={() => exec('italic')}
         onHeading={handleHeading}
+        onQuote={handleQuote}
         onBulletList={() => exec('insertUnorderedList')}
         onChecklist={handleChecklist}
       />
@@ -163,14 +172,14 @@ export function NotesPanel({ open, onClose }: NotesPanelProps) {
         onPaste={handlePaste}
         onDrop={(event) => event.preventDefault()}
         onClick={handleEditorClick}
-        className="note-editor flex-1 overflow-y-auto rounded-xl border border-[var(--line)] bg-transparent p-3 text-sm text-[var(--text)] outline-none transition-colors duration-200 focus:border-[var(--accent)] empty:before:text-[var(--muted)] empty:before:content-[attr(data-placeholder)]"
+        className="note-editor fq-editor flex-1 overflow-y-auto"
       />
 
-      <div className="flex items-center justify-between text-xs text-[var(--muted)]">
+      <div className="fq-status">
         <span>
           {wordCount} {strings.notes.words} · {charCount} {strings.notes.characters}
         </span>
-        <span>{isSaving ? strings.notes.saving : strings.notes.saved}</span>
+        <b data-saving={isSaving}>{isSaving ? strings.notes.saving : strings.notes.saved}</b>
       </div>
     </FloatingPanel>
   )

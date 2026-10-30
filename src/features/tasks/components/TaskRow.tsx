@@ -1,20 +1,20 @@
 import {
   Archive,
-  Check,
   ChevronDown,
   ChevronRight,
   GripVertical,
   Plus,
   Target,
-  X,
+  Trash2,
 } from 'lucide-react'
-import type { FormEvent, PointerEvent as ReactPointerEvent } from 'react'
+import type { CSSProperties, FormEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 
-import type { TaskRecord } from '@/shared/storage/db'
+import type { PillarRecord, TaskRecord } from '@/shared/storage/db'
 import type { TaskDetailsUpdate } from '@/features/tasks/useTasks'
 import { strings } from '@/shared/i18n'
 
+import { readableOn } from '../task-accent'
 import { TASK_COLORS } from '../task-color'
 import { TASK_EMOJIS } from '../task-emoji'
 
@@ -30,6 +30,8 @@ interface TaskRowProps {
   onUpdateDetails: (id: string, update: TaskDetailsUpdate) => void
   onAddSubtask: (parentId: string, title: string) => void
   onDragPointerDown: (event: ReactPointerEvent, id: string) => void
+  /** Piliers proposés pour rattacher la tâche ; vide = fonction masquée. */
+  pillars?: PillarRecord[]
 }
 
 function AddSubtaskForm({ onAdd }: { onAdd: (title: string) => void }) {
@@ -39,11 +41,7 @@ function AddSubtaskForm({ onAdd }: { onAdd: (title: string) => void }) {
 
   if (!isOpen) {
     return (
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="inline-flex items-center gap-1 self-start text-xs text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
-      >
+      <button type="button" onClick={() => setIsOpen(true)} className="fq-link-btn self-start">
         <Plus size={14} strokeWidth={1.75} aria-hidden="true" />
         {s.addSubtask}
       </button>
@@ -68,7 +66,7 @@ function AddSubtaskForm({ onAdd }: { onAdd: (title: string) => void }) {
           if (!title.trim()) setIsOpen(false)
         }}
         placeholder={s.addPlaceholder}
-        className="h-8 flex-1 rounded-lg border border-[var(--line)] bg-transparent px-2 text-sm text-[var(--text)] outline-none transition-colors duration-200 focus:border-[var(--accent)]"
+        className="fq-field flex-1"
       />
     </form>
   )
@@ -77,21 +75,59 @@ function AddSubtaskForm({ onAdd }: { onAdd: (title: string) => void }) {
 function TaskDetailsEditor({
   task,
   allowSubtasks,
+  pillars,
   onUpdateDetails,
   onAddSubtask,
+  onArchive,
+  onRemove,
 }: {
   task: TaskRecord
   allowSubtasks: boolean
+  pillars: PillarRecord[]
   onUpdateDetails: (update: TaskDetailsUpdate) => void
   onAddSubtask: (title: string) => void
+  onArchive?: () => void
+  onRemove: () => void
 }) {
   const s = strings.tasks
 
   return (
-    <div className="ml-7 mt-2 flex flex-col gap-2 border-l border-[var(--line)] pl-3">
+    <div className="ml-6 mt-1 mb-2 flex flex-col gap-3 border-l border-[var(--pn-line)] pl-3">
+      {pillars.length > 0 ? (
+        <div role="group" aria-label={s.pillarLabel}>
+          <p className="fq-muted mb-1 text-xs">{s.pillarLabel}</p>
+          <div className="flex flex-wrap gap-1">
+            <button
+              type="button"
+              aria-pressed={!task.pillarId}
+              onClick={() => onUpdateDetails({ pillarId: null })}
+              className="fq-icon-btn !w-auto px-3 text-sm"
+            >
+              {s.noPillar}
+            </button>
+            {pillars.map((pillar) => (
+              <button
+                key={pillar.id}
+                type="button"
+                aria-pressed={task.pillarId === pillar.id}
+                onClick={() => onUpdateDetails({ pillarId: pillar.id })}
+                className="fq-icon-btn !w-auto gap-2 px-3 text-sm"
+              >
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ background: pillar.color }}
+                  aria-hidden="true"
+                />
+                {pillar.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div>
-        <p className="mb-1 text-xs text-[var(--muted)]">{s.emojiLabel}</p>
-        <div className="flex flex-wrap gap-1">
+        <p className="fq-muted mb-1 text-xs">{s.emojiLabel}</p>
+        <div className="flex flex-wrap">
           {TASK_EMOJIS.map((emoji) => (
             <button
               key={emoji}
@@ -99,9 +135,7 @@ function TaskDetailsEditor({
               aria-pressed={task.emoji === emoji}
               aria-label={emoji}
               onClick={() => onUpdateDetails({ emoji: task.emoji === emoji ? null : emoji })}
-              className={`flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-colors duration-200 ${
-                task.emoji === emoji ? 'bg-[var(--accent)]' : 'hover:bg-[var(--surface-2)]'
-              }`}
+              className="fq-icon-btn text-base"
             >
               {emoji}
             </button>
@@ -110,8 +144,8 @@ function TaskDetailsEditor({
       </div>
 
       <div>
-        <p className="mb-1 text-xs text-[var(--muted)]">{s.colorLabel}</p>
-        <div className="flex flex-wrap gap-1.5">
+        <p className="fq-muted mb-1 text-xs">{s.colorLabel}</p>
+        <div className="flex flex-wrap">
           {TASK_COLORS.map((color) => (
             <button
               key={color}
@@ -119,20 +153,27 @@ function TaskDetailsEditor({
               aria-pressed={task.color === color}
               aria-label={color}
               onClick={() => onUpdateDetails({ color: task.color === color ? null : color })}
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
-              style={{
-                background: color,
-                outline: task.color === color ? '2px solid var(--text)' : 'none',
-                outlineOffset: 2,
-              }}
-            />
+              className="fq-icon-btn"
+            >
+              <span
+                className="block h-6 w-6 rounded-full"
+                style={{
+                  background: color,
+                  outline: task.color === color ? '2px solid var(--pn-text)' : 'none',
+                  outlineOffset: 2,
+                }}
+              />
+            </button>
           ))}
         </div>
       </div>
 
       <div>
-        <label className="mb-1 block text-xs text-[var(--muted)]">{s.etaLabel}</label>
+        <label className="fq-muted mb-1 block text-xs" htmlFor={`eta-${task.id}`}>
+          {s.etaLabel}
+        </label>
         <input
+          id={`eta-${task.id}`}
           type="number"
           min={0}
           max={600}
@@ -143,11 +184,24 @@ function TaskDetailsEditor({
             const value = event.target.value
             onUpdateDetails({ etaMinutes: value === '' ? null : Math.max(0, Number(value)) })
           }}
-          className="h-8 w-28 rounded-lg border border-[var(--line)] bg-transparent px-2 text-sm text-[var(--text)] outline-none transition-colors duration-200 focus:border-[var(--accent)]"
+          className="fq-field w-32"
         />
       </div>
 
       {allowSubtasks ? <AddSubtaskForm onAdd={onAddSubtask} /> : null}
+
+      <div className="flex flex-wrap gap-x-4 border-t border-[var(--pn-line)] pt-1">
+        {onArchive ? (
+          <button type="button" onClick={onArchive} className="fq-link-btn">
+            <Archive size={16} strokeWidth={1.75} aria-hidden="true" />
+            {s.archive}
+          </button>
+        ) : null}
+        <button type="button" onClick={onRemove} className="fq-link-btn">
+          <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />
+          {s.remove}
+        </button>
+      </div>
     </div>
   )
 }
@@ -164,11 +218,15 @@ export function TaskRow({
   onUpdateDetails,
   onAddSubtask,
   onDragPointerDown,
+  pillars = [],
 }: TaskRowProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [draftTitle, setDraftTitle] = useState(task.title)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const pillar = task.pillarId
+    ? pillars.find((candidate) => candidate.id === task.pillarId)
+    : undefined
 
   useEffect(() => {
     if (isEditing) inputRef.current?.focus()
@@ -183,24 +241,23 @@ export function TaskRow({
     }
   }
 
+  const rowStyle: CSSProperties & Record<string, string | number | undefined> = {
+    marginLeft: depth * 20,
+    boxShadow: task.color ? `inset 3px 0 0 ${task.color}` : undefined,
+  }
+  if (pillar) {
+    rowStyle['--row-accent'] = pillar.color
+    rowStyle['--row-on-accent'] = readableOn(pillar.color)
+  }
+
   return (
     <li data-task-id={task.id}>
-      <div
-        className={`flex items-center gap-2 rounded-xl border px-2 py-2 transition-colors duration-200 ${
-          isActive
-            ? 'border-[var(--accent)] bg-[var(--surface-2)]'
-            : 'border-transparent hover:bg-[var(--surface-2)]'
-        }`}
-        style={{
-          marginLeft: depth * 20,
-          boxShadow: task.color ? `inset 3px 0 0 ${task.color}` : undefined,
-        }}
-      >
+      <div className="fq-row" data-active={isActive} style={rowStyle}>
         <button
           type="button"
           onPointerDown={(event) => onDragPointerDown(event, task.id)}
           aria-label={strings.tasks.dragHandle}
-          className="shrink-0 cursor-grab touch-none text-[var(--muted)] active:cursor-grabbing"
+          className="fq-muted flex h-11 w-7 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
           style={{ touchAction: 'none' }}
         >
           <GripVertical size={16} strokeWidth={1.75} aria-hidden="true" />
@@ -212,16 +269,16 @@ export function TaskRow({
           aria-checked={task.done}
           aria-label={task.done ? strings.tasks.markNotDone : strings.tasks.markDone}
           onClick={() => onToggleDone(task.id)}
-          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors duration-200 ${
-            task.done
-              ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]'
-              : 'border-[var(--line)] text-transparent'
-          }`}
+          className="fq-check"
         >
-          <Check size={12} strokeWidth={2.5} aria-hidden="true" />
+          <span className="fq-check-box">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M3 8.5l3.2 3.2L13 4.8" />
+            </svg>
+          </span>
         </button>
 
-        {task.emoji ? <span className="shrink-0 text-sm">{task.emoji}</span> : null}
+        {task.emoji ? <span className="shrink-0 text-base">{task.emoji}</span> : null}
 
         {isEditing ? (
           <input
@@ -237,66 +294,57 @@ export function TaskRow({
                 setIsEditing(false)
               }
             }}
-            className="h-8 flex-1 rounded-lg border border-[var(--accent)] bg-transparent px-2 text-sm text-[var(--text)] outline-none"
+            className="fq-field min-w-0 flex-1"
           />
         ) : (
           <button
             type="button"
             onClick={() => setIsEditing(true)}
-            className={`flex-1 truncate text-left text-sm text-[var(--text)] ${task.done ? 'text-[var(--muted)] line-through' : ''}`}
+            className="flex min-h-11 min-w-0 flex-1 flex-col justify-center py-1 text-left"
           >
-            {task.title}
+            <span
+              className={`line-clamp-2 text-[0.9375rem] leading-tight ${task.done ? 'fq-muted line-through' : ''}`}
+            >
+              {task.title}
+            </span>
+            {pillar || task.etaMinutes !== null ? (
+              <span className="mt-0.5 flex items-center gap-2">
+                {pillar ? (
+                  <span className="fq-pill">
+                    <i aria-hidden="true" />
+                    {pillar.name}
+                  </span>
+                ) : null}
+                {task.etaMinutes !== null ? (
+                  <span className="fq-muted text-xs">{task.etaMinutes} min</span>
+                ) : null}
+              </span>
+            ) : null}
           </button>
         )}
-
-        {task.etaMinutes !== null ? (
-          <span className="shrink-0 text-xs text-[var(--muted)]">{task.etaMinutes} min</span>
-        ) : null}
-
-        <button
-          type="button"
-          onClick={() => setDetailsOpen((prev) => !prev)}
-          aria-expanded={detailsOpen}
-          aria-label={strings.tasks.options}
-          className="shrink-0 rounded-full p-1.5 text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
-        >
-          {detailsOpen ? (
-            <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" />
-          ) : (
-            <ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" />
-          )}
-        </button>
 
         <button
           type="button"
           onClick={() => onSetActive(isActive ? null : task.id)}
           aria-pressed={isActive}
           aria-label={isActive ? strings.tasks.unsetActive : strings.tasks.setActive}
-          className={`shrink-0 rounded-full p-1.5 transition-colors duration-200 ${
-            isActive ? 'text-[var(--accent)]' : 'text-[var(--muted)] hover:text-[var(--text)]'
-          }`}
+          className="fq-icon-btn"
         >
-          <Target size={16} strokeWidth={1.75} aria-hidden="true" />
+          <Target size={18} strokeWidth={1.75} aria-hidden="true" />
         </button>
-
-        {onArchive ? (
-          <button
-            type="button"
-            onClick={() => onArchive(task.id)}
-            aria-label={strings.tasks.archive}
-            className="shrink-0 rounded-full p-1.5 text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
-          >
-            <Archive size={16} strokeWidth={1.75} aria-hidden="true" />
-          </button>
-        ) : null}
 
         <button
           type="button"
-          onClick={() => onRemove(task.id)}
-          aria-label={strings.tasks.remove}
-          className="shrink-0 rounded-full p-1.5 text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
+          onClick={() => setDetailsOpen((prev) => !prev)}
+          aria-expanded={detailsOpen}
+          aria-label={strings.tasks.options}
+          className="fq-icon-btn"
         >
-          <X size={16} strokeWidth={1.75} aria-hidden="true" />
+          {detailsOpen ? (
+            <ChevronDown size={18} strokeWidth={1.75} aria-hidden="true" />
+          ) : (
+            <ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
+          )}
         </button>
       </div>
 
@@ -304,8 +352,11 @@ export function TaskRow({
         <TaskDetailsEditor
           task={task}
           allowSubtasks={depth === 0}
+          pillars={pillars}
           onUpdateDetails={(update) => onUpdateDetails(task.id, update)}
           onAddSubtask={(title) => onAddSubtask(task.id, title)}
+          onArchive={onArchive ? () => onArchive(task.id) : undefined}
+          onRemove={() => onRemove(task.id)}
         />
       ) : null}
     </li>

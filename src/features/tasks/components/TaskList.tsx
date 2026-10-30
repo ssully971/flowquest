@@ -1,7 +1,7 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 
-import type { TaskRecord } from '@/shared/storage/db'
+import type { PillarRecord, TaskRecord } from '@/shared/storage/db'
 import type { TaskDetailsUpdate } from '@/features/tasks/useTasks'
 
 import { TaskRow } from './TaskRow'
@@ -17,6 +17,7 @@ interface TaskListProps {
   onUpdateDetails: (id: string, update: TaskDetailsUpdate) => void
   onAddSubtask: (parentId: string, title: string) => void
   onReorder: (orderedIds: string[]) => void
+  pillars?: PillarRecord[]
 }
 
 /** Un seul niveau de sous-tâches (§8) : chaque tâche de premier niveau, suivie de ses
@@ -58,6 +59,7 @@ export function TaskList({
   onUpdateDetails,
   onAddSubtask,
   onReorder,
+  pillars,
 }: TaskListProps) {
   const [order, setOrder] = useState<string[]>(() => tasks.map((task) => task.id))
   const draggingIdRef = useRef<string | null>(null)
@@ -126,6 +128,7 @@ export function TaskList({
           onRename={onRename}
           onRemove={onRemove}
           onArchive={onArchive}
+          pillars={pillars}
           onSetActive={onSetActive}
           onUpdateDetails={onUpdateDetails}
           onAddSubtask={onAddSubtask}

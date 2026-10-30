@@ -16,27 +16,25 @@ export function ArchivedTasksList({ tasks, onRestore, onDelete }: ArchivedTasksL
   const ids = new Set(tasks.map((task) => task.id))
   const visible = tasks.filter((task) => !task.parentId || !ids.has(task.parentId))
 
-  if (visible.length === 0) return <p className="text-sm text-[var(--muted)]">{s.archivesEmpty}</p>
+  if (visible.length === 0) return <p className="fq-muted text-sm">{s.archivesEmpty}</p>
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs text-[var(--muted)]">{s.archivesHint}</p>
+      <p className="fq-muted text-xs">{s.archivesHint}</p>
       <ul className="flex flex-col gap-1">
         {visible.map((task) => {
           const childCount = tasks.filter((child) => child.parentId === task.id).length
           return (
             <li
               key={task.id}
-              className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-[var(--surface-2)]"
+              className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-[var(--pn-hover)]"
             >
               <div className="min-w-0 flex-1">
-                <p
-                  className={`truncate text-sm ${task.done ? 'text-[var(--muted)] line-through' : 'text-[var(--text)]'}`}
-                >
+                <p className={`truncate text-sm ${task.done ? 'fq-muted line-through' : ''}`}>
                   {task.emoji ? `${task.emoji} ` : ''}
                   {task.title}
                 </p>
-                <p className="text-xs text-[var(--muted)]">
+                <p className="fq-muted text-xs">
                   {s.archivedOn} {new Date(task.archivedAt ?? 0).toLocaleDateString('fr-FR')}
                   {childCount > 0 ? ` · ${s.subtasksCount(childCount)}` : ''}
                 </p>
@@ -45,7 +43,7 @@ export function ArchivedTasksList({ tasks, onRestore, onDelete }: ArchivedTasksL
                 type="button"
                 onClick={() => onRestore(task.id)}
                 aria-label={`${s.restore} : ${task.title}`}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
+                className="fq-icon-btn"
               >
                 <ArchiveRestore size={16} strokeWidth={1.75} aria-hidden="true" />
               </button>
@@ -53,7 +51,7 @@ export function ArchivedTasksList({ tasks, onRestore, onDelete }: ArchivedTasksL
                 type="button"
                 onClick={() => onDelete(task.id)}
                 aria-label={`${s.deletePermanently} : ${task.title}`}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
+                className="fq-icon-btn"
               >
                 <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />
               </button>

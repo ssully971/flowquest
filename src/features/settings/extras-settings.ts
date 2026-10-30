@@ -11,6 +11,10 @@ export type SettingsPanelSide = (typeof SETTINGS_PANEL_SIDES)[number]
 export const ICON_SIZES = ['small', 'medium', 'large'] as const
 export type IconSize = (typeof ICON_SIZES)[number]
 
+/** Style des panneaux Tâches et Bloc-notes : « Papier & encre » ou « Verre teinté ». */
+export const PANEL_STYLES = ['paper', 'glass'] as const
+export type PanelStyle = (typeof PANEL_STYLES)[number]
+
 export interface ExtrasSettings {
   displayName: string
   disableAnimatedThemes: boolean
@@ -22,6 +26,7 @@ export interface ExtrasSettings {
   settingsPanelSide: SettingsPanelSide
   tasksDisplayMode: PanelDisplayMode
   notesDisplayMode: PanelDisplayMode
+  panelStyle: PanelStyle
   confirmTaskDeletion: boolean
   iconSize: IconSize
   /** Piliers de Vie (lot 4, §5) : désactivé, plus de sélecteur de pilier, de radar ni de
@@ -45,6 +50,7 @@ export const DEFAULT_EXTRAS_SETTINGS: ExtrasSettings = {
   settingsPanelSide: 'left',
   tasksDisplayMode: 'panel',
   notesDisplayMode: 'panel',
+  panelStyle: 'paper',
   confirmTaskDeletion: true,
   iconSize: 'small',
   pillarsEnabled: true,

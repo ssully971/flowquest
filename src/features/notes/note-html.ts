@@ -6,7 +6,20 @@ import DOMPurify from 'dompurify'
  * case rendue en CSS depuis un attribut de données évite d'avoir à tolérer des
  * éléments de formulaire dans du contenu utilisateur).
  */
-const ALLOWED_TAGS = ['p', 'br', 'strong', 'b', 'em', 'i', 'h2', 'h3', 'ul', 'ol', 'li']
+const ALLOWED_TAGS = [
+  'p',
+  'br',
+  'strong',
+  'b',
+  'em',
+  'i',
+  'h2',
+  'h3',
+  'blockquote',
+  'ul',
+  'ol',
+  'li',
+]
 const ALLOWED_ATTR = ['data-checked', 'class']
 
 /** Nettoie le HTML produit par l'éditeur (ou collé depuis l'extérieur) avant de
