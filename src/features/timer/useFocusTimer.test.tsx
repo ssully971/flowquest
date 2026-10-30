@@ -690,3 +690,103 @@ describe('useFocusTimer — Terminer en Chrono et en Minuteur (LOT T)', () => {
     expect(result.current.snapshot?.status).toBe('idle')
   })
 })
+
+describe('useFocusTimer — garde anti-oubli de 4 h (LOT T)', () => {
+  const MIN = 60_000
+  const H = 60 * MIN
+
+  async function seedState(state: TimerState) {
+    await new IndexedDbTimerStateRepository().save(state)
+  }
+  const stopwatchStartedAgo = (ms: number, extra: Partial<TimerState> = {}) => ({
+    ...start(createTimerState('stopwatch', 'stopwatch', null), Date.now() - ms),
+    ...extra,
+  })
+
+  it('Chrono oublié : figé à 4 h, « Tu es toujours là ? » attend ; « Je suis là » relance, l’absence est du temps de pause', async () => {
+    await seedState(stopwatchStartedAgo(5 * H))
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    await waitFor(() => expect(result.current.presenceCheck).toBe('frozen'))
+    expect(result.current.snapshot?.elapsedMs).toBe(4 * H)
+    expect(result.current.snapshot?.status).toBe('paused')
+
+    // « Reprendre » ne relance pas un temps figé par la garde.
+    act(() => result.current.resume())
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(result.current.presenceCheck).toBe('frozen')
+
+    const announceBefore = result.current.guardAnnounceKey
+    act(() => result.current.confirmPresence())
+    await waitFor(() => expect(result.current.presenceCheck).toBeNull())
+    expect(result.current.snapshot?.status).toBe('running')
+    expect(result.current.guardAnnounceKey).toBe(announceBefore + 1) // annonce du prochain contrôle
+    // L'heure d'absence (~1 h) n'est pas comptée : le focus repart de 4 h.
+    expect(Math.abs((result.current.snapshot?.elapsedMs ?? 0) - 4 * H)).toBeLessThan(5_000)
+  })
+
+  it('sans réponse puis « Terminer » : seules les heures confirmées sont enregistrées', async () => {
+    await seedState(stopwatchStartedAgo(9 * H))
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.presenceCheck).toBe('frozen'))
+
+    act(() => result.current.endSession())
+
+    await waitFor(() => expect(result.current.cycleEnded).toBe(true))
+    const [recorded] = await (await getDb()).getAll('focusSessions')
+    expect(recorded.actualSeconds).toBe(4 * 3600)
+  })
+
+  it('lancer une session annonce le contrôle (carte d’annonce) ; une pause ne le ré-annonce pas', async () => {
+    seedTimerSettings({ focusMinutes: 15 })
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+    expect(result.current.guardAnnounceKey).toBe(0)
+
+    act(() => result.current.start())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+    expect(result.current.guardAnnounceKey).toBe(1)
+
+    act(() => result.current.pause())
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('paused'))
+    expect(result.current.guardAnnounceKey).toBe(1)
+  })
+
+  it('Pomodoro : 4 h de focus cumulées → à la fin de la pause, le focus suivant NE démarre PAS (même en démarrage auto)', async () => {
+    seedTimerSettings({ shortBreakMinutes: 0.001, autoStartNext: true })
+    // Pause courte qui se termine tout de suite, après 4 h de focus cumulées.
+    const breakState = start(
+      createTimerState('pomodoro', 'short_break', 60, 4 * H),
+      Date.now() - 5_000,
+    )
+    await seedState(breakState)
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+
+    await waitFor(() => expect(result.current.presenceCheck).toBe('pomodoro'), { timeout: 4000 })
+    expect(result.current.segment).toBe('focus')
+    expect(result.current.snapshot?.status).toBe('idle') // rien ne démarre, rien n'est compté
+  })
+
+  it('Pomodoro : « Je suis là » relance la session suivante et réarme le compteur de 4 h', async () => {
+    seedTimerSettings({ focusMinutes: 15 })
+    await seedState(createTimerState('pomodoro', 'focus', 15 * MIN, 4 * H))
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.presenceCheck).toBe('pomodoro'))
+
+    act(() => result.current.confirmPresence())
+
+    await waitFor(() => expect(result.current.snapshot?.status).toBe('running'))
+    expect(result.current.presenceCheck).toBeNull()
+    expect(result.current.segment).toBe('focus')
+  })
+
+  it('Pomodoro sous 4 h cumulées : aucune question, comportement inchangé', async () => {
+    seedTimerSettings({ focusMinutes: 15 })
+    await seedState(createTimerState('pomodoro', 'focus', 15 * MIN, 4 * H - 1))
+    const { result } = renderHook(() => useFocusTimer(), { wrapper })
+    await waitFor(() => expect(result.current.isReady).toBe(true))
+    expect(result.current.presenceCheck).toBeNull()
+  })
+})

@@ -111,3 +111,16 @@ describe('TimerPage — durées Pomodoro et démarrage automatique', () => {
     expect(screen.getByLabelText('Délai de grâce avant la pause')).toHaveValue(5)
   })
 })
+
+describe('TimerPage — annonce du contrôle des 4 h (LOT T)', () => {
+  it('bascule le réglage « Annoncer le contrôle des 4 h » (activé par défaut)', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<TimerPage settings={DEFAULT_TIMER_SETTINGS} onChange={onChange} />)
+
+    const toggle = screen.getByRole('switch', { name: 'Annoncer le contrôle des 4 h' })
+    expect(toggle).toHaveAttribute('aria-checked', 'true')
+    await user.click(toggle)
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_TIMER_SETTINGS, showGuardAnnouncement: false })
+  })
+})

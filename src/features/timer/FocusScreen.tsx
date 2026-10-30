@@ -36,6 +36,7 @@ import { GoalReachedPanel } from './components/GoalReachedPanel'
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp'
 import { SegmentTabs } from './components/SegmentTabs'
 import { SessionEndScreen } from './components/SessionEndScreen'
+import { TimerGuardLayer } from './components/TimerGuardLayer'
 import { SessionTally } from './components/SessionTally'
 import { TimerControls } from './components/TimerControls'
 import { TimerFace } from './components/TimerFace'
@@ -162,7 +163,9 @@ export function FocusScreen() {
       inProgress &&
       live.elapsedMs < MIN_RECORDED_SECONDS * 1000 &&
       !window.confirm(
-        timer.mode === 'pomodoro' ? strings.focus.confirmEndShortPomodoro : strings.focus.confirmEndShort,
+        timer.mode === 'pomodoro'
+          ? strings.focus.confirmEndShortPomodoro
+          : strings.focus.confirmEndShort,
       )
     ) {
       return
@@ -266,6 +269,7 @@ export function FocusScreen() {
           open={isShortcutsHelpOpen}
           onClose={() => setIsShortcutsHelpOpen(false)}
         />
+        <TimerGuardLayer timer={timer} />
       </>
     )
   }
@@ -439,6 +443,7 @@ export function FocusScreen() {
         open={isShortcutsHelpOpen}
         onClose={() => setIsShortcutsHelpOpen(false)}
       />
+      <TimerGuardLayer timer={timer} />
     </div>
   )
 }

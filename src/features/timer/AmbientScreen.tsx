@@ -19,6 +19,7 @@ import { useToast } from '@/shared/toast'
 
 import { DeepFocusIndicator } from './components/DeepFocusIndicator'
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp'
+import { TimerGuardLayer } from './components/TimerGuardLayer'
 import { useDeepFocus } from './useDeepFocus'
 import { buildGroupClockSource, buildSoloClockSource } from './clock-source'
 import { useFocusTimer } from './useFocusTimer'
@@ -184,6 +185,7 @@ export function AmbientScreen() {
         open={isShortcutsHelpOpen}
         onClose={() => setIsShortcutsHelpOpen(false)}
       />
+      <TimerGuardLayer timer={timer} />
     </div>
   )
 }

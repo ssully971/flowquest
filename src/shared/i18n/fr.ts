@@ -438,6 +438,18 @@ export const fr = {
       levelUpReached: 'a atteint le niveau',
       goalReached: 'a atteint son objectif : niveau',
     },
+    presence: {
+      title: 'Tu es toujours là ?',
+      body: 'Tu as atteint 4 h de focus. Le temps est arrêté en attendant ta réponse : confirme pour reprendre.',
+      bodyPomodoro:
+        'Tu as enchaîné 4 h de focus. Le prochain focus ne démarrera pas tant que tu n’as pas confirmé.',
+      confirm: 'Je suis là',
+      end: 'Terminer la session',
+      soundBlocked: 'Le son est bloqué par ton navigateur : cette fenêtre te prévient à la place.',
+      notification: 'Tu es toujours là ? Ton minuteur t’attend.',
+      announcement: 'Dans 4 h de focus, on te demandera si tu es toujours là.',
+      announcementClose: 'Fermer l’annonce',
+    },
     confirmEndShort:
       'Moins d’une minute de focus : terminer sans enregistrer cette session ?',
     confirmEndShortPomodoro: 'Moins d’une minute de focus : terminer cette session ?',
@@ -1181,6 +1193,9 @@ export const fr = {
       deepFocusEnabledHint:
         'Met ta session de focus en pause si tu quittes l’onglet trop longtemps — jamais pendant une pause ni le chronomètre libre.',
       deepFocusGraceSeconds: 'Délai de grâce avant la pause',
+      guardAnnouncement: 'Annoncer le contrôle des 4 h',
+      guardAnnouncementHint:
+        'Une petite carte rappelle, au lancement d’une session, qu’on te demandera si tu es toujours là après 4 h de focus. Le contrôle lui-même reste toujours actif.',
       decrease: 'Diminuer',
       increase: 'Augmenter',
       invalidValue: 'Valeur invalide : nombre entier attendu.',
