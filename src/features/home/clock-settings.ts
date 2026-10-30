@@ -27,9 +27,7 @@ export const CLOCK_COLORS_LIGHT = [
   '#4A3222', // brun
 ] as const
 export type ClockColor =
-  | typeof CLOCK_COLOR_AUTO
-  | (typeof CLOCK_COLORS_DARK)[number]
-  | (typeof CLOCK_COLORS_LIGHT)[number]
+  typeof CLOCK_COLOR_AUTO | (typeof CLOCK_COLORS_DARK)[number] | (typeof CLOCK_COLORS_LIGHT)[number]
 
 export const CLOCK_COLORS_BY_THEME: Record<'dark' | 'light', readonly ClockColor[]> = {
   dark: CLOCK_COLORS_DARK,
@@ -59,6 +57,9 @@ export interface ClockSettings {
   showSeconds: boolean
   showGreeting: boolean
   flipClock: boolean
+  /** Chiffres de l'horloge Ambiante en « Liquid Glass » (verre translucide cerclé de lumière) ;
+   * absent = désactivé (réglage par défaut). */
+  glassDigits?: boolean
   style: ClockStyle
   color: ClockColor
   /** Emplacement de la carte d'horloge du mode Ambiant (déplaçable), par taille d'écran ; absent ou
@@ -72,6 +73,7 @@ export const DEFAULT_CLOCK_SETTINGS: ClockSettings = {
   showSeconds: false,
   showGreeting: true,
   flipClock: false,
+  glassDigits: false,
   style: 'default-bold',
   color: CLOCK_COLOR_AUTO,
 }

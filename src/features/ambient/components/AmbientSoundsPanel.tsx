@@ -10,6 +10,7 @@ interface AmbientSoundsPanelProps extends UseAmbientSoundsResult {
   onClose: () => void
   /** `end` : aligné sur le bord droit du bouton ; `center` : centré sous lui. */
   placement?: 'end' | 'center'
+  direction?: 'down' | 'up'
 }
 
 export function AmbientSoundsPanel({
@@ -24,6 +25,7 @@ export function AmbientSoundsPanel({
   setSleepTimerMinutes,
   remainingSleepMs,
   placement = 'end',
+  direction = 'down',
 }: AmbientSoundsPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const s = strings.ambient
@@ -52,7 +54,7 @@ export function AmbientSoundsPanel({
       ref={panelRef}
       role="dialog"
       aria-label={s.soundsTitle}
-      className={`absolute top-full z-40 mt-3 flex w-[min(20rem,calc(100vw-2rem))] flex-col gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[0_10px_24px_var(--glow)] ${
+      className={`absolute ${direction === 'up' ? 'bottom-full mb-3' : 'top-full mt-3'} z-40 flex w-[min(20rem,calc(100vw-2rem))] flex-col gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[0_10px_24px_var(--glow)] ${
         placement === 'center' ? 'left-1/2 -translate-x-1/2' : 'right-0'
       }`}
     >

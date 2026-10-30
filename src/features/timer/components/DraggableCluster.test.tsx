@@ -181,7 +181,7 @@ describe('DraggableCluster — horloge Ambiant déplaçable', () => {
     const region = screen.getByTestId('ambient-clock-region')
     expect(region.className).toContain('pointer-events-none')
     expect(region.className).toContain('safe-area-inset-top')
-    expect(region.className).toContain('bottom-24')
+    expect(region.className).toContain('bottom-36')
     expect(screen.getByTestId('ambient-clock-cluster').className).toContain('pointer-events-auto')
   })
 })

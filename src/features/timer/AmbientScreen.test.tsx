@@ -115,6 +115,15 @@ describe('AmbientScreen — raccourcis clavier (LOT G1)', () => {
     expect(await screen.findByRole('button', { name: 'Mettre en pause' })).toBeInTheDocument()
   })
 
+  it('le bouton des sons d’ambiance est fixe : hors du bloc d’horloge déplaçable', async () => {
+    renderAmbientScreen()
+    await screen.findByTestId('big-digits')
+
+    const soundsButton = screen.getByRole('button', { name: /Sons d’ambiance/ })
+    expect(screen.getByTestId('ambient-clock-cluster')).not.toContainElement(soundsButton)
+    expect(screen.getByTestId('ambient-sounds-anchor')).toContainElement(soundsButton)
+  })
+
   it('M coupe/rétablit les sons d’ambiance', async () => {
     renderAmbientScreen()
     await screen.findByTestId('big-digits')

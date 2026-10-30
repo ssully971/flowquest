@@ -236,3 +236,93 @@ describe('useTasks — CRUD local-first, synchro seulement si connecté', () => 
     expect(returned).toBe(false)
   })
 })
+
+describe('useTasks — archivage', () => {
+  beforeEach(async () => {
+    upsertMock.mockReset()
+    upsertMock.mockResolvedValue({ error: null })
+    setCurrentUserId(null)
+    await clearTasks()
+  })
+
+  it('archive une tâche avec ses sous-tâches, puis les restaure ensemble', async () => {
+    const { useTasks } = await import('./useTasks')
+    const { result } = renderHook(() => useTasks())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    await act(async () => {
+      await result.current.addTask('Parent')
+    })
+    await waitFor(() => expect(result.current.tasks).toHaveLength(1))
+    const parentId = result.current.tasks[0].id
+    await act(async () => {
+      await result.current.addTask('Enfant', parentId)
+      await result.current.addTask('Autre')
+    })
+    await waitFor(() => expect(result.current.tasks).toHaveLength(3))
+
+    await act(async () => {
+      await result.current.archiveTask(parentId)
+    })
+    await waitFor(() => expect(result.current.tasks.map((t) => t.title)).toEqual(['Autre']))
+    expect(result.current.archivedTasks.map((t) => t.title).sort()).toEqual(['Enfant', 'Parent'])
+
+    await act(async () => {
+      await result.current.unarchiveTask(parentId)
+    })
+    await waitFor(() => expect(result.current.tasks).toHaveLength(3))
+    expect(result.current.archivedTasks).toHaveLength(0)
+  })
+
+  it('archiver les terminées laisse les tâches à faire en place', async () => {
+    const { useTasks } = await import('./useTasks')
+    const { result } = renderHook(() => useTasks())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    await act(async () => {
+      await result.current.addTask('Faite')
+      await result.current.addTask('À faire')
+    })
+    await waitFor(() => expect(result.current.tasks).toHaveLength(2))
+    const done = result.current.tasks.find((t) => t.title === 'Faite')!
+    await act(async () => {
+      await result.current.toggleDone(done.id)
+    })
+
+    let count = 0
+    await act(async () => {
+      count = await result.current.archiveCompleted()
+    })
+    expect(count).toBe(1)
+    await waitFor(() => expect(result.current.tasks.map((t) => t.title)).toEqual(['À faire']))
+  })
+
+  it('une tâche archivée ne compte plus comme « dernière restante » et se synchronise', async () => {
+    const { useTasks } = await import('./useTasks')
+    const { result } = renderHook(() => useTasks())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    await act(async () => {
+      await result.current.addTask('A archiver')
+      await result.current.addTask('Seule')
+    })
+    await waitFor(() => expect(result.current.tasks).toHaveLength(2))
+    const toArchive = result.current.tasks.find((t) => t.title === 'A archiver')!
+    const only = result.current.tasks.find((t) => t.title === 'Seule')!
+
+    setCurrentUserId('user-1')
+    await act(async () => {
+      await result.current.archiveTask(toArchive.id)
+    })
+    await waitFor(() => expect(upsertMock).toHaveBeenCalled())
+    expect(
+      upsertMock.mock.calls.flat().some((c) => JSON.stringify(c).includes('archived_at')),
+    ).toBe(true)
+
+    let last = false
+    await act(async () => {
+      last = await result.current.toggleDone(only.id)
+    })
+    expect(last).toBe(true)
+  })
+})

@@ -196,6 +196,27 @@ h3 {
   }
 }
 
+/* Flamme du panneau de série : léger souffle, sobre (coupé sous prefers-reduced-motion). */
+@keyframes streak-flame-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+.streak-flame {
+  animation: streak-flame-breathe 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streak-flame {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -309,6 +330,43 @@ h3 {
 
 .glass-clock-text {
   text-shadow: 0 0 14px color-mix(in srgb, var(--bg) 55%, transparent);
+}
+
+/* Mobile : pas de reflet ni de brillance sur la carte d'horloge — un voile discret, sans
+ * dégradé ni liseré lumineux intérieur. */
+@media (max-width: 639px) {
+  .glass-clock {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  }
+}
+
+/*
+ * Chiffres « Liquid Glass » (réglage Horloge > Chiffres en Liquid Glass, désactivé par défaut) :
+ * remplissage en verre translucide (dégradé blanc → quasi transparent, découpé dans le texte),
+ * contour lumineux fin et ombres sombres douces qui garantissent la lisibilité sur n'importe
+ * quel fond (photo claire ou sombre). Repli sans background-clip:text : texte blanc plein.
+ */
+.glass-digits {
+  color: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(255, 255, 255, 0.34) 48%,
+    rgba(255, 255, 255, 0.58) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.85);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45)) drop-shadow(0 8px 18px rgba(0, 0, 0, 0.3));
+}
+
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .glass-digits {
+    -webkit-text-fill-color: currentColor;
+  }
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {

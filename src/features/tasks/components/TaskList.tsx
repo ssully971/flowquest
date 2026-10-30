@@ -12,6 +12,7 @@ interface TaskListProps {
   onToggleDone: (id: string) => void
   onRename: (id: string, title: string) => void
   onRemove: (id: string) => void
+  onArchive?: (id: string) => void
   onSetActive: (id: string | null) => void
   onUpdateDetails: (id: string, update: TaskDetailsUpdate) => void
   onAddSubtask: (parentId: string, title: string) => void
@@ -52,6 +53,7 @@ export function TaskList({
   onToggleDone,
   onRename,
   onRemove,
+  onArchive,
   onSetActive,
   onUpdateDetails,
   onAddSubtask,
@@ -123,6 +125,7 @@ export function TaskList({
           onToggleDone={onToggleDone}
           onRename={onRename}
           onRemove={onRemove}
+          onArchive={onArchive}
           onSetActive={onSetActive}
           onUpdateDetails={onUpdateDetails}
           onAddSubtask={onAddSubtask}

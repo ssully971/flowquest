@@ -16,6 +16,7 @@ function toRow(userId: string, task: TaskRecord): Database['public']['Tables']['
     position: task.position,
     done: task.done,
     done_at: task.doneAt ? new Date(task.doneAt).toISOString() : null,
+    archived_at: task.archivedAt ? new Date(task.archivedAt).toISOString() : null,
   }
 }
 
@@ -42,6 +43,7 @@ export async function pullAllTasks(userId: string): Promise<TaskRecord[] | null>
     position: row.position,
     done: row.done,
     doneAt: row.done_at ? new Date(row.done_at).getTime() : null,
+    archivedAt: row.archived_at ? new Date(row.archived_at).getTime() : null,
     createdAt: new Date(row.created_at).getTime(),
     updatedAt: new Date(row.updated_at).getTime(),
   }))

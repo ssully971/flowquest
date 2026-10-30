@@ -36,6 +36,8 @@ export interface TaskRecord {
   position: number
   done: boolean
   doneAt: number | null
+  /** Tâche archivée (masquée de la liste active, restaurable) ; absent ou `null` = active. */
+  archivedAt?: number | null
   createdAt: number
   updatedAt: number
 }

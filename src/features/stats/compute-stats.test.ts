@@ -9,6 +9,9 @@ import {
   computePeriodStats,
   computeStats,
   getNextStreakMilestone,
+  getWeekDayState,
+  shiftDays,
+  startOfDay,
   getTrendWindowDays,
   percentChange,
 } from './compute-stats'
@@ -115,6 +118,57 @@ describe('computeStats — série de jours (streak), conditionnée par l’objec
     const stats = computeStats(sessions, now, LOW_GOAL_MINUTES)
     expect(stats.currentStreakDays).toBe(1)
     expect(stats.longestStreakDays).toBe(4)
+  })
+
+  describe('gels de série', () => {
+    const now = new Date(2026, 0, 15, 12).getTime()
+    const at = (offset: number) => shiftDays(startOfDay(now), offset) + 9 * 3_600_000
+
+    it('un jour gelé fait le pont sans ajouter +1 à la série', () => {
+      const sessions = [
+        session({ startedAt: at(0) }),
+        session({ startedAt: at(-2) }),
+        session({ startedAt: at(-3) }),
+      ]
+      const frozen = new Set([shiftDays(startOfDay(now), -1)])
+      const stats = computeStats(sessions, now, LOW_GOAL_MINUTES, frozen)
+      expect(stats.currentStreakDays).toBe(3)
+      expect(stats.longestStreakDays).toBe(3)
+      expect(computeStats(sessions, now, LOW_GOAL_MINUTES).currentStreakDays).toBe(1)
+    })
+
+    it('la série en cours survit à un hier gelé tant qu’aujourd’hui n’est pas fini', () => {
+      const sessions = [session({ startedAt: at(-2) })]
+      const frozen = new Set([shiftDays(startOfDay(now), -1)])
+      expect(computeStats(sessions, now, LOW_GOAL_MINUTES, frozen).currentStreakDays).toBe(1)
+    })
+
+    it('un trou de deux jours avec un seul gel casse quand même la série', () => {
+      const sessions = [session({ startedAt: at(0) }), session({ startedAt: at(-3) })]
+      const frozen = new Set([shiftDays(startOfDay(now), -1)])
+      expect(computeStats(sessions, now, LOW_GOAL_MINUTES, frozen).currentStreakDays).toBe(1)
+    })
+
+    it('le record tient compte des jours gelés', () => {
+      const sessions = [session({ startedAt: at(-10) }), session({ startedAt: at(-8) })]
+      const frozen = new Set([shiftDays(startOfDay(now), -9)])
+      expect(computeStats(sessions, now, LOW_GOAL_MINUTES, frozen).longestStreakDays).toBe(2)
+    })
+
+    it('états de la semaine : validé, gelé, manqué, aujourd’hui', () => {
+      const today = startOfDay(now)
+      const frozen = new Set([shiftDays(today, -1)])
+      const day = (offset: number, goalMet: boolean): DayFocus => ({
+        dayStart: shiftDays(today, offset),
+        focusSeconds: 0,
+        sessionsCount: 0,
+        goalMet,
+      })
+      expect(getWeekDayState(day(-2, true), today, frozen)).toBe('validated')
+      expect(getWeekDayState(day(-1, false), today, frozen)).toBe('frozen')
+      expect(getWeekDayState(day(-3, false), today, frozen)).toBe('missed')
+      expect(getWeekDayState(day(0, false), today, frozen)).toBe('today')
+    })
   })
 
   it('un jour sous l’objectif ne compte pas dans la série', () => {

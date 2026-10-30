@@ -286,6 +286,7 @@ export interface Database {
           position: number
           done: boolean
           done_at: string | null
+          archived_at: string | null
           created_at: string
           updated_at: string
         }
@@ -300,6 +301,7 @@ export interface Database {
           position?: number
           done?: boolean
           done_at?: string | null
+          archived_at?: string | null
         }
         Update: {
           title?: string
@@ -310,6 +312,7 @@ export interface Database {
           position?: number
           done?: boolean
           done_at?: string | null
+          archived_at?: string | null
         }
         Relationships: []
       }
@@ -676,6 +679,10 @@ export interface Database {
       respond_room_invite: {
         Args: { p_room_id: string; p_accept: boolean; p_pillar_id?: string | null }
         Returns: undefined
+      }
+      sync_streak_freezes: {
+        Args: { p_goal_minutes?: number }
+        Returns: unknown
       }
       invite_to_room: {
         Args: { p_room_id: string; p_friend_ids: string[] }

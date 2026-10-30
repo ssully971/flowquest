@@ -354,6 +354,21 @@ export const fr = {
     noEmoji: 'Aucun emoji',
     noColor: 'Aucune couleur',
     addSubtask: 'Ajouter une sous-tâche',
+    archive: 'Archiver la tâche',
+    archivedToast: 'Tâche archivée',
+    archiveCompleted: 'Archiver les terminées',
+    archiveCompletedToast: (count: number) =>
+      `${count} tâche${count > 1 ? 's' : ''} archivée${count > 1 ? 's' : ''}`,
+    showArchives: (count: number) => `Archives (${count})`,
+    backToTasks: 'Retour aux tâches',
+    archivesTitle: 'Archives',
+    archivesEmpty: 'Aucune tâche archivée.',
+    archivesHint: 'Les tâches archivées sont masquées mais conservées : restaure-les quand tu veux.',
+    restore: 'Restaurer la tâche',
+    restoredToast: 'Tâche restaurée',
+    deletePermanently: 'Supprimer définitivement',
+    archivedOn: 'Archivée le',
+    subtasksCount: (count: number) => `${count} sous-tâche${count > 1 ? 's' : ''}`,
   },
   pillars: {
     defaultName: 'Général',
@@ -782,6 +797,31 @@ export const fr = {
     // Index = Date#getDay() (0 = dimanche ... 6 = samedi), pas l'ordre d'affichage.
     weekdayLetters: ['D', 'L', 'M', 'M', 'J', 'V', 'S'],
     empty: 'Termine ta première session de focus pour démarrer ta série.',
+    dayStates: {
+      validated: 'validé',
+      frozen: 'gelé',
+      missed: 'manqué',
+      today: 'aujourd’hui, en cours',
+    },
+    milestoneProgressLabel: 'Progression vers le prochain palier',
+    freezes: {
+      title: 'Gels de série',
+      stockLabel: (stock: number, cap: number) => `${stock} gel${stock > 1 ? 's' : ''} sur ${cap}`,
+      progressLabel: 'Progression vers le prochain gel',
+      progressValue: (done: string, goal: string) => `${done} / ${goal}`,
+      cappedMessage:
+        'Stock plein : ta progression continue, mais elle ne rapporte plus de gel tant que tu n’en as pas utilisé.',
+      historyTitle: 'Gels utilisés',
+      historyEmpty: 'Aucun gel utilisé pour l’instant.',
+      info: 'Comment ça marche ?',
+      infoClose: 'Masquer l’explication',
+      infoText: [
+        'Tu gagnes 1 gel pour 10 h de focus cumulées (le temps figé ou plafonné par la garde de 4 h ne compte pas).',
+        'Tu peux en garder 3 au maximum.',
+        'Si tu manques un jour alors que ta série est en cours, un gel est utilisé automatiquement : la série continue, mais le jour gelé n’ajoute pas +1. Un gel couvre un seul jour.',
+        'Sans gel, la série retombe à zéro. Les séries à deux et le classement ne sont pas concernés.',
+      ],
+    },
   },
   pwa: {
     installMessage: `Ajoute ${APP_NAME} à l’écran d’accueil pour recevoir l’alerte de fin.`,
@@ -1326,6 +1366,9 @@ export const fr = {
       showSeconds: 'Afficher les secondes',
       showGreeting: 'Afficher la salutation',
       flipClock: 'Horloge « flip »',
+      glassDigits: 'Chiffres en Liquid Glass',
+      glassDigitsHint:
+        'Mode Ambiant : les chiffres de l’horloge deviennent du verre translucide, cerclé de lumière. Ignore la couleur choisie.',
       flipClockHint: 'Anime les chiffres comme une horloge à palettes quand ils changent.',
       ambientPositionHint:
         'En mode Ambiant, l’horloge se déplace en la glissant par sa poignée (ou avec les flèches du clavier).',

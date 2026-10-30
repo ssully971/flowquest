@@ -1,4 +1,13 @@
-import { Check, ChevronDown, ChevronRight, GripVertical, Plus, Target, X } from 'lucide-react'
+import {
+  Archive,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  GripVertical,
+  Plus,
+  Target,
+  X,
+} from 'lucide-react'
 import type { FormEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -16,6 +25,7 @@ interface TaskRowProps {
   onToggleDone: (id: string) => void
   onRename: (id: string, title: string) => void
   onRemove: (id: string) => void
+  onArchive?: (id: string) => void
   onSetActive: (id: string | null) => void
   onUpdateDetails: (id: string, update: TaskDetailsUpdate) => void
   onAddSubtask: (parentId: string, title: string) => void
@@ -149,6 +159,7 @@ export function TaskRow({
   onToggleDone,
   onRename,
   onRemove,
+  onArchive,
   onSetActive,
   onUpdateDetails,
   onAddSubtask,
@@ -267,6 +278,17 @@ export function TaskRow({
         >
           <Target size={16} strokeWidth={1.75} aria-hidden="true" />
         </button>
+
+        {onArchive ? (
+          <button
+            type="button"
+            onClick={() => onArchive(task.id)}
+            aria-label={strings.tasks.archive}
+            className="shrink-0 rounded-full p-1.5 text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
+          >
+            <Archive size={16} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        ) : null}
 
         <button
           type="button"
