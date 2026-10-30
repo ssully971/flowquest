@@ -1,8 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { isIOSDevice } from '@/features/pwa/platform'
 
+import { loadPipImage } from './pip-background'
+import type { PipBackground } from './pip-background'
 import { PIP_CANVAS_HEIGHT, PIP_CANVAS_WIDTH, drawPipFrame } from './pip-canvas'
+
+/** Hauteur de la fenêtre Document PiP : un peu plus que le canvas, pour la rangée de boutons. */
+const PIP_DOCUMENT_HEIGHT = 170
 import type { PipFrameContent } from './pip-canvas'
 
 interface DocumentPictureInPicture {
@@ -32,6 +37,17 @@ export interface UsePictureInPictureResult {
   pipWindow: Window | null
   isActive: boolean
   toggle: () => void
+  /** Ferme la fenêtre PiP si elle est ouverte (ex. quand la session se termine). */
+  close: () => void
+}
+
+export interface PictureInPictureOptions {
+  /** Fond d'écran statique à dessiner derrière le minuteur (mode vidéo canvas). */
+  background?: PipBackground | null
+  /** Commandes natives du PiP vidéo (play / pause de la barre du navigateur) : branchées sur
+   * `navigator.mediaSession`. Le bouton « Arrêter » n'existe pas dans ce mode : l'API
+   * Picture-in-Picture vidéo n'offre aucun bouton personnalisable en dehors de play/pause. */
+  controls?: { isRunning: boolean; onPlay: () => void; onPause: () => void } | null
 }
 
 function supportsVideoPip(): boolean {
@@ -47,7 +63,8 @@ function supportsVideoPip(): boolean {
   // Repli WebKit (§6.3) : sur Safari, `document.pictureInPictureEnabled` n'est pas
   // toujours renseigné alors que l'API `webkitSetPresentationMode` existe — sans ce
   // second test, le PiP serait signalé indisponible à tort sur ces navigateurs.
-  const hasWebkitApi = typeof HTMLVideoElement.prototype.webkitSupportsPresentationMode === 'function'
+  const hasWebkitApi =
+    typeof HTMLVideoElement.prototype.webkitSupportsPresentationMode === 'function'
 
   return hasStandardApi || hasWebkitApi
 }
@@ -78,7 +95,56 @@ function detectMode(): PictureInPictureMode {
  * fonctionne). `detectMode()` exclut donc ces appareils en amont (voir isIOSDevice) :
  * le PiP n'est proposé que là où il est réellement utilisable.
  */
-export function usePictureInPicture(content: PipFrameContent): UsePictureInPictureResult {
+export function usePictureInPicture(
+  baseContent: PipFrameContent,
+  options: PictureInPictureOptions = {},
+): UsePictureInPictureResult {
+  const { background = null, controls = null } = options
+  // Image du fond, chargée une fois (mode vidéo canvas) ; le dessin la recadre en « cover ».
+  const [loadedImage, setLoadedImage] = useState<{ src: string; image: HTMLImageElement } | null>(
+    null,
+  )
+  const imageSrc = background?.imageSrc ?? null
+  useEffect(() => {
+    if (!imageSrc) return
+    let cancelled = false
+    void loadPipImage(imageSrc).then((image) => {
+      if (!cancelled && image) setLoadedImage({ src: imageSrc, image })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [imageSrc])
+  const backgroundImage = loadedImage && loadedImage.src === imageSrc ? loadedImage.image : null
+  const backgroundColorFrom = background?.colorFrom
+  const backgroundColorTo = background?.colorTo
+  const backgroundPosition = background?.position
+  const content = useMemo<PipFrameContent>(
+    () => ({
+      ...baseContent,
+      background:
+        backgroundColorFrom && backgroundColorTo
+          ? {
+              image: backgroundImage,
+              imageWidth: backgroundImage?.naturalWidth,
+              imageHeight: backgroundImage?.naturalHeight,
+              anchor: backgroundPosition?.includes('top')
+                ? 'top'
+                : backgroundPosition?.includes('bottom')
+                  ? 'bottom'
+                  : 'center',
+              colorFrom: backgroundColorFrom,
+              colorTo: backgroundColorTo,
+            }
+          : null,
+    }),
+    [baseContent, backgroundImage, backgroundColorFrom, backgroundColorTo, backgroundPosition],
+  )
+  const controlsRef = useRef(controls)
+  useEffect(() => {
+    controlsRef.current = controls
+  }, [controls])
+
   const [pipWindow, setPipWindow] = useState<Window | null>(null)
   const [isVideoActive, setIsVideoActive] = useState(false)
   const [mode] = useState<PictureInPictureMode>(detectMode)
@@ -149,12 +215,10 @@ export function usePictureInPicture(content: PipFrameContent): UsePictureInPictu
       pip.window.close()
       return
     }
-    void pip
-      .requestWindow({ width: PIP_CANVAS_WIDTH, height: PIP_CANVAS_HEIGHT })
-      .then((win) => {
-        win.addEventListener('pagehide', () => setPipWindow(null))
-        setPipWindow(win)
-      })
+    void pip.requestWindow({ width: PIP_CANVAS_WIDTH, height: PIP_DOCUMENT_HEIGHT }).then((win) => {
+      win.addEventListener('pagehide', () => setPipWindow(null))
+      setPipWindow(win)
+    })
   }, [])
 
   const toggleVideo = useCallback(() => {
@@ -200,6 +264,49 @@ export function usePictureInPicture(content: PipFrameContent): UsePictureInPictu
     else if (mode === 'video') toggleVideo()
   }, [mode, toggleDocument, toggleVideo])
 
+  const close = useCallback(() => {
+    if (mode === 'document') {
+      window.documentPictureInPicture?.window?.close()
+    } else if (mode === 'video') {
+      const video = videoElRef.current
+      if (video && document.pictureInPictureElement === video) void document.exitPictureInPicture()
+      else if (video?.webkitPresentationMode === 'picture-in-picture') {
+        video.webkitSetPresentationMode?.('inline')
+      }
+    }
+  }, [mode])
+
+  // Commandes natives du PiP vidéo : la barre du navigateur (play / pause) pilote le minuteur
+  // via Media Session. Aucun « Arrêter » ici : l'API ne le permet pas (voir PictureInPictureOptions).
+  const isControllable = controls !== null
+  useEffect(() => {
+    if (mode !== 'video' || !isVideoActive || !isControllable) return
+    const session = typeof navigator !== 'undefined' ? navigator.mediaSession : undefined
+    if (!session) return
+    try {
+      session.setActionHandler('play', () => controlsRef.current?.onPlay())
+      session.setActionHandler('pause', () => controlsRef.current?.onPause())
+    } catch {
+      // Action non prise en charge par ce navigateur : les contrôles natifs restent inertes.
+    }
+    return () => {
+      try {
+        session.setActionHandler('play', null)
+        session.setActionHandler('pause', null)
+      } catch {
+        // rien à nettoyer
+      }
+    }
+  }, [mode, isVideoActive, isControllable])
+
+  const isRunning = controls?.isRunning ?? false
+  useEffect(() => {
+    if (mode !== 'video' || !isVideoActive || !isControllable) return
+    if (typeof navigator !== 'undefined' && navigator.mediaSession) {
+      navigator.mediaSession.playbackState = isRunning ? 'playing' : 'paused'
+    }
+  }, [mode, isVideoActive, isControllable, isRunning])
+
   useEffect(() => {
     return () => {
       pipWindow?.close()
@@ -212,5 +319,6 @@ export function usePictureInPicture(content: PipFrameContent): UsePictureInPictu
     pipWindow,
     isActive: mode === 'document' ? pipWindow !== null : isVideoActive,
     toggle,
+    close,
   }
 }

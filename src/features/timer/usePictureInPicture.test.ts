@@ -193,3 +193,126 @@ describe('usePictureInPicture — Document PiP et repli vidéo/canvas (§6.3 du 
     expect(document.querySelector('video')).toBeNull()
   })
 })
+
+describe('usePictureInPicture — commandes natives du PiP vidéo (Media Session)', () => {
+  const handlers: Record<string, (() => void) | null> = {}
+  const mediaSession = {
+    playbackState: 'none',
+    setActionHandler: vi.fn((action: string, handler: (() => void) | null) => {
+      handlers[action] = handler
+    }),
+  }
+
+  function enableVideoPip() {
+    Object.defineProperty(document, 'pictureInPictureEnabled', { value: true, configurable: true })
+    HTMLVideoElement.prototype.requestPictureInPicture = vi.fn().mockResolvedValue({} as PictureInPictureWindow)
+    HTMLCanvasElement.prototype.captureStream = vi.fn().mockReturnValue({} as MediaStream)
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'mediaSession', { value: mediaSession, configurable: true })
+  }
+
+  afterEach(() => {
+    cleanupGlobals()
+    resetPlatform()
+    vi.restoreAllMocks()
+    Reflect.deleteProperty(navigator, 'mediaSession')
+    for (const key of Object.keys(handlers)) delete handlers[key]
+    mediaSession.playbackState = 'none'
+    mediaSession.setActionHandler.mockClear()
+  })
+
+  it('pilote la pause / reprise depuis les contrôles natifs, seulement tant que le PiP est actif', async () => {
+    enableVideoPip()
+    const onPlay = vi.fn()
+    const onPause = vi.fn()
+    const { result, rerender } = renderHook(
+      ({ isRunning }) =>
+        usePictureInPicture(CONTENT, { controls: { isRunning, onPlay, onPause } }),
+      { initialProps: { isRunning: true } },
+    )
+    expect(handlers.play).toBeUndefined() // PiP pas encore actif
+
+    act(() => result.current.toggle())
+    await waitFor(() => expect(HTMLVideoElement.prototype.requestPictureInPicture).toHaveBeenCalled())
+    act(() => {
+      document.querySelector('video')?.dispatchEvent(new Event('enterpictureinpicture'))
+    })
+
+    expect(typeof handlers.play).toBe('function')
+    expect(typeof handlers.pause).toBe('function')
+    expect(mediaSession.playbackState).toBe('playing')
+    handlers.pause?.()
+    handlers.play?.()
+    expect(onPause).toHaveBeenCalledTimes(1)
+    expect(onPlay).toHaveBeenCalledTimes(1)
+
+    rerender({ isRunning: false })
+    expect(mediaSession.playbackState).toBe('paused')
+
+    act(() => {
+      document.querySelector('video')?.dispatchEvent(new Event('leavepictureinpicture'))
+    })
+    expect(handlers.play).toBeNull()
+    expect(handlers.pause).toBeNull()
+  })
+
+  it('sans commandes (participant non hôte) : aucun gestionnaire n’est posé', async () => {
+    enableVideoPip()
+    const { result } = renderHook(() => usePictureInPicture(CONTENT, { controls: null }))
+    act(() => result.current.toggle())
+    await waitFor(() => expect(HTMLVideoElement.prototype.requestPictureInPicture).toHaveBeenCalled())
+    act(() => {
+      document.querySelector('video')?.dispatchEvent(new Event('enterpictureinpicture'))
+    })
+    expect(mediaSession.setActionHandler).not.toHaveBeenCalled()
+  })
+
+  it('close() ferme la fenêtre Document PiP et sort du PiP vidéo', () => {
+    const fakeWindow = { addEventListener: vi.fn(), close: vi.fn() } as unknown as Window
+    Object.defineProperty(window, 'documentPictureInPicture', {
+      value: { window: fakeWindow, requestWindow: vi.fn() },
+      configurable: true,
+    })
+    const { result } = renderHook(() => usePictureInPicture(CONTENT))
+    result.current.close()
+    expect(fakeWindow.close).toHaveBeenCalled()
+  })
+
+  it('dessine le fond statique dans le canvas du PiP vidéo une fois l’image chargée', async () => {
+    enableVideoPip()
+    const drawImage = vi.fn()
+    const gradient = { addColorStop: vi.fn() }
+    const ctx = {
+      fillRect: vi.fn(),
+      fillText: vi.fn(),
+      drawImage,
+      createLinearGradient: vi.fn(() => gradient),
+    } as unknown as CanvasRenderingContext2D
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx as never)
+    // Image factice qui « charge » aussitôt, avec des dimensions.
+    class FakeImage {
+      naturalWidth = 1920
+      naturalHeight = 1080
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      set src(_value: string) {
+        queueMicrotask(() => this.onload?.())
+      }
+    }
+    vi.stubGlobal('Image', FakeImage)
+
+    const { result } = renderHook(() =>
+      usePictureInPicture(CONTENT, {
+        background: { imageSrc: '/backgrounds/test.webp', position: 'center center', colorFrom: '#000', colorTo: '#111' },
+      }),
+    )
+    act(() => result.current.toggle())
+    await waitFor(() => expect(HTMLVideoElement.prototype.requestPictureInPicture).toHaveBeenCalled())
+    act(() => {
+      document.querySelector('video')?.dispatchEvent(new Event('enterpictureinpicture'))
+    })
+
+    await waitFor(() => expect(drawImage).toHaveBeenCalled())
+    vi.unstubAllGlobals()
+  })
+})

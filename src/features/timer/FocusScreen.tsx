@@ -35,6 +35,7 @@ import { GoalProgress } from './components/GoalProgress'
 import { GoalReachedPanel } from './components/GoalReachedPanel'
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp'
 import { SegmentTabs } from './components/SegmentTabs'
+import { PipDocumentView } from './components/PipDocumentView'
 import { SessionEndScreen } from './components/SessionEndScreen'
 import { TimerGuardLayer } from './components/TimerGuardLayer'
 import { SessionTally } from './components/SessionTally'
@@ -52,6 +53,7 @@ import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import { useLiveTabTitle } from './useLiveTabTitle'
 import { usePhaseQuote } from './usePhaseQuote'
 import { usePictureInPicture } from './usePictureInPicture'
+import { usePipBackground } from './usePipBackground'
 
 const MODE_OPTIONS: { value: TimerMode; label: string }[] = [
   { value: 'pomodoro', label: strings.focus.modes.pomodoro },
@@ -146,17 +148,34 @@ export function FocusScreen() {
   const isStopwatch = source.isStopwatch
   const displayLabel = source.displayLabel
   useLiveTabTitle(displayLabel, source.status === 'running')
-  const pip = usePictureInPicture({
-    segmentLabel: getSegmentLabel(source.segment),
-    timeLabel: displayLabel,
-    taskLabel: timerSettings.showTaskInPip ? activeTask?.title : null,
-  })
+  const pipBackground = usePipBackground('focus')
+  const pip = usePictureInPicture(
+    {
+      segmentLabel: getSegmentLabel(source.segment),
+      timeLabel: displayLabel,
+      taskLabel: timerSettings.showTaskInPip ? activeTask?.title : null,
+    },
+    {
+      background: pipBackground,
+      // Commandes natives du PiP vidéo (play / pause) ; pas de « Arrêter » possible dans ce mode.
+      controls: source.readOnly
+        ? null
+        : {
+            isRunning: source.status === 'running',
+            onPlay: () => {
+              if (source.status === 'paused') source.resume()
+              else if (source.status === 'idle') source.onPrimary()
+            },
+            onPause: () => source.pause(),
+          },
+    },
+  )
 
   const handlePrimary = source.onPrimary
 
   // Terminer à la main : sous une minute de focus rien n'est enregistré, on demande donc
   // confirmation d'abord (évite l'erreur de clic) — pour tous les modes.
-  const handleEndSession = () => {
+  const handleEndSession = (): boolean => {
     const live = timer.snapshot
     const inProgress = live !== null && (live.status === 'running' || live.status === 'paused')
     if (
@@ -168,9 +187,19 @@ export function FocusScreen() {
           : strings.focus.confirmEndShort,
       )
     ) {
-      return
+      return false
     }
     timer.endSession()
+    return true
+  }
+
+  // « Arrêter » depuis la fenêtre PiP : même logique que le bouton Terminer (confirmation sous une
+  // minute, récapitulatif affiché dans la fenêtre principale), puis la fenêtre PiP se ferme.
+  const handlePipEnd = () => {
+    let ended = true
+    if (isGroup) void group.actions.end()
+    else ended = handleEndSession()
+    if (ended) pip.close()
   }
 
   useKeyboardShortcuts(
@@ -208,31 +237,19 @@ export function FocusScreen() {
         })
       : 0
 
+  // Fenêtre Document PiP : fond d'écran statique, Pause/Reprendre et Arrêter. Un participant non hôte
+  // d'un salon n'a aucune commande (lecture seule), comme sur l'écran principal.
   const pipPortal = pip.pipWindow
     ? createPortal(
-        <div
-          style={{
-            fontFamily: 'sans-serif',
-            background: '#0c0719',
-            color: '#f2ecfc',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 4,
-          }}
-        >
-          <div style={{ fontSize: 14, opacity: 0.7 }}>{getSegmentLabel(source.segment)}</div>
-          <div style={{ fontSize: 40, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
-            {displayLabel}
-          </div>
-          {timerSettings.showTaskInPip && activeTask ? (
-            <div style={{ fontSize: 12, opacity: 0.6, maxWidth: '90%', textAlign: 'center' }}>
-              {activeTask.title}
-            </div>
-          ) : null}
-        </div>,
+        <PipDocumentView
+          segmentLabel={getSegmentLabel(source.segment)}
+          timeLabel={displayLabel}
+          taskLabel={timerSettings.showTaskInPip ? activeTask?.title : null}
+          background={pipBackground}
+          status={source.status}
+          onPrimary={source.readOnly ? undefined : handlePrimary}
+          onEnd={source.readOnly ? undefined : handlePipEnd}
+        />,
         pip.pipWindow.document.body,
       )
     : null

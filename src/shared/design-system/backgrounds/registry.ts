@@ -91,6 +91,9 @@ export interface BackgroundDefinition {
   /** `false` pour un fond jugé trop chargé en mode Ambiant (texte/minuteur par-dessus). */
   usableInAmbient?: boolean
   credit?: string
+  /** Image statique légère de ce fond (fonds photo) : pour les rendus qui ne peuvent pas monter
+   * le composant — fenêtre Picture-in-Picture, vignettes. Absente pour les fonds en CSS. */
+  staticSrc?: string
 }
 
 export const BACKGROUNDS: BackgroundDefinition[] = [
