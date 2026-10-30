@@ -2,6 +2,7 @@ import { X } from 'lucide-react'
 import type { ReactNode, RefObject } from 'react'
 
 import { GlassCard } from './GlassCard'
+import { ModalOverlay } from './ModalOverlay'
 import type { PanelDisplayMode } from './panel-display-mode'
 
 interface FloatingPanelProps {
@@ -49,16 +50,7 @@ export function FloatingPanel({
 
   if (mode === 'window') {
     return (
-      <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'var(--scrim)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-          }}
-          onClick={onClose}
-        />
+      <ModalOverlay className="z-40" blur onBackdropClick={onClose}>
         <GlassCard
           ref={panelRef}
           role="dialog"
@@ -68,7 +60,7 @@ export function FloatingPanel({
           {header}
           {children}
         </GlassCard>
-      </div>
+      </ModalOverlay>
     )
   }
 

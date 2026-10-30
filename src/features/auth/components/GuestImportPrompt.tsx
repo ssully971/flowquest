@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import { ModalOverlay } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 import { useToast } from '@/shared/toast'
 
@@ -62,8 +63,7 @@ export function GuestImportPrompt() {
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0" style={{ background: 'var(--scrim)' }} />
+    <ModalOverlay className="z-[60]">
       <div
         role="alertdialog"
         aria-modal="true"
@@ -93,6 +93,6 @@ export function GuestImportPrompt() {
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

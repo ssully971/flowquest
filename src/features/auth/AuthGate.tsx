@@ -2,7 +2,7 @@ import { ArrowLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { GlassCard } from '@/shared/design-system'
+import { GlassCard, ModalOverlay } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
 
 import { useAuthGateRequest } from './useAuthGateRequest'
@@ -86,8 +86,7 @@ export function AuthGate({ children }: AuthGateProps) {
         </p>
       ) : null}
       {shouldShow ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-          <div className="absolute inset-0" style={{ background: 'var(--scrim)' }} />
+        <ModalOverlay className="z-[70]">
           <GlassCard
             role="dialog"
             aria-modal="true"
@@ -153,7 +152,7 @@ export function AuthGate({ children }: AuthGateProps) {
               <ForgotPasswordForm onBack={() => setView('signIn')} />
             )}
           </GlassCard>
-        </div>
+        </ModalOverlay>
       ) : null}
     </>
   )
