@@ -114,9 +114,9 @@ export const PRIVACY_TEXT = {
     'Portabilité : exporte une sauvegarde locale de tes données depuis Réglages > Compte.',
     'Opposition au traitement marketing : décoche la case correspondante dans Réglages > Compte à tout moment.',
   ],
-  droitsAutres: `Pour toute autre demande (limitation du traitement, question sur tes données), écris-nous à flowquestt@gmail.com. Tu as aussi le droit d'introduire une réclamation auprès de la Commission nationale de l'informatique et des libertés (CNIL), cnil.fr.`,
+  droitsAutres: `Pour toute autre demande (limitation du traitement, question sur tes données), écris-nous à sullivanhuriez@gmail.com. Tu as aussi le droit d'introduire une réclamation auprès de la Commission nationale de l'informatique et des libertés (CNIL), cnil.fr.`,
   administration: `Un administrateur de l'application peut, dans le cadre strict de ses fonctions (support, modération, statistiques d'usage agrégées), consulter certaines de tes données : tes statistiques de focus et ton activité, jamais le contenu de tes notes ou de tes tâches. Chaque consultation du profil détaillé d'un utilisateur par un administrateur est journalisée (qui, quand) dans un journal d'administration auquel tu n'as pas directement accès, mais que tu peux nous demander de t'exposer (voir Tes droits).`,
   securite: `Nous nous appuyons sur les mécanismes de sécurité de nos sous-traitants (chiffrement en transit, isolation des données par compte via des règles d'accès au niveau de chaque ligne de données) et limitons les accès administratifs au strict nécessaire. Aucune mesure de sécurité n'est infaillible ; en cas de violation de données présentant un risque pour tes droits, nous t'en informerons conformément au RGPD.`,
   modifications: `Nous pouvons mettre à jour cette politique, par exemple si nous changeons de sous-traitant ou ajoutons une fonctionnalité qui traite de nouvelles données. La date de dernière mise à jour en haut de cette page change alors. En cas de changement important, nous te le signalerons de façon visible dans l'application.`,
-  contact: `Pour toute question sur cette politique ou sur tes données, écris-nous à flowquestt@gmail.com.`,
+  contact: `Pour toute question sur cette politique ou sur tes données, écris-nous à sullivanhuriez@gmail.com.`,
 } as const

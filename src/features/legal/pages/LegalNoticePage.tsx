@@ -12,10 +12,7 @@ export function LegalNoticePage() {
       sections={NOTICE_SECTIONS}
     >
       <LegalSectionBlock id="editeur" title="Éditeur">
-        <p>
-          {strings.app.name} est édité par Sullivan Huriez, 616 Rue de Patay, Huisseau-sur-Mauves,
-          France.
-        </p>
+        <p>{strings.app.name} est édité à titre non professionnel par Sullivan Huriez.</p>
         <p>Contact : sullivanhuriez@gmail.com</p>
       </LegalSectionBlock>
 

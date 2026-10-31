@@ -20,9 +20,12 @@ describe('LegalNoticePage (lot I1, §3)', () => {
     expect(screen.getAllByText(/sullivanhuriez@gmail\.com/).length).toBeGreaterThan(0)
   })
 
-  it('renseigne l’éditeur et le directeur de la publication, sans aucun champ à compléter', () => {
+  it('renseigne l’éditeur (sans adresse personnelle) et le directeur de la publication, sans aucun champ à compléter', () => {
     renderPage()
-    expect(screen.getByText(/est édité par Sullivan Huriez, 616 Rue de Patay/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/est édité à titre non professionnel par Sullivan Huriez/),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Rue de Patay|Huisseau/)).not.toBeInTheDocument() // pas d'adresse personnelle
     expect(screen.getByText('Directeur de la publication : Sullivan Huriez.')).toBeInTheDocument()
     expect(screen.queryByText(/À COMPLÉTER/)).not.toBeInTheDocument()
   })
