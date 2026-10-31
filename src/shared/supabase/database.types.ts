@@ -635,6 +635,10 @@ export interface Database {
         Args: { p_code?: string | null; p_username?: string | null }
         Returns: FriendProfilePreviewRow[]
       }
+      friends_pillar_levels: {
+        Args: Record<string, never>
+        Returns: { user_id: string; top_level: number }[]
+      }
       list_friends: {
         Args: Record<string, never>
         Returns: FriendRow[]
