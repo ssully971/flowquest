@@ -16,9 +16,16 @@ import {
 } from './view-transform'
 import type { ViewTransform } from './view-transform'
 
+export interface CanvasViewState extends ViewTransform {
+  width: number
+  height: number
+}
+
 export interface ConstellationCanvasHandle {
   recenter: () => void
   zoomBy: (factor: number) => void
+  /** Centre la vue sur un point du monde, sans changer le zoom (mini-carte). */
+  centerOn: (worldX: number, worldY: number) => void
 }
 
 interface ConstellationCanvasProps {
@@ -33,6 +40,14 @@ interface ConstellationCanvasProps {
   selectedEdgeId: string | null
   /** Étiquettes : auto (défaut), toujours ou jamais. */
   labels?: LabelMode
+  /** Multiplicateur de la taille des nœuds. */
+  nodeScale?: number
+  /** Faux : dépendances sans flèche. */
+  showArrows?: boolean
+  /** Change pour forcer la reconstruction de la simulation (ex. « Réorganiser le graphe »). */
+  layoutKey?: number
+  /** Vue courante (zoom, décalage, taille) : pourcentage de zoom et mini-carte. */
+  onViewChange?: (view: CanvasViewState) => void
   ariaLabel: string
   onSelectNode: (id: string | null) => void
   onSelectEdge: (edgeId: string | null) => void
@@ -84,6 +99,7 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
     const rafRef = useRef<number | null>(null)
     const persistPendingRef = useRef(false)
     const fittedRef = useRef(false)
+    const lastEmittedRef = useRef<CanvasViewState | null>(null)
 
     const draw = useCallback(() => {
       const canvas = canvasRef.current
@@ -135,11 +151,27 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
         edges: drawEdges,
         palette: readPalette(),
         labels: propsRef.current.labels,
+        nodeScale: propsRef.current.nodeScale,
+        showArrows: propsRef.current.showArrows,
         highlight,
         selectedIds,
         selectedEdgeId,
         linkDraft: draftRef.current,
       })
+      // Émet la vue seulement si elle a changé (évite un rendu React par image au repos).
+      const emitted = { ...viewRef.current, ...sizeRef.current }
+      const last = lastEmittedRef.current
+      if (
+        !last ||
+        last.x !== emitted.x ||
+        last.y !== emitted.y ||
+        last.k !== emitted.k ||
+        last.width !== emitted.width ||
+        last.height !== emitted.height
+      ) {
+        lastEmittedRef.current = emitted
+        propsRef.current.onViewChange?.(emitted)
+      }
     }, [])
 
     const loop = useCallback(() => {
@@ -186,6 +218,12 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
           viewRef.current = zoomAt(viewRef.current, width / 2, height / 2, factor)
           requestFrame()
         },
+        centerOn: (worldX: number, worldY: number) => {
+          const { width, height } = sizeRef.current
+          const k = viewRef.current.k
+          viewRef.current = { k, x: width / 2 - worldX * k, y: height / 2 - worldY * k }
+          requestFrame()
+        },
       }),
       [recenter, requestFrame],
     )
@@ -200,12 +238,19 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
       } else {
         requestFrame()
       }
-    }, [props.graph, recenter, requestFrame])
+    }, [props.graph, props.layoutKey, recenter, requestFrame])
 
     // Redessine quand la sélection change (sans simulation).
     useEffect(() => {
       requestFrame()
-    }, [props.selectedIds, props.selectedEdgeId, props.labels, requestFrame])
+    }, [
+      props.selectedIds,
+      props.selectedEdgeId,
+      props.labels,
+      props.nodeScale,
+      props.showArrows,
+      requestFrame,
+    ])
 
     // Taille du canvas (ratio de pixels plafonné à 2 pour rester léger sur mobile).
     useEffect(() => {
@@ -270,7 +315,7 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
           id: node.id,
           x: node.x ?? 0,
           y: node.y ?? 0,
-          r: displayRadius(node),
+          r: displayRadius(node, propsRef.current.nodeScale ?? 1),
         })),
         world.x,
         world.y,

@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { forwardRef, useImperativeHandle } from 'react'
+import { forwardRef, useEffect, useImperativeHandle } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getDb } from '@/shared/storage/db'
@@ -12,24 +12,43 @@ import { ConstellationPage } from './ConstellationPage'
 // jsdom n'a pas de canvas 2D : le canvas est remplacé par une maquette qui expose les nœuds sous
 // forme de boutons et les callbacks de geste (sélection, lien glissé). Le canvas lui-même est
 // couvert par view-transform / force-layout / draw-constellation et le test e2e.
+const centerOnMock = vi.fn()
+
 vi.mock('./ConstellationCanvas', () => ({
   ConstellationCanvas: forwardRef(function Mock(
     props: {
       graph: { nodes: { id: string; label: string; kind: string }[] }
       locked: boolean
       linkMode: boolean
+      labels?: string
+      nodeScale?: number
+      showArrows?: boolean
+      onViewChange?: (view: {
+        x: number
+        y: number
+        k: number
+        width: number
+        height: number
+      }) => void
       ariaLabel: string
       onSelectNode: (id: string | null) => void
       onLink: (from: string, to: string) => void
     },
     ref,
   ) {
-    useImperativeHandle(ref, () => ({ recenter: vi.fn(), zoomBy: vi.fn() }))
+    useImperativeHandle(ref, () => ({ recenter: vi.fn(), zoomBy: vi.fn(), centerOn: centerOnMock }))
+    const { onViewChange } = props
+    useEffect(() => {
+      onViewChange?.({ x: 0, y: 0, k: 1.5, width: 800, height: 600 })
+    }, [onViewChange])
     return (
       <div
         data-testid="constellation-canvas"
         data-locked={props.locked}
         data-linkmode={props.linkMode}
+        data-labels={props.labels}
+        data-nodescale={props.nodeScale}
+        data-arrows={String(props.showArrows)}
       >
         <span>{props.ariaLabel}</span>
         {props.graph.nodes.map((node) => (
@@ -96,8 +115,9 @@ describe('ConstellationPage', () => {
 
   it('affiche les indicateurs : tâches terminées et temps de focus', async () => {
     renderPage()
-    expect(await screen.findByText('1 / 2 tâches terminées')).toBeInTheDocument()
-    expect(screen.getByText(/Temps de focus : 0 min/)).toBeInTheDocument()
+    expect(await screen.findByText('1/2')).toBeInTheDocument()
+    expect(screen.getByText('0 min')).toBeInTheDocument()
+    expect(screen.getByText(/terminées/)).toBeInTheDocument()
   })
 
   it('le cadenas verrouille la vue, se souvient du choix et bloque le mode relier', async () => {
@@ -189,7 +209,7 @@ describe('ConstellationPage', () => {
     await waitFor(async () => expect(await db.count('taskLinks')).toBe(1))
   })
 
-  it('le filtre « sans pilier » et la case des archivées modifient le graphe', async () => {
+  it('la case des archivées est dans les réglages d’affichage', async () => {
     const user = userEvent.setup()
     const db = await getDb()
     await db.put('tasks', task('tz', 'Ancienne', { archivedAt: Date.now() }))
@@ -198,7 +218,8 @@ describe('ConstellationPage', () => {
     expect(await screen.findByRole('button', { name: 'nœud Réviser' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'nœud Ancienne' })).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('checkbox', { name: 'Afficher les archivées' }))
+    await user.click(screen.getByRole('button', { name: 'Réglages d’affichage' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Tâches archivées' }))
     expect(await screen.findByRole('button', { name: 'nœud Ancienne' })).toBeInTheDocument()
   })
 
@@ -209,5 +230,161 @@ describe('ConstellationPage', () => {
     await user.keyboard('{Escape}')
     await user.click(screen.getByRole('button', { name: 'Fermer la constellation' }))
     expect(onClose).toHaveBeenCalledTimes(2)
+  })
+
+  it('les puces de piliers servent de légende et de filtre', async () => {
+    const user = userEvent.setup()
+    const db = await getDb()
+    await db.put('pillars', {
+      id: 'p1',
+      name: 'Études',
+      color: '#4A9FE8',
+      currentXp: 0,
+      level: 1,
+      createdAt: 1,
+      archivedAt: null,
+      goalLevel: null,
+      goalDeadline: null,
+    })
+    await db.put('tasks', task('tp', 'Anatomie', { pillarId: 'p1' }))
+    await db.put('focusSessions', {
+      id: 's1',
+      kind: 'focus',
+      plannedSeconds: 3600,
+      actualSeconds: 3600,
+      startedAt: Date.now() - 1000,
+      endedAt: Date.now(),
+      completed: true,
+      taskId: 'tp',
+      pillarId: 'p1',
+      syncedAt: null,
+    })
+    renderPage()
+
+    const chip = await screen.findByRole('button', { name: 'Masquer Études' })
+    expect(chip).toHaveAttribute('aria-pressed', 'true')
+    expect(chip).toHaveTextContent('1 h') // heures du pilier dans la puce
+    expect(screen.getByRole('button', { name: 'nœud Anatomie' })).toBeInTheDocument()
+
+    await user.click(chip)
+    expect(screen.getByRole('button', { name: 'Afficher Études' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+    expect(screen.queryByRole('button', { name: 'nœud Anatomie' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'nœud Réviser' })).toBeInTheDocument() // autres piliers intacts
+
+    await user.click(screen.getByRole('button', { name: 'Afficher Études' }))
+    expect(screen.getByRole('button', { name: 'nœud Anatomie' })).toBeInTheDocument()
+  })
+
+  it('un pilier sans tâche a une puce estompée', async () => {
+    renderPage()
+    const chip = await screen.findByRole('button', { name: 'Masquer Général' })
+    expect(chip.className).toContain('opacity-50')
+  })
+
+  it('le segment de période est un groupe de boutons (30 j / 90 j / Tout)', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const group = await screen.findByRole('group', { name: 'Période' })
+    expect(within(group).getByRole('button', { name: '90 j' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await user.click(within(group).getByRole('button', { name: 'Tout' }))
+    expect(within(group).getByRole('button', { name: 'Tout' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(within(group).getByRole('button', { name: '90 j' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+  })
+
+  it('réglages d’affichage : étiquettes, flèches, taille, mémorisés, réinitialisables', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const canvas = await screen.findByTestId('constellation-canvas')
+    expect(canvas).toHaveAttribute('data-labels', 'auto')
+
+    await user.click(screen.getByRole('button', { name: 'Réglages d’affichage' }))
+    const popover = screen.getByTestId('constellation-settings')
+    await user.click(within(popover).getByRole('button', { name: 'Jamais' }))
+    await user.click(within(popover).getByRole('checkbox', { name: 'Flèches de dépendance' }))
+    expect(screen.getByTestId('constellation-canvas')).toHaveAttribute('data-labels', 'never')
+    expect(screen.getByTestId('constellation-canvas')).toHaveAttribute('data-arrows', 'false')
+    expect(
+      JSON.parse(window.localStorage.getItem('flowquest.constellationSettings')!),
+    ).toMatchObject({
+      labels: 'never',
+      showArrows: false,
+    })
+
+    await user.click(within(popover).getByRole('button', { name: 'Réinitialiser' }))
+    expect(screen.getByTestId('constellation-canvas')).toHaveAttribute('data-labels', 'auto')
+    expect(screen.getByTestId('constellation-canvas')).toHaveAttribute('data-arrows', 'true')
+  })
+
+  it('le popover se ferme avec Échap sans fermer la page', async () => {
+    const user = userEvent.setup()
+    const { onClose } = renderPage()
+    await user.click(await screen.findByRole('button', { name: 'Réglages d’affichage' }))
+    expect(screen.getByTestId('constellation-settings')).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByTestId('constellation-settings')).not.toBeInTheDocument()
+    expect(onClose).not.toHaveBeenCalled()
+
+    await user.keyboard('{Escape}')
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('« Réorganiser le graphe » oublie les positions enregistrées', async () => {
+    const user = userEvent.setup()
+    const db = await getDb()
+    await db.put(
+      'constellationLayout',
+      { positions: { ta: { x: 999, y: 999, pinned: true } }, updatedAt: 1 },
+      'current',
+    )
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: 'Réglages d’affichage' }))
+    await user.click(screen.getByRole('button', { name: 'Réorganiser le graphe' }))
+
+    await waitFor(
+      async () => {
+        const layout = await db.get('constellationLayout', 'current')
+        expect(layout?.positions.ta?.pinned).toBeUndefined()
+        expect(layout?.positions.ta?.x).not.toBe(999)
+      },
+      { timeout: 3000 },
+    )
+  })
+
+  it('affiche le pourcentage de zoom de la vue et une mini-carte qui recentre la vue', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => expect(screen.getByTestId('constellation-zoom')).toHaveTextContent('150 %'))
+
+    const minimap = screen.getByTestId('constellation-minimap')
+    expect(minimap).toHaveAttribute('aria-label', 'Mini-carte de la constellation')
+    await user.pointer({ keys: '[MouseLeft>]', target: minimap })
+    expect(centerOnMock).toHaveBeenCalled()
+  })
+
+  it('l’aide « Glisse un nœud » disparaît après la première interaction, pour de bon', async () => {
+    const user = userEvent.setup()
+    const { unmount } = renderPage()
+    expect(await screen.findByText(/Glisse un nœud pour le placer/)).toBeInTheDocument()
+
+    await user.pointer({ keys: '[MouseLeft]', target: screen.getByTestId('constellation-canvas') })
+    expect(screen.queryByText(/Glisse un nœud pour le placer/)).not.toBeInTheDocument()
+    unmount()
+
+    renderPage()
+    await screen.findByTestId('constellation-canvas')
+    expect(screen.queryByText(/Glisse un nœud pour le placer/)).not.toBeInTheDocument()
   })
 })

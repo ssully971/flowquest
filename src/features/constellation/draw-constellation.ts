@@ -59,6 +59,10 @@ export interface DrawOptions {
   linkDraft?: { from: { x: number; y: number }; to: { x: number; y: number } } | null
   /** `auto` : piliers toujours, tâches au-delà d'un zoom ou dans le voisinage actif. */
   labels?: LabelMode
+  /** Multiplicateur de la taille des nœuds (réglage d'affichage), 1 par défaut. */
+  nodeScale?: number
+  /** Faux : les dépendances sont tracées sans flèche. */
+  showArrows?: boolean
 }
 
 /** Part d'opacité des éléments hors du voisinage actif. */
@@ -97,10 +101,10 @@ export function readPalette(element: Element = document.documentElement): DrawPa
  * bulles). Pilier : 11 × palier (le rayon de simulation vaut 14 × palier), plafonné à 1,4.
  * Groupe : sobre, de 9 à 13.
  */
-export function displayRadius(node: { kind: DrawNode['kind']; r: number }): number {
-  if (node.kind === 'pillar') return 11 * Math.min(1.4, node.r / 14)
-  if (node.kind === 'group') return Math.min(13, Math.max(9, node.r))
-  return Math.min(9, node.r)
+export function displayRadius(node: { kind: DrawNode['kind']; r: number }, scale = 1): number {
+  if (node.kind === 'pillar') return 11 * Math.min(1.4, node.r / 14) * scale
+  if (node.kind === 'group') return Math.min(13, Math.max(9, node.r)) * scale
+  return Math.min(9, node.r) * scale
 }
 
 /** Couleur #RRGGBB avec opacité ; autre format : renvoyé tel quel. */
@@ -138,6 +142,8 @@ export function drawConstellation(ctx: CanvasRenderingContext2D, options: DrawOp
   const { width, height, dpr, view, nodes, edges, palette, highlight } = options
   const selected = options.selectedIds ?? new Set<string>()
   const k = view.k
+  const scale = options.nodeScale ?? 1
+  const showArrows = options.showArrows ?? true
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   ctx.clearRect(0, 0, width, height)
@@ -170,11 +176,11 @@ export function drawConstellation(ctx: CanvasRenderingContext2D, options: DrawOp
     ctx.moveTo(edge.from.x, edge.from.y)
     ctx.lineTo(edge.to.x, edge.to.y)
     ctx.stroke()
-    if (edge.kind === 'depends_on') {
+    if (edge.kind === 'depends_on' && showArrows) {
       const dx = edge.to.x - edge.from.x
       const dy = edge.to.y - edge.from.y
       const length = Math.hypot(dx, dy) || 1
-      const toRadius = displayRadius({ kind: edge.to.kind ?? 'task', r: edge.to.r })
+      const toRadius = displayRadius({ kind: edge.to.kind ?? 'task', r: edge.to.r }, scale)
       const gap = toRadius + 1.5
       drawArrowHead(
         ctx,
@@ -203,7 +209,7 @@ export function drawConstellation(ctx: CanvasRenderingContext2D, options: DrawOp
     (a, b) => (a.kind === 'pillar' ? 0 : 1) - (b.kind === 'pillar' ? 0 : 1),
   )
   for (const node of ordered) {
-    const r = displayRadius(node)
+    const r = displayRadius(node, scale)
     const archivedFactor = node.archived ? ARCHIVED_OPACITY : 1
     ctx.globalAlpha = nodeAlpha(node.id) * archivedFactor
 
@@ -279,7 +285,7 @@ export function drawConstellation(ctx: CanvasRenderingContext2D, options: DrawOp
       const fontPx = node.kind === 'pillar' ? 11.5 : 10.5
       ctx.font = `${strong ? 600 : 400} ${fontPx / k}px ${palette.font}`
       const text = node.label.length > 28 ? `${node.label.slice(0, 27)}…` : node.label
-      const r = displayRadius(node)
+      const r = displayRadius(node, scale)
       const y = node.y + r + (node.kind === 'pillar' ? 8 : 4) / k
       ctx.globalAlpha = nodeAlpha(node.id) * (node.archived ? ARCHIVED_OPACITY : 1)
       ctx.lineWidth = 3 / k
