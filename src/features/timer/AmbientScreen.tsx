@@ -129,7 +129,9 @@ export function AmbientScreen() {
           <>
             <div className="glass-clock flex items-center gap-3 rounded-2xl px-3 py-2.5 pr-4">
               {grip}
-              <span className="glass-clock-text">
+              <span
+                className={`glass-clock-text ${clockSettings.glassDigits === true ? 'glass-clock-text-glass' : ''}`}
+              >
                 <BigDigits
                   label={displayLabel}
                   sizePx={AMBIENT_CLOCK_BASE_PX}
