@@ -1,5 +1,6 @@
 import { Link2, Lock, LocateFixed, Minus, Plus, Trash2, Unlock, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import { usePillars } from '@/features/pillars/usePillars'
 import { tierForLevel } from '@/features/pillars/pillar-tiers'
@@ -204,7 +205,9 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
       : (pillars.find((pillar) => pillar.id === key)?.name ?? '')
   const hasTasks = graph.nodes.some((node) => node.kind === 'task' || node.kind === 'group')
 
-  return (
+  // Rendue dans <body> : le panneau de réglages qui l'ouvre est transformé, ce qui
+  // emprisonnerait un `position: fixed` dans sa propre boîte.
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -494,6 +497,7 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
           </section>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

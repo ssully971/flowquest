@@ -31,9 +31,9 @@ function xpOf(session: FocusSessionRecord): number {
  * longue), mais sur l'historique complet du cycle plutôt que son seul décompte.
  *
  * Les tâches validées sont comptées via TaskRecord.doneAt plutôt que via
- * FocusSessionRecord.taskId : ce dernier n'est jamais renseigné par recordSession
- * (aucune tâche active n'est liée à une session), alors que doneAt est fiable — posé à
- * Date.now() au moment où la tâche est cochée (voir useTasks.ts).
+ * FocusSessionRecord.taskId : ce dernier n'est renseigné que depuis le lot 6B (les sessions
+ * plus anciennes n'ont pas de tâche), alors que doneAt est fiable pour tout l'historique —
+ * posé à Date.now() au moment où la tâche est cochée (voir useTasks.ts).
  */
 export function computeCycleSummary(
   sessions: FocusSessionRecord[],
