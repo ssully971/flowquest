@@ -17,22 +17,24 @@ describe('LegalNoticePage (lot I1, §3)', () => {
   it('affiche le titre et le contact', () => {
     renderPage()
     expect(screen.getByRole('heading', { name: 'Mentions légales' })).toBeInTheDocument()
-    expect(screen.getByText(/flowquestt@gmail\.com/)).toBeInTheDocument()
+    expect(screen.getAllByText(/sullivanhuriez@gmail\.com/).length).toBeGreaterThan(0)
   })
 
-  it('marque « [À COMPLÉTER] » les informations que seul l’éditeur peut fournir, jamais inventées', () => {
+  it('renseigne l’éditeur et le directeur de la publication, sans aucun champ à compléter', () => {
     renderPage()
-    const placeholders = screen.getAllByText(/À COMPLÉTER/)
-    // Raison sociale, adresse de l'éditeur, directeur de publication, coordonnées Vercel,
-    // coordonnées Supabase : 5 informations que seul l'éditeur peut fournir (voir le
-    // compte rendu du lot).
-    expect(placeholders.length).toBe(5)
-    expect(screen.queryByText(/SAS|SARL|Monsieur|Madame/)).not.toBeInTheDocument()
+    expect(screen.getByText(/est édité par Sullivan Huriez, 616 Rue de Patay/)).toBeInTheDocument()
+    expect(screen.getByText('Directeur de la publication : Sullivan Huriez.')).toBeInTheDocument()
+    expect(screen.queryByText(/À COMPLÉTER/)).not.toBeInTheDocument()
   })
 
-  it('nomme Vercel et Supabase comme hébergeurs réels', () => {
+  it('donne les coordonnées complètes de Vercel et de Supabase', () => {
     renderPage()
-    expect(screen.getAllByText(/Vercel Inc\./).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/Supabase Inc\./).length).toBeGreaterThan(0)
+    expect(screen.getByText(/Vercel Inc\./)).toBeInTheDocument()
+    expect(screen.getByText(/440 N Barranca Ave #4133, Covina, CA 91723/)).toBeInTheDocument()
+    expect(screen.getByText(/Supabase Pte\. Ltd\./)).toBeInTheDocument()
+    expect(screen.getByText(/65 Chulia Street #38-02\/03/)).toBeInTheDocument()
+    expect(screen.getByText(/legal@supabase\.com/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'https://vercel.com' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'https://supabase.com' })).toBeInTheDocument()
   })
 })
