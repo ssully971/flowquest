@@ -360,6 +360,44 @@ export interface Database {
         }
         Relationships: []
       }
+      task_links: {
+        Row: {
+          id: string
+          user_id: string
+          from_task_id: string
+          to_task_id: string
+          kind: 'depends_on' | 'related'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          from_task_id: string
+          to_task_id: string
+          kind: 'depends_on' | 'related'
+        }
+        Update: {
+          kind?: 'depends_on' | 'related'
+        }
+        Relationships: []
+      }
+      constellation_layouts: {
+        Row: {
+          user_id: string
+          positions: Record<string, { x: number; y: number; pinned?: boolean }>
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          positions: Record<string, { x: number; y: number; pinned?: boolean }>
+          updated_at?: string
+        }
+        Update: {
+          positions?: Record<string, { x: number; y: number; pinned?: boolean }>
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pillars: {
         Row: {
           id: string
@@ -634,6 +672,10 @@ export interface Database {
       find_profile_preview: {
         Args: { p_code?: string | null; p_username?: string | null }
         Returns: FriendProfilePreviewRow[]
+      }
+      friends_pillar_levels: {
+        Args: Record<string, never>
+        Returns: { user_id: string; top_level: number }[]
       }
       list_friends: {
         Args: Record<string, never>

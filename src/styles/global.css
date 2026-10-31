@@ -344,24 +344,31 @@ h3 {
 }
 
 /*
- * Chiffres « Liquid Glass » (réglage Horloge > Chiffres en Liquid Glass, désactivé par défaut) :
- * remplissage en verre translucide (dégradé blanc → quasi transparent, découpé dans le texte),
- * contour lumineux fin et ombres sombres douces qui garantissent la lisibilité sur n'importe
- * quel fond (photo claire ou sombre). Repli sans background-clip:text : texte blanc plein.
+ * Chiffres « Liquid Glass » (réglage Horloge > Chiffres en Liquid Glass, désactivé par défaut),
+ * dans l'esprit de l'horloge de l'écran verrouillé iOS : un verre dépoli translucide qui laisse
+ * voir le fond, sans contour dessiné ni halo sombre. Le remplissage est un voile blanc doux
+ * (plus lumineux en haut, pour la lumière) découpé dans le texte ; un liseré de lumière très
+ * fin sur le haut et une ombre portée large et légère détachent les chiffres du fond sans
+ * les cerner. Repli sans background-clip:text : texte blanc légèrement transparent.
  */
 .glass-digits {
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.55);
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.78) 0%,
-    rgba(255, 255, 255, 0.34) 48%,
-    rgba(255, 255, 255, 0.58) 100%
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.3) 45%,
+    rgba(255, 255, 255, 0.38) 100%
   );
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.85);
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45)) drop-shadow(0 8px 18px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.35)) drop-shadow(0 8px 16px rgba(0, 0, 0, 0.14));
+}
+
+/* Sans glass-digits, le halo sombre sous les chiffres plats aide la lisibilité ; avec le verre,
+ * il ferait une tache noire visible à travers la transparence. */
+.glass-clock-text-glass {
+  text-shadow: none;
 }
 
 @supports not ((-webkit-background-clip: text) or (background-clip: text)) {

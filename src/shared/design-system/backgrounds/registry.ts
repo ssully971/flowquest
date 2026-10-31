@@ -4,6 +4,8 @@ import type { ComponentType } from 'react'
 import { photoIdFromBackgroundId } from '@/features/settings/custom-photos'
 import type { CustomBackgroundId } from '@/features/settings/custom-photos'
 
+import { ConstellationBackground } from '@/features/constellation/ConstellationBackground'
+
 import { AubergineBackground } from './AubergineBackground'
 import { BrumeBackground } from './BrumeBackground'
 import { CanopeeBackground } from './CanopeeBackground'
@@ -39,6 +41,7 @@ export type BackgroundId =
   | 'tapis'
   | 'respiration'
   | 'derive'
+  | 'constellation'
   | 'photo-aurore'
   | 'photo-braise'
   | 'photo-emeraude'
@@ -122,6 +125,12 @@ export const BACKGROUNDS: BackgroundDefinition[] = [
     Component: RespirationBackground,
   },
   { id: 'derive', label: 'Dérive', category: 'animated', Component: DeriveBackground },
+  {
+    id: 'constellation',
+    label: 'Constellation',
+    category: 'abstract',
+    Component: ConstellationBackground,
+  },
   ...PHOTO_BACKGROUNDS,
   {
     id: 'pure-black',

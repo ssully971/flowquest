@@ -47,6 +47,7 @@ import { useSessionSync } from '@/features/stats/useSessionSync'
 import { NotesPanel } from '@/features/notes/components/NotesPanel'
 import { useActiveTask } from '@/features/tasks/active-task-context'
 import { TasksPanel } from '@/features/tasks/components/TasksPanel'
+import { useConstellationSync } from '@/features/constellation/useConstellationSync'
 import { useTaskSync } from '@/features/tasks/useTaskSync'
 import { useTimerSettings } from '@/features/timer/timer-settings-context'
 import {
@@ -152,6 +153,7 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   })
   useSessionSync()
   useTaskSync()
+  useConstellationSync()
   usePillarSync()
   useXpGrantNotice()
   const stats = useDashboardStats(dailyGoalMinutes)

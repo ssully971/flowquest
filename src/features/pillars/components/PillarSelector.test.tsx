@@ -50,6 +50,15 @@ describe('PillarSelector — pastille discrète (LOT G3)', () => {
     expect(screen.getByRole('menuitemradio', { name: 'Général' })).toBeInTheDocument()
   })
 
+  it('ouvre l’explication des piliers depuis le menu', async () => {
+    const user = userEvent.setup()
+    renderSelector()
+    await user.click(await screen.findByRole('button', { name: 'Pilier de la session : Général' }))
+
+    await user.click(screen.getByRole('menuitem', { name: 'Comprendre les piliers' }))
+    expect(screen.getByRole('dialog', { name: 'Les piliers de vie' })).toBeInTheDocument()
+  })
+
   it('ferme le menu avec Échap', async () => {
     const user = userEvent.setup()
     renderSelector()

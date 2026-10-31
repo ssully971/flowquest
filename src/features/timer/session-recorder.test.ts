@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { setCurrentUserId } from '@/features/auth/current-user'
+import { setActiveTaskIdRef } from '@/features/tasks/active-task-ref'
 import { setActivePillarIdRef } from '@/features/pillars/active-pillar-ref'
 import { setPillarsEnabledRef } from '@/features/settings/pillars-enabled-ref'
 import { IndexedDbPillarRepository } from '@/features/pillars/storage/indexed-db-pillar-repository'
@@ -71,6 +72,7 @@ describe('recordSession', () => {
   })
 
   afterEach(() => {
+    setActiveTaskIdRef(null)
     setActivePillarIdRef(null)
     setPillarsEnabledRef(true)
   })
@@ -94,6 +96,27 @@ describe('recordSession', () => {
     expect(sessions[0].completed).toBe(true)
     expect(sessions[0].actualSeconds).toBe(1500)
     expect(sessions[0].kind).toBe('focus')
+  })
+
+  it('rattache la tâche active à une session de focus, jamais à une pause', async () => {
+    const { recordSession } = await import('./session-recorder')
+    setActiveTaskIdRef('task-42')
+    const endedAt = RUNNING_STATE.startedAt! + 1_500_000
+    await recordSession(RUNNING_STATE, endedAt, true)
+    await recordSession({ ...RUNNING_STATE, segment: 'short_break' }, endedAt, true)
+
+    const db = await getDb()
+    const sessions = await db.getAll('focusSessions')
+    expect(sessions.find((session) => session.kind === 'focus')?.taskId).toBe('task-42')
+    expect(sessions.find((session) => session.kind === 'short_break')?.taskId).toBeNull()
+  })
+
+  it('sans tâche active, la session n’a pas de tâche', async () => {
+    const { recordSession } = await import('./session-recorder')
+    await recordSession(RUNNING_STATE, RUNNING_STATE.startedAt! + 1_500_000, true)
+
+    const db = await getDb()
+    expect((await db.getAll('focusSessions'))[0].taskId).toBeNull()
   })
 
   it('enregistre une session abandonnée avec seulement le temps écoulé avant l’abandon', async () => {

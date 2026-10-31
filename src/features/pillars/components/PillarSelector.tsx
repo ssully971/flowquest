@@ -1,8 +1,10 @@
+import { Info } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { strings } from '@/shared/i18n'
 
 import { useActivePillar } from '../active-pillar-context'
+import { PillarInfoPanel } from './PillarInfoPanel'
 import { usePillars } from '../usePillars'
 
 interface PillarSelectorProps {
@@ -23,6 +25,7 @@ export function PillarSelector({ disabled = false }: PillarSelectorProps) {
   const { activePillars, isLoading } = usePillars()
   const { activePillarId, setActivePillarId } = useActivePillar()
   const [isOpen, setIsOpen] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const selected =
@@ -90,8 +93,21 @@ export function PillarSelector({ disabled = false }: PillarSelectorProps) {
               <span className="flex-1 truncate">{pillar.name}</span>
             </button>
           ))}
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setIsOpen(false)
+              setInfoOpen(true)
+            }}
+            className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-[var(--line)] px-2.5 py-2 text-sm text-[var(--muted)] transition-colors duration-150 hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+          >
+            <Info size={14} strokeWidth={1.75} aria-hidden="true" />
+            {strings.pillars.info.button}
+          </button>
         </div>
       ) : null}
+      <PillarInfoPanel open={infoOpen} onClose={() => setInfoOpen(false)} />
     </div>
   )
 }

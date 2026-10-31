@@ -83,6 +83,21 @@ describe('LeaderboardTab — classement hebdomadaire (LOT F2)', () => {
     expect(screen.getByText('Tu es en tête cette semaine. Continue comme ça !')).toBeInTheDocument()
   })
 
+  it('affiche le titre de pilier des participants quand il est connu', () => {
+    render(
+      <LeaderboardTab
+        leaderboard={LEADERBOARD}
+        isLoading={false}
+        loadError={null}
+        weekOffset={0}
+        onWeekOffsetChange={vi.fn()}
+        onRetry={vi.fn()}
+        pillarLevels={new Map([['u2', 12]])}
+      />,
+    )
+    expect(screen.getByText('Expert')).toBeInTheDocument()
+  })
+
   it('bascule entre cette semaine et la semaine dernière', async () => {
     const user = userEvent.setup()
     const onWeekOffsetChange = vi.fn()

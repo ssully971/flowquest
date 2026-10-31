@@ -44,6 +44,22 @@ export interface TaskRecord {
   updatedAt: number
 }
 
+/** Lien entre deux tâches (constellation) : `depends_on` = « from dépend de to » (orienté),
+ * `related` = « lié à » (symétrique, from < to par convention). */
+export interface TaskLinkRecord {
+  id: string
+  fromTaskId: string
+  toTaskId: string
+  kind: 'depends_on' | 'related'
+  createdAt: number
+}
+
+/** Positions enregistrées des nœuds de la constellation (id de tâche ou de pilier → x, y). */
+export interface ConstellationLayoutRecord {
+  positions: Record<string, { x: number; y: number; pinned?: boolean }>
+  updatedAt: number
+}
+
 export interface PillarRecord {
   id: string
   name: string
@@ -60,7 +76,14 @@ export interface PillarRecord {
 }
 
 export type SyncTable =
-  'user_settings' | 'timer_state' | 'focus_sessions' | 'tasks' | 'notes' | 'pillars'
+  | 'user_settings'
+  | 'timer_state'
+  | 'focus_sessions'
+  | 'tasks'
+  | 'notes'
+  | 'pillars'
+  | 'task_links'
+  | 'constellation_layouts'
 
 export interface QueuedWrite {
   id: string
@@ -130,11 +153,19 @@ interface FokitsuDB extends DBSchema {
     key: string
     value: CustomPhotoRecord
   }
+  taskLinks: {
+    key: string
+    value: TaskLinkRecord
+  }
+  constellationLayout: {
+    key: string
+    value: ConstellationLayoutRecord
+  }
 }
 
 // Identifiant technique historique : ne pas renommer sans migration des données (voir docs/RENOMMAGE.md).
 const DB_NAME = 'flowquest'
-const DB_VERSION = 7
+const DB_VERSION = 8
 
 let dbPromise: Promise<IDBPDatabase<FokitsuDB>> | null = null
 
@@ -173,6 +204,13 @@ export function getDb(): Promise<IDBPDatabase<FokitsuDB>> {
         // supprimé, au premier chargement (voir CustomBackgroundProvider) — migration douce.
         if (!db.objectStoreNames.contains('customPhotos')) {
           db.createObjectStore('customPhotos', { keyPath: 'id' })
+        }
+        // v8 : constellation (liens entre tâches, positions des nœuds).
+        if (!db.objectStoreNames.contains('taskLinks')) {
+          db.createObjectStore('taskLinks', { keyPath: 'id' })
+        }
+        if (!db.objectStoreNames.contains('constellationLayout')) {
+          db.createObjectStore('constellationLayout')
         }
       },
     })

@@ -15,6 +15,7 @@ import type { useFriends } from '../useFriends'
 import type { useLeaderboard } from '../useLeaderboard'
 import type { Friend } from '../types'
 import { AddFriendForm } from './AddFriendForm'
+import { useFriendPillarLevels } from '../useFriendPillarLevels'
 import { FriendCard } from './FriendCard'
 import { FriendRequestsList } from './FriendRequestsList'
 import { LeaderboardTab } from './LeaderboardTab'
@@ -52,6 +53,7 @@ export function SocialPanel({
   duoStreaksState,
   roomsState,
 }: SocialPanelProps) {
+  const pillarLevels = useFriendPillarLevels(open)
   const s = strings.social
   const sf = strings.friends
   const sr = strings.rooms
@@ -166,6 +168,7 @@ export function SocialPanel({
                   weekOffset={leaderboardState.weekOffset}
                   onWeekOffsetChange={leaderboardState.setWeekOffset}
                   onRetry={() => void leaderboardState.refresh()}
+                  pillarLevels={pillarLevels}
                 />
               ) : tab === 'rooms' ? (
                 <div className="flex flex-col gap-4">
@@ -279,6 +282,7 @@ export function SocialPanel({
                         key={friend.friendshipId}
                         friend={friend}
                         streak={streakByFriendId.get(friend.id)}
+                        pillarLevel={pillarLevels.get(friend.id)}
                         onRemove={(id) => void friendsState.unfriend(id)}
                         onBlock={(id) => void friendsState.block(id)}
                         onReport={setReportTarget}

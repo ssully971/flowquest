@@ -3,11 +3,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getCurrentUserId } from '@/features/auth/current-user'
 import type { TaskRecord } from '@/shared/storage/db'
 
+import { notifyConstellationChanged } from '@/features/constellation/constellation-events'
+import { IndexedDbConstellationRepository } from '@/features/constellation/storage/constellation-repository'
 import { IndexedDbTaskRepository } from './storage/indexed-db-task-repository'
 import { deleteTaskRemote, pushTask } from './storage/supabase-task-sync'
 import { notifyTasksChanged, onTasksChanged } from './task-events'
 
 const repo = new IndexedDbTaskRepository()
+const constellationRepo = new IndexedDbConstellationRepository()
 
 export interface TaskDetailsUpdate {
   emoji?: string | null
@@ -151,6 +154,9 @@ export function useTasks(): UseTasksResult {
     // DELETE CASCADE côté serveur, mais IndexedDB ne connaît pas les contraintes SQL).
     const idsToRemove = [id, ...current.filter((t) => t.parentId === id).map((t) => t.id)]
     await Promise.all(idsToRemove.map((taskId) => repo.remove(taskId)))
+    // Les liens de la constellation suivent leurs tâches (cascade SQL côté serveur).
+    await constellationRepo.removeLinksOfTasks(idsToRemove)
+    notifyConstellationChanged()
     const userId = getCurrentUserId()
     if (userId) idsToRemove.forEach((taskId) => void deleteTaskRemote(taskId))
     notifyTasksChanged()
