@@ -1,9 +1,10 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react'
 
 import type { Graph } from './build-graph'
-import { drawConstellation } from './draw-constellation'
-import type { DrawEdge, DrawNode } from './draw-constellation'
+import { displayRadius, drawConstellation, readPalette } from './draw-constellation'
+import type { DrawEdge, DrawNode, LabelMode } from './draw-constellation'
 import { createSimulation, positionsOf } from './force-layout'
+import { neighborhood } from './neighborhood'
 import type { LayoutSimulation, Positions } from './force-layout'
 import {
   boundsOf,
@@ -30,6 +31,8 @@ interface ConstellationCanvasProps {
   linkMode: boolean
   selectedIds: ReadonlySet<string>
   selectedEdgeId: string | null
+  /** Étiquettes : auto (défaut), toujours ou jamais. */
+  labels?: LabelMode
   ariaLabel: string
   onSelectNode: (id: string | null) => void
   onSelectEdge: (edgeId: string | null) => void
@@ -106,9 +109,6 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
           brightness: node.brightness,
           done: node.done,
           archived: node.archived,
-          star: node.tier
-            ? { points: node.tier.star.points, halo: node.tier.star.halo }
-            : undefined,
           groupCount: node.groupCount,
         })
       }
@@ -120,25 +120,24 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
         drawEdges.push({
           id: edge.id,
           kind: edge.kind,
-          from: { x: a.x ?? 0, y: a.y ?? 0, r: a.r },
-          to: { x: b.x ?? 0, y: b.y ?? 0, r: b.r },
+          from: { x: a.x ?? 0, y: a.y ?? 0, r: a.r, kind: a.kind },
+          to: { x: b.x ?? 0, y: b.y ?? 0, r: b.r, kind: b.kind },
         })
       }
-      const rootStyle = getComputedStyle(document.documentElement)
+      // Survol prioritaire, sinon la sélection : le voisinage reste net, le reste s'estompe.
+      const activeId = hoverRef.current ?? Array.from(selectedIds)[0] ?? null
+      const highlight =
+        activeId && meta.has(activeId) ? { activeId, ...neighborhood(graph, activeId) } : null
       drawConstellation(ctx, {
         ...sizeRef.current,
         view: viewRef.current,
         nodes: drawNodes,
         edges: drawEdges,
-        palette: {
-          text: rootStyle.getPropertyValue('--text').trim() || '#ffffff',
-          background: /^#[0-9a-f]{6}$/i.test(rootStyle.getPropertyValue('--bg').trim())
-            ? rootStyle.getPropertyValue('--bg').trim()
-            : '#000000',
-        },
+        palette: readPalette(),
+        labels: propsRef.current.labels,
+        highlight,
         selectedIds,
         selectedEdgeId,
-        hoverId: hoverRef.current,
         linkDraft: draftRef.current,
       })
     }, [])
@@ -168,7 +167,11 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
       const { width, height } = sizeRef.current
       if (!layout) return
       const bounds = boundsOf(
-        layout.nodes.map((node) => ({ x: node.x ?? 0, y: node.y ?? 0, r: node.r + 14 })),
+        layout.nodes.map((node) => ({
+          x: node.x ?? 0,
+          y: node.y ?? 0,
+          r: displayRadius(node) + 14,
+        })),
       )
       viewRef.current = fitView(bounds, width, height)
       requestFrame()
@@ -202,7 +205,7 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
     // Redessine quand la sélection change (sans simulation).
     useEffect(() => {
       requestFrame()
-    }, [props.selectedIds, props.selectedEdgeId, requestFrame])
+    }, [props.selectedIds, props.selectedEdgeId, props.labels, requestFrame])
 
     // Taille du canvas (ratio de pixels plafonné à 2 pour rester léger sur mobile).
     useEffect(() => {
@@ -263,7 +266,12 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
       if (!layout) return null
       const world = screenToWorld(viewRef.current, sx, sy)
       return hitTestNode(
-        layout.nodes.map((node) => ({ id: node.id, x: node.x ?? 0, y: node.y ?? 0, r: node.r })),
+        layout.nodes.map((node) => ({
+          id: node.id,
+          x: node.x ?? 0,
+          y: node.y ?? 0,
+          r: displayRadius(node),
+        })),
         world.x,
         world.y,
         viewRef.current.k,

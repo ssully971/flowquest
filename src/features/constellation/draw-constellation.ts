@@ -4,6 +4,7 @@ export interface DrawNode {
   id: string
   x: number
   y: number
+  /** Rayon de simulation (collisions) : le rayon dessiné s'en déduit par `displayRadius`. */
   r: number
   kind: 'pillar' | 'task' | 'group'
   label: string
@@ -11,23 +12,34 @@ export interface DrawNode {
   brightness: number
   done: boolean
   archived: boolean
-  /** Pilier : apparence de l'étoile (palier). */
-  star?: { points: number; halo: number }
   groupCount?: number
 }
 
 export interface DrawEdge {
   id: string
   kind: 'pillar' | 'parent' | 'depends_on' | 'related'
-  from: { x: number; y: number; r: number }
-  to: { x: number; y: number; r: number }
+  from: { x: number; y: number; r: number; kind?: DrawNode['kind'] }
+  to: { x: number; y: number; r: number; kind?: DrawNode['kind'] }
 }
 
+/** Couleurs lues des jetons `--cst-*` (tokens.css) : jamais de hex en dur dans le dessin. */
 export interface DrawPalette {
-  /** Texte et traits clairs ou sombres selon le fond. */
-  text: string
-  /** Couleur du fond, pour le liseré des étiquettes (lisibilité sur photo). */
   background: string
+  edge: string
+  edgeUser: string
+  label: string
+  labelStrong: string
+  highlight: string
+  font: string
+}
+
+export type LabelMode = 'auto' | 'always' | 'never'
+
+export interface DrawHighlight {
+  /** Nœud actif (survol ou sélection). */
+  activeId: string
+  nodeIds: ReadonlySet<string>
+  edgeIds: ReadonlySet<string>
 }
 
 export interface DrawOptions {
@@ -38,38 +50,61 @@ export interface DrawOptions {
   nodes: DrawNode[]
   edges: DrawEdge[]
   palette: DrawPalette
+  /** Nœuds cerclés (sélection). */
   selectedIds?: ReadonlySet<string>
-  hoverId?: string | null
   selectedEdgeId?: string | null
+  /** Voisinage mis en avant ; tout le reste est estompé. */
+  highlight?: DrawHighlight | null
   /** Lien en cours de tracé (mode « relier ») en coordonnées du monde. */
   linkDraft?: { from: { x: number; y: number }; to: { x: number; y: number } } | null
-  /** `auto` : étiquettes des piliers, puis des tâches au-delà d'un zoom ; `none` : aucune. */
-  labels?: 'auto' | 'none'
+  /** `auto` : piliers toujours, tâches au-delà d'un zoom ou dans le voisinage actif. */
+  labels?: LabelMode
 }
 
-/** Étoile à `points` branches (4, 5, 6 ou 8), rayon extérieur `r`, rayon intérieur 0,45·r. */
-function starPath(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  r: number,
-  points: number,
-): void {
-  const inner = r * 0.45
-  ctx.beginPath()
-  for (let i = 0; i < points * 2; i++) {
-    const radius = i % 2 === 0 ? r : inner
-    const angle = (Math.PI * i) / points - Math.PI / 2
-    const px = x + Math.cos(angle) * radius
-    const py = y + Math.sin(angle) * radius
-    if (i === 0) ctx.moveTo(px, py)
-    else ctx.lineTo(px, py)
+/** Part d'opacité des éléments hors du voisinage actif. */
+export const DIM_OPACITY = 0.28
+/** Zoom à partir duquel les étiquettes de tâches s'affichent en mode auto. */
+export const LABEL_ZOOM = 1.15
+const ARCHIVED_OPACITY = 0.45
+
+const FALLBACK_PALETTE: DrawPalette = {
+  background: '#0e0c14',
+  edge: '#3a3647',
+  edgeUser: '#8a8499',
+  label: '#8a8499',
+  labelStrong: '#eeeaf4',
+  highlight: '#c9a7ff',
+  font: '"Instrument Sans Variable", system-ui, sans-serif',
+}
+
+/** Lit la palette du graphe depuis les jetons CSS (thème sombre ou clair en cours). */
+export function readPalette(element: Element = document.documentElement): DrawPalette {
+  const style = getComputedStyle(element)
+  const read = (name: string, fallback: string) => style.getPropertyValue(name).trim() || fallback
+  return {
+    background: read('--cst-bg', FALLBACK_PALETTE.background),
+    edge: read('--cst-edge', FALLBACK_PALETTE.edge),
+    edgeUser: read('--cst-edge-user', FALLBACK_PALETTE.edgeUser),
+    label: read('--cst-label', FALLBACK_PALETTE.label),
+    labelStrong: read('--cst-label-strong', FALLBACK_PALETTE.labelStrong),
+    highlight: read('--cst-highlight', FALLBACK_PALETTE.highlight),
+    font: read('--font-sans', FALLBACK_PALETTE.font),
   }
-  ctx.closePath()
 }
 
+/**
+ * Rayon DESSINÉ d'un nœud, en unités du monde. Tâche : plafonné à 9 (lisibilité, pas d'énormes
+ * bulles). Pilier : 11 × palier (le rayon de simulation vaut 14 × palier), plafonné à 1,4.
+ * Groupe : sobre, de 9 à 13.
+ */
+export function displayRadius(node: { kind: DrawNode['kind']; r: number }): number {
+  if (node.kind === 'pillar') return 11 * Math.min(1.4, node.r / 14)
+  if (node.kind === 'group') return Math.min(13, Math.max(9, node.r))
+  return Math.min(9, node.r)
+}
+
+/** Couleur #RRGGBB avec opacité ; autre format : renvoyé tel quel. */
 function withAlpha(color: string, alpha: number): string {
-  // Couleurs de l'app : #RRGGBB. Autre format : alpha global via globalAlpha par l'appelant.
   if (/^#[0-9a-f]{6}$/i.test(color)) {
     const a = Math.round(Math.max(0, Math.min(1, alpha)) * 255)
       .toString(16)
@@ -79,25 +114,28 @@ function withAlpha(color: string, alpha: number): string {
   return color
 }
 
-function drawArrow(
+function drawArrowHead(
   ctx: CanvasRenderingContext2D,
-  from: { x: number; y: number },
-  to: { x: number; y: number },
+  tip: { x: number; y: number },
+  angle: number,
   size: number,
 ): void {
-  const angle = Math.atan2(to.y - from.y, to.x - from.x)
   ctx.beginPath()
-  ctx.moveTo(to.x, to.y)
-  ctx.lineTo(to.x - size * Math.cos(angle - 0.4), to.y - size * Math.sin(angle - 0.4))
-  ctx.lineTo(to.x - size * Math.cos(angle + 0.4), to.y - size * Math.sin(angle + 0.4))
+  ctx.moveTo(tip.x, tip.y)
+  ctx.lineTo(tip.x - size * Math.cos(angle - 0.42), tip.y - size * Math.sin(angle - 0.42))
+  ctx.lineTo(tip.x - size * Math.cos(angle + 0.42), tip.y - size * Math.sin(angle + 0.42))
   ctx.closePath()
   ctx.fill()
 }
 
-/** Dessine toute la constellation (liens, nœuds, étiquettes). Aucun état conservé : appelée à
- * chaque image pendant un geste, et une seule fois au repos ou pour le fond d'écran. */
+/**
+ * Dessine toute la constellation : liens, nœuds, étiquettes. Rendu « graphe sobre » : aucune
+ * lueur ni dégradé, un seul accent (la sélection), le voisinage actif en pleine opacité et le
+ * reste estompé. Aucun état conservé : appelée à chaque image pendant un geste, une seule fois
+ * au repos ou pour le fond d'écran.
+ */
 export function drawConstellation(ctx: CanvasRenderingContext2D, options: DrawOptions): void {
-  const { width, height, dpr, view, nodes, edges, palette } = options
+  const { width, height, dpr, view, nodes, edges, palette, highlight } = options
   const selected = options.selectedIds ?? new Set<string>()
   const k = view.k
 
@@ -105,21 +143,29 @@ export function drawConstellation(ctx: CanvasRenderingContext2D, options: DrawOp
   ctx.clearRect(0, 0, width, height)
   ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * view.x, dpr * view.y)
 
-  // Liens : les implicites (pilier, parent) très discrets, ceux de l'utilisateur lisibles.
+  const nodeAlpha = (id: string): number =>
+    highlight && !highlight.nodeIds.has(id) ? DIM_OPACITY : 1
+  const edgeAlpha = (id: string): number =>
+    highlight && !highlight.edgeIds.has(id) ? DIM_OPACITY : 1
+
+  // Liens : le pilier→tâche reste discret, ceux de l'utilisateur sont lisibles, ceux du
+  // voisinage actif passent à l'accent.
   for (const edge of edges) {
-    const isLink = edge.kind === 'depends_on' || edge.kind === 'related'
-    const isSelected = edge.id === options.selectedEdgeId
-    ctx.lineWidth = (isSelected ? 2.4 : isLink ? 1.4 : 1) / k
-    ctx.globalAlpha = isSelected
-      ? 1
+    const isUserLink = edge.kind === 'depends_on' || edge.kind === 'related'
+    const inHighlight = highlight?.edgeIds.has(edge.id) ?? false
+    const isSelectedEdge = edge.id === options.selectedEdgeId
+    const emphasised = isSelectedEdge || (inHighlight && edge.kind !== 'pillar')
+    const color = emphasised
+      ? palette.highlight
       : edge.kind === 'pillar'
-        ? 0.16
-        : edge.kind === 'parent'
-          ? 0.3
-          : 0.55
-    ctx.strokeStyle = palette.text
-    ctx.fillStyle = palette.text
-    ctx.setLineDash(edge.kind === 'related' ? [5 / k, 4 / k] : [])
+        ? palette.edge
+        : palette.edgeUser
+    ctx.lineWidth = (emphasised ? 1.5 : isUserLink ? 1.3 : 1) / k
+    ctx.globalAlpha =
+      (edge.kind === 'parent' && !emphasised ? 0.5 : 1) * (isSelectedEdge ? 1 : edgeAlpha(edge.id))
+    ctx.strokeStyle = color
+    ctx.fillStyle = color
+    ctx.setLineDash(edge.kind === 'related' ? [4 / k, 4 / k] : [])
     ctx.beginPath()
     ctx.moveTo(edge.from.x, edge.from.y)
     ctx.lineTo(edge.to.x, edge.to.y)
@@ -128,19 +174,22 @@ export function drawConstellation(ctx: CanvasRenderingContext2D, options: DrawOp
       const dx = edge.to.x - edge.from.x
       const dy = edge.to.y - edge.from.y
       const length = Math.hypot(dx, dy) || 1
-      const tip = {
-        x: edge.to.x - (dx / length) * (edge.to.r + 2),
-        y: edge.to.y - (dy / length) * (edge.to.r + 2),
-      }
-      drawArrow(ctx, edge.from, tip, 7 / k)
+      const toRadius = displayRadius({ kind: edge.to.kind ?? 'task', r: edge.to.r })
+      const gap = toRadius + 1.5
+      drawArrowHead(
+        ctx,
+        { x: edge.to.x - (dx / length) * gap, y: edge.to.y - (dy / length) * gap },
+        Math.atan2(dy, dx),
+        6 / k + 1.5,
+      )
     }
   }
   ctx.setLineDash([])
 
   if (options.linkDraft) {
-    ctx.globalAlpha = 0.9
-    ctx.strokeStyle = palette.text
-    ctx.lineWidth = 1.6 / k
+    ctx.globalAlpha = 1
+    ctx.strokeStyle = palette.highlight
+    ctx.lineWidth = 1.4 / k
     ctx.setLineDash([4 / k, 4 / k])
     ctx.beginPath()
     ctx.moveTo(options.linkDraft.from.x, options.linkDraft.from.y)
@@ -149,109 +198,95 @@ export function drawConstellation(ctx: CanvasRenderingContext2D, options: DrawOp
     ctx.setLineDash([])
   }
 
-  // Nœuds : piliers au-dessous, puis tâches (les allumées ont une lueur de la couleur du pilier).
+  // Nœuds : à plat, sans lueur. Les piliers d'abord (au-dessous), puis les tâches.
   const ordered = [...nodes].sort(
     (a, b) => (a.kind === 'pillar' ? 0 : 1) - (b.kind === 'pillar' ? 0 : 1),
   )
   for (const node of ordered) {
-    const dim = node.archived ? 0.55 : 1
+    const r = displayRadius(node)
+    const archivedFactor = node.archived ? ARCHIVED_OPACITY : 1
+    ctx.globalAlpha = nodeAlpha(node.id) * archivedFactor
+
     if (node.kind === 'pillar') {
-      const halo = node.star?.halo ?? 0
-      const haloRadius = node.r * (1.7 + halo * 1.6)
-      const gradient = ctx.createRadialGradient(
-        node.x,
-        node.y,
-        node.r * 0.4,
-        node.x,
-        node.y,
-        haloRadius,
-      )
-      gradient.addColorStop(0, withAlpha(node.color, 0.28 + 0.3 * halo))
-      gradient.addColorStop(1, withAlpha(node.color, 0))
-      ctx.globalAlpha = dim
-      ctx.fillStyle = gradient
+      // Anneau fin à rayon + 5 px (35 % d'opacité), puis disque plein.
+      ctx.strokeStyle = withAlpha(node.color, 0.35)
+      ctx.lineWidth = 1 / k
       ctx.beginPath()
-      ctx.arc(node.x, node.y, haloRadius, 0, Math.PI * 2)
-      ctx.fill()
-      starPath(ctx, node.x, node.y, node.r, node.star?.points ?? 4)
+      ctx.arc(node.x, node.y, r + 5, 0, Math.PI * 2)
+      ctx.stroke()
       ctx.fillStyle = node.color
-      ctx.globalAlpha = dim * Math.min(1, 0.55 + node.brightness * 0.45)
+      ctx.beginPath()
+      ctx.arc(node.x, node.y, r, 0, Math.PI * 2)
       ctx.fill()
     } else if (node.kind === 'group') {
-      ctx.globalAlpha = 0.85 * dim
+      // Contour pointillé seul, sans fond.
       ctx.strokeStyle = node.color
-      ctx.fillStyle = withAlpha(node.color, 0.22)
-      ctx.lineWidth = 1.6 / k
+      ctx.lineWidth = 1.4 / k
       ctx.setLineDash([3 / k, 3 / k])
       ctx.beginPath()
-      ctx.arc(node.x, node.y, node.r, 0, Math.PI * 2)
-      ctx.fill()
+      ctx.arc(node.x, node.y, r, 0, Math.PI * 2)
       ctx.stroke()
       ctx.setLineDash([])
-    } else {
-      if (node.done) {
-        const glow = node.r * 2.6
-        const gradient = ctx.createRadialGradient(
-          node.x,
-          node.y,
-          node.r * 0.3,
-          node.x,
-          node.y,
-          glow,
-        )
-        gradient.addColorStop(0, withAlpha(node.color, 0.5))
-        gradient.addColorStop(1, withAlpha(node.color, 0))
-        ctx.globalAlpha = dim
-        ctx.fillStyle = gradient
-        ctx.beginPath()
-        ctx.arc(node.x, node.y, glow, 0, Math.PI * 2)
-        ctx.fill()
-      }
-      ctx.globalAlpha = dim
+    } else if (node.done) {
+      // Terminée : disque plein, liseré de 2 px couleur du fond pour la détacher des liens.
+      ctx.fillStyle = node.color
       ctx.beginPath()
-      ctx.arc(node.x, node.y, node.r, 0, Math.PI * 2)
-      if (node.done) {
-        ctx.fillStyle = node.color
-        ctx.fill()
-      } else {
-        // À faire : disque sombre translucide cerclé de la couleur, d'autant plus rempli qu'on y a travaillé.
-        ctx.fillStyle = withAlpha(node.color, node.brightness * 0.6)
-        ctx.fill()
-        ctx.strokeStyle = node.color
-        ctx.lineWidth = 1.5 / k
-        ctx.stroke()
-      }
-    }
-
-    if (selected.has(node.id) || options.hoverId === node.id) {
-      ctx.globalAlpha = 1
-      ctx.strokeStyle = palette.text
+      ctx.arc(node.x, node.y, r, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = palette.background
       ctx.lineWidth = 2 / k
       ctx.beginPath()
-      ctx.arc(node.x, node.y, node.r + 4 / k, 0, Math.PI * 2)
+      ctx.arc(node.x, node.y, r + 1 / k, 0, Math.PI * 2)
+      ctx.stroke()
+    } else {
+      // À faire : disque de la couleur du fond, contour 1,5 px de la couleur du pilier.
+      ctx.fillStyle = palette.background
+      ctx.strokeStyle = node.color
+      ctx.lineWidth = 1.5 / k
+      ctx.beginPath()
+      ctx.arc(node.x, node.y, r, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+    }
+
+    if (selected.has(node.id) || highlight?.activeId === node.id) {
+      ctx.globalAlpha = 1
+      ctx.strokeStyle = palette.labelStrong
+      ctx.lineWidth = 1.5 / k
+      ctx.beginPath()
+      ctx.arc(node.x, node.y, r + 5 / k + 0, 0, Math.PI * 2)
       ctx.stroke()
     }
   }
 
-  // Étiquettes à taille d'écran constante, avec un liseré de la couleur du fond pour rester
-  // lisibles sur une photo.
-  if (options.labels !== 'none') {
-    ctx.globalAlpha = 1
+  // Étiquettes à taille d'écran constante, liseré couleur du fond pour la lisibilité.
+  const mode = options.labels ?? 'auto'
+  if (mode !== 'never') {
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
     for (const node of ordered) {
-      const forced = selected.has(node.id) || options.hoverId === node.id
+      const isActive = highlight?.activeId === node.id || selected.has(node.id)
+      const inNeighborhood = highlight?.nodeIds.has(node.id) ?? false
       const show =
-        forced || node.kind === 'pillar' || node.kind === 'group' || (k >= 1.15 && node.r * k >= 6)
+        mode === 'always' ||
+        node.kind === 'pillar' ||
+        node.kind === 'group' ||
+        isActive ||
+        inNeighborhood ||
+        k >= LABEL_ZOOM
       if (!show) continue
-      const fontPx = node.kind === 'pillar' ? 13 : 11
-      ctx.font = `${node.kind === 'pillar' ? 600 : 500} ${fontPx / k}px "Instrument Sans Variable", system-ui, sans-serif`
+      const strong = node.kind === 'pillar' || isActive
+      const fontPx = node.kind === 'pillar' ? 11.5 : 10.5
+      ctx.font = `${strong ? 600 : 400} ${fontPx / k}px ${palette.font}`
       const text = node.label.length > 28 ? `${node.label.slice(0, 27)}…` : node.label
-      const y = node.y + node.r + 5 / k
+      const r = displayRadius(node)
+      const y = node.y + r + (node.kind === 'pillar' ? 8 : 4) / k
+      ctx.globalAlpha = nodeAlpha(node.id) * (node.archived ? ARCHIVED_OPACITY : 1)
       ctx.lineWidth = 3 / k
-      ctx.strokeStyle = withAlpha(palette.background, 0.75)
+      ctx.lineJoin = 'round'
+      ctx.strokeStyle = palette.background
       ctx.strokeText(text, node.x, y)
-      ctx.fillStyle = palette.text
+      ctx.fillStyle = strong ? palette.labelStrong : palette.label
       ctx.fillText(text, node.x, y)
     }
   }
