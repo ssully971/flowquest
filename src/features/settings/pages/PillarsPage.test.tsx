@@ -59,6 +59,33 @@ describe('PillarsPage — Réglages > Piliers (LOT G3)', () => {
     expect(await screen.findByRole('button', { name: 'Sport' })).toBeInTheDocument()
   })
 
+  it('ouvre l’explication des piliers une seule fois, à la première création', async () => {
+    window.localStorage.removeItem('flowquest.pillarInfoSeen')
+    const user = userEvent.setup()
+    render(<PillarsPage />)
+    await screen.findByRole('button', { name: 'Général' })
+    expect(screen.queryByRole('dialog', { name: 'Les piliers de vie' })).not.toBeInTheDocument()
+
+    await user.type(screen.getByPlaceholderText('Nouveau pilier…'), 'Sport')
+    await user.click(screen.getByRole('button', { name: 'Ajouter' }))
+    expect(await screen.findByRole('dialog', { name: 'Les piliers de vie' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Fermer l’explication' }))
+    await user.type(screen.getByPlaceholderText('Nouveau pilier…'), 'Lecture')
+    await user.click(screen.getByRole('button', { name: 'Ajouter' }))
+    await screen.findByRole('button', { name: 'Lecture' })
+    expect(screen.queryByRole('dialog', { name: 'Les piliers de vie' })).not.toBeInTheDocument()
+  })
+
+  it('l’explication est toujours accessible via le bouton « i »', async () => {
+    const user = userEvent.setup()
+    render(<PillarsPage />)
+    await screen.findByRole('button', { name: 'Général' })
+
+    await user.click(screen.getByRole('button', { name: 'Comprendre les piliers' }))
+    expect(screen.getByRole('dialog', { name: 'Les piliers de vie' })).toBeInTheDocument()
+  })
+
   it('renomme un pilier en cliquant sur son nom', async () => {
     const user = userEvent.setup()
     render(<PillarsPage />)

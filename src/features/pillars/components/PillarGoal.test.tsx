@@ -136,3 +136,68 @@ describe('PillarGoal — objectif en cours (lot 4, §4)', () => {
     expect(onSetGoal).toHaveBeenCalledWith(6, null)
   })
 })
+
+describe('PillarGoal — heures et niveau liés (lot 6A)', () => {
+  it('propose d’abord « Combien d’heures veux-tu y consacrer ? » et lie les deux champs', async () => {
+    const user = userEvent.setup()
+    render(<PillarGoal pillar={pillar({ level: 1 })} onSetGoal={vi.fn()} onClearGoal={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /Fixer un objectif/ }))
+    expect(screen.getByText('Combien d’heures veux-tu y consacrer ?')).toBeInTheDocument()
+
+    const hours = screen.getByLabelText('Heures de focus à ajouter')
+    const level = screen.getByLabelText(/Niveau visé/)
+    // Niveau 2 pré-rempli = 1 h.
+    expect(hours).toHaveValue(1)
+
+    await user.clear(hours)
+    await user.type(hours, '10')
+    expect(level).toHaveValue(5)
+    expect(screen.getByText(/Cela te mène au niveau 5 \(Apprenti\)/)).toBeInTheDocument()
+
+    await user.clear(level)
+    await user.type(level, '4')
+    expect(hours).toHaveValue(6)
+  })
+
+  it('enregistre le niveau déduit des heures saisies', async () => {
+    const user = userEvent.setup()
+    const onSetGoal = vi.fn()
+    render(<PillarGoal pillar={pillar({ level: 1 })} onSetGoal={onSetGoal} onClearGoal={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /Fixer un objectif/ }))
+    const hours = screen.getByLabelText('Heures de focus à ajouter')
+    await user.clear(hours)
+    await user.type(hours, '3')
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+
+    expect(onSetGoal).toHaveBeenCalledWith(3, null) // 3 h cumulées = niveau 3
+  })
+
+  it('compte les heures à partir de l’XP déjà acquise', async () => {
+    const user = userEvent.setup()
+    render(
+      <PillarGoal
+        pillar={pillar({ level: 2, currentXp: 600 })}
+        onSetGoal={vi.fn()}
+        onClearGoal={vi.fn()}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: /Fixer un objectif/ }))
+    // Niveau 3 pré-rempli : 3 h cumulées − 1 h déjà faite = 2 h.
+    expect(screen.getByLabelText('Heures de focus à ajouter')).toHaveValue(2)
+  })
+
+  it('affiche la progression en heures et en niveau pour un objectif en cours', () => {
+    render(
+      <PillarGoal
+        pillar={pillar({ level: 2, currentXp: 1200, goalLevel: 5 })}
+        onSetGoal={vi.fn()}
+        onClearGoal={vi.fn()}
+      />,
+    )
+    expect(screen.getByText(/2 h \/ 10 h/)).toBeInTheDocument()
+    expect(screen.getByText(/Niv\. 2 → 5/)).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'Progression en heures' })).toBeInTheDocument()
+  })
+})

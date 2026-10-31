@@ -2,6 +2,7 @@ import { Flag, Flame, MoreVertical, UserMinus, UserX } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { Avatar } from '@/features/avatar/components/Avatar'
+import { PillarTierBadge } from '@/features/pillars/components/PillarTierBadge'
 import { FeatureGate } from '@/features/feature-flags/FeatureGate'
 import { strings } from '@/shared/i18n'
 import type { CheerEmoji } from '@/shared/supabase/database.types'
@@ -11,6 +12,8 @@ import type { DuoStreak, Friend } from '../types'
 import { CheerPicker } from './CheerPicker'
 
 interface FriendCardProps {
+  /** Meilleur niveau de pilier de cet ami (titre et badge) ; absent = pas de badge. */
+  pillarLevel?: number
   friend: Friend
   streak?: DuoStreak | null
   onRemove: (otherUserId: string) => void
@@ -22,6 +25,7 @@ interface FriendCardProps {
 export function FriendCard({
   friend,
   streak,
+  pillarLevel,
   onRemove,
   onBlock,
   onReport,
@@ -82,6 +86,7 @@ export function FriendCard({
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="flex items-center gap-1 truncate text-sm font-medium text-[var(--text)]">
           <span className="truncate">{friend.displayName || friend.username}</span>
+          {pillarLevel ? <PillarTierBadge level={pillarLevel} showTitle={false} /> : null}
           {streak && streak.currentStreak > 0 ? (
             <span
               className={`inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold ${

@@ -43,6 +43,32 @@ export function levelProgressForXp(xp: number): PillarLevelProgress {
   return { level, xpInLevel, xpForNextLevel }
 }
 
+/** 1 h de focus réel = 600 XP (10 XP/min). */
+export const XP_PER_HOUR = XP_PER_MINUTE * 60
+
+/** Heures de focus cumulées pour atteindre un niveau : (L−1)·L/2 — nombres triangulaires
+ * (niveau 2 = 1 h, 3 = 3 h, 5 = 10 h, 10 = 45 h). Même chose que xpToReachLevel / 600. */
+export function hoursToReachLevel(level: number): number {
+  return xpToReachLevel(level) / XP_PER_HOUR
+}
+
+/** Heures de focus à AJOUTER pour atteindre un niveau visé, depuis l'XP actuelle (≥ 0). */
+export function hoursRemainingForGoal(currentXp: number, goalLevel: number): number {
+  return xpRemainingForGoal(currentXp, goalLevel) / XP_PER_HOUR
+}
+
+/** Niveau atteint en ajoutant `hours` heures de focus à l'XP actuelle (sens inverse de
+ * hoursRemainingForGoal : les deux champs de l'objectif sont liés par ces deux fonctions). */
+export function levelAfterAddingHours(currentXp: number, hours: number): number {
+  return levelForXp(currentXp + Math.max(0, hours) * XP_PER_HOUR)
+}
+
+/** Heures à ajouter pour atteindre tout juste `level` — arrondi à l'heure supérieure
+ * pour l'affichage dans un champ « heures » entier. */
+export function wholeHoursForGoal(currentXp: number, goalLevel: number): number {
+  return Math.ceil(hoursRemainingForGoal(currentXp, goalLevel))
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000
 
 /** XP restante pour atteindre un niveau visé (lot 4, §4), jamais négative — un objectif

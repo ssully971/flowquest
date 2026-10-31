@@ -3,6 +3,10 @@ import { describe, expect, it } from 'vitest'
 import {
   goalPace,
   goalProgressRatio,
+  hoursRemainingForGoal,
+  hoursToReachLevel,
+  levelAfterAddingHours,
+  wholeHoursForGoal,
   levelForXp,
   levelProgressForXp,
   xpForActualSeconds,
@@ -133,5 +137,32 @@ describe('goalPace — rythme nécessaire pour atteindre l’objectif (lot 4, §
     const pace = goalPace(1800, 3, deadline, NOW)
     expect(pace.xpRemaining).toBe(0)
     expect(pace.averageSecondsPerDayNeeded).toBeNull()
+  })
+})
+
+describe('conversion heures ↔ niveau (lot 6A)', () => {
+  it('niveau → heures cumulées : nombres triangulaires', () => {
+    expect([1, 2, 3, 4, 5, 10].map(hoursToReachLevel)).toEqual([0, 1, 3, 6, 10, 45])
+  })
+
+  it('heures à ajouter pour un niveau visé, depuis l’XP actuelle', () => {
+    expect(hoursRemainingForGoal(0, 5)).toBe(10)
+    expect(hoursRemainingForGoal(600, 5)).toBe(9) // 1 h déjà faite
+    expect(hoursRemainingForGoal(99999, 3)).toBe(0) // objectif déjà dépassé
+    expect(wholeHoursForGoal(300, 2)).toBe(1) // 0,5 h restante → 1 h affichée
+  })
+
+  it('heures → niveau atteint, dans l’autre sens', () => {
+    expect(levelAfterAddingHours(0, 10)).toBe(5)
+    expect(levelAfterAddingHours(0, 9.99)).toBe(4)
+    expect(levelAfterAddingHours(600, 9)).toBe(5)
+    expect(levelAfterAddingHours(0, -5)).toBe(1)
+  })
+
+  it('les deux sens sont cohérents : viser N demande les heures qui donnent N', () => {
+    for (const level of [2, 3, 5, 8, 12]) {
+      const hours = hoursRemainingForGoal(0, level)
+      expect(levelAfterAddingHours(0, hours)).toBe(level)
+    }
   })
 })

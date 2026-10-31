@@ -1,4 +1,5 @@
 import { Avatar } from '@/features/avatar/components/Avatar'
+import { PillarTierBadge } from '@/features/pillars/components/PillarTierBadge'
 import { formatPlanDuration } from '@/features/timer/session-goal'
 import { strings } from '@/shared/i18n'
 
@@ -11,6 +12,8 @@ interface LeaderboardTabProps {
   weekOffset: 0 | 1
   onWeekOffsetChange: (offset: 0 | 1) => void
   onRetry: () => void
+  /** Meilleur niveau de pilier par utilisateur (titre et badge) ; absent = pas de badge. */
+  pillarLevels?: ReadonlyMap<string, number>
 }
 
 function encouragementMessage(self: LeaderboardEntry | undefined): string {
@@ -29,6 +32,7 @@ export function LeaderboardTab({
   weekOffset,
   onWeekOffsetChange,
   onRetry,
+  pillarLevels,
 }: LeaderboardTabProps) {
   const s = strings.friends.leaderboard
 
@@ -107,8 +111,13 @@ export function LeaderboardTab({
                   size="sm"
                 />
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span className="truncate text-sm font-medium text-[var(--text)]">
-                    {entry.isSelf ? s.you : entry.displayName || entry.username}
+                  <span className="flex items-center gap-1.5 truncate text-sm font-medium text-[var(--text)]">
+                    <span className="truncate">
+                      {entry.isSelf ? s.you : entry.displayName || entry.username}
+                    </span>
+                    {pillarLevels?.get(entry.id) ? (
+                      <PillarTierBadge level={pillarLevels.get(entry.id) ?? 1} />
+                    ) : null}
                   </span>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--line)]">
                     <div

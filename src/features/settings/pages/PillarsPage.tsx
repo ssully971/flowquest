@@ -7,7 +7,11 @@ import { LockedBlock } from '@/features/access/LockedBlock'
 import { useFeatureAccess } from '@/features/access/useFeatureAccess'
 import { GalaxyView } from '@/features/galaxy/components/GalaxyView'
 import { PillarGoal } from '@/features/pillars/components/PillarGoal'
-import { levelProgressForXp } from '@/features/pillars/pillar-xp'
+import { PillarInfoButton, PillarInfoPanel } from '@/features/pillars/components/PillarInfoPanel'
+import { PillarTierBadge } from '@/features/pillars/components/PillarTierBadge'
+import { hasSeenPillarInfo, markPillarInfoSeen } from '@/features/pillars/pillar-info-seen'
+import { nextTier } from '@/features/pillars/pillar-tiers'
+import { hoursToReachLevel, levelProgressForXp } from '@/features/pillars/pillar-xp'
 import { PILLAR_COLORS } from '@/features/pillars/pillar-colors'
 import { MAX_ACTIVE_PILLARS, usePillars } from '@/features/pillars/usePillars'
 import type { PillarRecord } from '@/shared/storage/db'
@@ -87,6 +91,7 @@ function PillarRow({
           </button>
         )}
 
+        <PillarTierBadge level={pillar.level} tone="panel" />
         <span className="shrink-0 text-xs text-[var(--panel-muted)]">
           {s.level} {pillar.level}
         </span>
@@ -136,6 +141,14 @@ function PillarRow({
               style={{ width: `${progressPct}%`, backgroundColor: pillar.color }}
             />
           </div>
+          {nextTier(pillar.level) ? (
+            <p className="pl-9 text-xs text-[var(--panel-muted)]">
+              {strings.pillars.nextTierHint(
+                strings.pillars.tiers[nextTier(pillar.level)!.id],
+                hoursToReachLevel(nextTier(pillar.level)!.minLevel),
+              )}
+            </p>
+          ) : null}
           <PillarGoal pillar={pillar} onSetGoal={onSetGoal} onClearGoal={onClearGoal} />
         </>
       ) : null}
@@ -159,6 +172,8 @@ export function PillarsPage() {
   } = usePillars()
   const [draftName, setDraftName] = useState('')
   const colorRef = useRef(0)
+  const [infoOpen, setInfoOpen] = useState(false)
+  const topLevel = Math.max(0, ...activePillars.map((pillar) => pillar.level))
 
   const archivedPillars = pillars.filter((pillar) => pillar.archivedAt !== null)
   const canAddMore = activePillars.length < MAX_ACTIVE_PILLARS
@@ -170,6 +185,11 @@ export function PillarsPage() {
     const color = PILLAR_COLORS[colorRef.current % PILLAR_COLORS.length]
     colorRef.current += 1
     void addPillar(trimmed, color)
+    // Première création par l'utilisateur : l'explication s'ouvre d'elle-même, une seule fois.
+    if (!hasSeenPillarInfo()) {
+      markPillarInfoSeen()
+      setInfoOpen(true)
+    }
     setDraftName('')
   }
 
@@ -181,7 +201,17 @@ export function PillarsPage() {
       >
         {s.title}
       </h2>
-      <p className="max-w-md text-sm text-[var(--panel-muted)]">{s.hint}</p>
+      <div className="flex max-w-md items-start gap-2">
+        <p className="flex-1 text-sm text-[var(--panel-muted)]">{s.hint}</p>
+        <PillarInfoButton onClick={() => setInfoOpen(true)} />
+      </div>
+      {topLevel > 0 ? (
+        <p className="flex items-center gap-2 text-sm text-[var(--panel-text)]">
+          {strings.pillars.yourTitle} :
+          <PillarTierBadge level={topLevel} tone="panel" />
+        </p>
+      ) : null}
+      <PillarInfoPanel open={infoOpen} onClose={() => setInfoOpen(false)} />
 
       <div className="flex max-w-md flex-col gap-2">
         {activePillars.length === 0 ? (
