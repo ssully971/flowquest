@@ -5,7 +5,7 @@ import { useRef, useState } from 'react'
 import { FeatureGate } from '@/features/feature-flags/FeatureGate'
 import { LockedBlock } from '@/features/access/LockedBlock'
 import { useFeatureAccess } from '@/features/access/useFeatureAccess'
-import { GalaxyView } from '@/features/galaxy/components/GalaxyView'
+import { ConstellationPage } from '@/features/constellation/ConstellationPage'
 import { PillarGoal } from '@/features/pillars/components/PillarGoal'
 import { PillarInfoButton, PillarInfoPanel } from '@/features/pillars/components/PillarInfoPanel'
 import { PillarTierBadge } from '@/features/pillars/components/PillarTierBadge'
@@ -158,7 +158,10 @@ function PillarRow({
 
 export function PillarsPage() {
   const s = strings.settings.pillars
-  const statsLocked = useFeatureAccess().isLocked('stats')
+  const access = useFeatureAccess()
+  const statsLocked = access.isLocked('stats')
+  const constellationLocked = access.isLocked('constellation')
+  const [constellationOpen, setConstellationOpen] = useState(false)
   const {
     pillars,
     activePillars,
@@ -277,17 +280,28 @@ export function PillarsPage() {
       {statsLocked ? (
         <LockedBlock feature="stats" title={strings.settings.nav.stats} />
       ) : (
-        <>
-          <BalanceCard activePillars={activePillars} />
-
-          <FeatureGate flag="galaxy">
-            <div className="flex flex-col gap-3">
-              <p className="text-sm font-medium text-[var(--panel-muted)]">{s.galaxyTitle}</p>
-              <GalaxyView />
-            </div>
-          </FeatureGate>
-        </>
+        <BalanceCard activePillars={activePillars} />
       )}
+
+      {/* Constellation (lot 6B) : remplace l'ancienne galaxie. Réservée aux comptes. */}
+      <FeatureGate flag="galaxy">
+        {constellationLocked ? (
+          <LockedBlock feature="constellation" title={strings.constellation.title} />
+        ) : (
+          <div className="flex max-w-md flex-col gap-3">
+            <p className="text-sm font-medium text-[var(--panel-muted)]">{s.galaxyTitle}</p>
+            <p className="text-sm text-[var(--panel-muted)]">{strings.constellation.openHint}</p>
+            <button
+              type="button"
+              onClick={() => setConstellationOpen(true)}
+              className="h-11 w-fit rounded-xl bg-[var(--accent)] px-4 text-sm font-medium text-[var(--on-accent)]"
+            >
+              {strings.constellation.open}
+            </button>
+          </div>
+        )}
+      </FeatureGate>
+      {constellationOpen ? <ConstellationPage onClose={() => setConstellationOpen(false)} /> : null}
     </div>
   )
 }
