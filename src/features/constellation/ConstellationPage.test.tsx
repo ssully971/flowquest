@@ -13,6 +13,7 @@ import { ConstellationPage } from './ConstellationPage'
 // forme de boutons et les callbacks de geste (sélection, lien glissé). Le canvas lui-même est
 // couvert par view-transform / force-layout / draw-constellation et le test e2e.
 const centerOnMock = vi.fn()
+const focusOnMock = vi.fn()
 
 vi.mock('./ConstellationCanvas', () => ({
   ConstellationCanvas: forwardRef(function Mock(
@@ -24,6 +25,7 @@ vi.mock('./ConstellationCanvas', () => ({
       nodeScale?: number
       showArrows?: boolean
       local?: { centerId: string } | null
+      search?: ReadonlySet<string> | null
       layoutKey?: number | string
       onViewChange?: (view: {
         x: number
@@ -38,7 +40,12 @@ vi.mock('./ConstellationCanvas', () => ({
     },
     ref,
   ) {
-    useImperativeHandle(ref, () => ({ recenter: vi.fn(), zoomBy: vi.fn(), centerOn: centerOnMock }))
+    useImperativeHandle(ref, () => ({
+      recenter: vi.fn(),
+      zoomBy: vi.fn(),
+      centerOn: centerOnMock,
+      focusOn: focusOnMock,
+    }))
     const { onViewChange } = props
     useEffect(() => {
       onViewChange?.({ x: 0, y: 0, k: 1.5, width: 800, height: 600 })
@@ -52,6 +59,7 @@ vi.mock('./ConstellationCanvas', () => ({
         data-nodescale={props.nodeScale}
         data-arrows={String(props.showArrows)}
         data-local-center={props.local?.centerId}
+        data-search={props.search ? Array.from(props.search).sort().join(',') : ''}
         data-layoutkey={String(props.layoutKey)}
       >
         <span>{props.ariaLabel}</span>
@@ -556,5 +564,134 @@ describe('ConstellationPage', () => {
         y: 123,
       })
     })
+  })
+
+  describe('recherche', () => {
+    async function seedSearch() {
+      const db = await getDb()
+      await db.put('pillars', {
+        id: 'p1',
+        name: 'Études',
+        color: '#4A9FE8',
+        currentXp: 0,
+        level: 1,
+        createdAt: 1,
+        archivedAt: null,
+        goalLevel: null,
+        goalDeadline: null,
+      })
+      await db.put('tasks', task('s1', 'Anatomie du pied', { pillarId: 'p1' }))
+      await db.put(
+        'tasks',
+        task('s2', 'Anatomie du genou', { pillarId: 'p1', done: true, doneAt: Date.now() }),
+      )
+      await db.put('tasks', task('s3', 'Pharmaco', { pillarId: 'p1' }))
+    }
+
+    it('la loupe et le raccourci « / » ouvrent le champ ; Échap le ferme sans fermer la page', async () => {
+      const user = userEvent.setup()
+      const { onClose } = renderPage()
+      await screen.findByTestId('constellation-canvas')
+
+      await user.click(screen.getByRole('button', { name: 'Rechercher une tâche' }))
+      expect(screen.getByRole('combobox', { name: 'Rechercher une tâche' })).toHaveFocus()
+
+      await user.keyboard('{Escape}')
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+      expect(onClose).not.toHaveBeenCalled()
+
+      await user.keyboard('/')
+      expect(screen.getByRole('combobox', { name: 'Rechercher une tâche' })).toHaveFocus()
+      expect(screen.getByRole('combobox')).toHaveValue('') // le « / » n'est pas tapé dans le champ
+    })
+
+    it('liste au plus 8 résultats (nom, pilier, statut) et estompe les autres nœuds', async () => {
+      const user = userEvent.setup()
+      await seedSearch()
+      renderPage()
+      await screen.findByRole('button', { name: 'nœud Pharmaco' })
+      await user.click(screen.getByRole('button', { name: 'Rechercher une tâche' }))
+      await user.type(screen.getByRole('combobox'), 'anato')
+
+      const list = screen.getByRole('listbox', { name: 'Résultats de la recherche' })
+      const options = within(list).getAllByRole('option')
+      expect(options).toHaveLength(2)
+      expect(options[0]).toHaveTextContent('Anatomie du genou')
+      expect(options[0]).toHaveTextContent('Études')
+      expect(options[0]).toHaveTextContent('terminée')
+      expect(options[1]).toHaveTextContent('à faire')
+      expect(screen.getByTestId('constellation-canvas')).toHaveAttribute('data-search', 's1,s2')
+    })
+
+    it('choisir un résultat le sélectionne, centre la vue (zoom ≥ 1,2) et ouvre l’inspecteur', async () => {
+      const user = userEvent.setup()
+      await seedSearch()
+      focusOnMock.mockClear()
+      renderPage()
+      await screen.findByRole('button', { name: 'nœud Pharmaco' })
+      await user.click(screen.getByRole('button', { name: 'Rechercher une tâche' }))
+      await user.type(screen.getByRole('combobox'), 'pharm')
+      await user.click(screen.getByRole('option', { name: /Pharmaco/ }))
+
+      expect(focusOnMock).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 1.2)
+      expect(await screen.findByRole('complementary', { name: 'Pharmaco' })).toBeInTheDocument()
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+      expect(screen.getByTestId('constellation-canvas')).toHaveAttribute('data-search', '') // plus d'estompage
+    })
+
+    it('flèches + Entrée choisissent un résultat au clavier', async () => {
+      const user = userEvent.setup()
+      await seedSearch()
+      renderPage()
+      await screen.findByRole('button', { name: 'nœud Pharmaco' })
+      await user.keyboard('/')
+      await user.keyboard('anato')
+      expect(screen.getAllByRole('option')[0]).toHaveAttribute('aria-selected', 'true')
+      await user.keyboard('{ArrowDown}{Enter}')
+      expect(
+        await screen.findByRole('complementary', { name: 'Anatomie du pied' }),
+      ).toBeInTheDocument()
+    })
+
+    it('aucun résultat : message clair et rien d’estompé', async () => {
+      const user = userEvent.setup()
+      await seedSearch()
+      renderPage()
+      await screen.findByRole('button', { name: 'nœud Pharmaco' })
+      await user.keyboard('/')
+      await user.keyboard('zzz')
+      expect(screen.getByText('Aucune tâche trouvée')).toBeInTheDocument()
+      expect(screen.getByTestId('constellation-canvas')).toHaveAttribute('data-search', '')
+    })
+
+    it('le « / » tapé dans un autre champ n’ouvre pas la recherche', async () => {
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Réglages d’affichage' }))
+      const slider = screen.getByRole('slider')
+      slider.focus()
+      await user.keyboard('/')
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+    })
+  })
+
+  it('équivalent texte du canvas : liste des tâches (nom, pilier, statut) sélectionnable au clavier', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const list = await screen.findByRole(
+      'list',
+      { name: 'Tâches de la constellation' },
+      { timeout: 4000 },
+    )
+    const item = within(list).getByRole('button', { name: 'Réviser, Sans pilier, à faire' })
+    expect(
+      within(list).getByRole('button', { name: /Rédiger, Sans pilier, terminée/ }),
+    ).toBeInTheDocument()
+
+    item.focus()
+    await user.keyboard('{Enter}')
+    expect(
+      await screen.findByRole('complementary', { name: 'Réviser' }, { timeout: 4000 }),
+    ).toBeInTheDocument()
   })
 })

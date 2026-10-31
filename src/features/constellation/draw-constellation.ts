@@ -71,6 +71,8 @@ export interface DrawOptions {
   /** Vue locale : nœud central (anneau à rayon + 7, étiquette en police d'affichage) et opacité
    * de chaque nœud selon sa profondeur (les liens prennent celle de leur extrémité la plus pâle). */
   local?: { centerId: string; opacityById: ReadonlyMap<string, number> } | null
+  /** Recherche en cours : les nœuds correspondants restent pleins, les autres passent à 28 %. */
+  search?: ReadonlySet<string> | null
 }
 
 /** Part d'opacité des éléments hors du voisinage actif. */
@@ -162,8 +164,11 @@ export function drawConstellation(ctx: CanvasRenderingContext2D, options: DrawOp
   const local = options.local ?? null
   const depthAlpha = (id: string | undefined): number =>
     local && id ? (local.opacityById.get(id) ?? 1) : 1
+  const search = options.search && options.search.size > 0 ? options.search : null
   const nodeAlpha = (id: string): number =>
-    (highlight && !highlight.nodeIds.has(id) ? DIM_OPACITY : 1) * depthAlpha(id)
+    (highlight && !highlight.nodeIds.has(id) ? DIM_OPACITY : 1) *
+    (search && !search.has(id) ? DIM_OPACITY : 1) *
+    depthAlpha(id)
   const edgeAlpha = (id: string): number =>
     highlight && !highlight.edgeIds.has(id) ? DIM_OPACITY : 1
 
@@ -183,7 +188,11 @@ export function drawConstellation(ctx: CanvasRenderingContext2D, options: DrawOp
     ctx.globalAlpha =
       (edge.kind === 'parent' && !emphasised ? 0.5 : 1) *
       (isSelectedEdge ? 1 : edgeAlpha(edge.id)) *
-      Math.min(depthAlpha(edge.sourceId), depthAlpha(edge.targetId))
+      Math.min(depthAlpha(edge.sourceId), depthAlpha(edge.targetId)) *
+      (search &&
+      !(edge.sourceId && edge.targetId && search.has(edge.sourceId) && search.has(edge.targetId))
+        ? DIM_OPACITY
+        : 1)
     ctx.strokeStyle = color
     ctx.fillStyle = color
     ctx.setLineDash(edge.kind === 'related' ? [4 / k, 4 / k] : [])

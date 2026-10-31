@@ -8,6 +8,7 @@ import { neighborhood } from './neighborhood'
 import type { LayoutSimulation, Positions } from './force-layout'
 import {
   boundsOf,
+  MAX_ZOOM,
   distanceToSegment,
   fitView,
   hitTestNode,
@@ -26,6 +27,8 @@ export interface ConstellationCanvasHandle {
   zoomBy: (factor: number) => void
   /** Centre la vue sur un point du monde, sans changer le zoom (mini-carte). */
   centerOn: (worldX: number, worldY: number) => void
+  /** Centre la vue sur un point du monde en douceur, avec un zoom d'au moins `minZoom`. */
+  focusOn: (worldX: number, worldY: number, minZoom: number) => void
 }
 
 interface ConstellationCanvasProps {
@@ -44,6 +47,8 @@ interface ConstellationCanvasProps {
   nodeScale?: number
   /** Faux : dépendances sans flèche. */
   showArrows?: boolean
+  /** Recherche : ids des tâches qui correspondent (le reste est estompé) ; vide ou absent = aucun effet. */
+  search?: ReadonlySet<string> | null
   /** Vue locale : nœud central et opacité par profondeur. */
   local?: { centerId: string; opacityById: ReadonlyMap<string, number> } | null
   /** Change pour reconstruire la simulation et recadrer la vue (réorganiser, changer de centre). */
@@ -149,8 +154,10 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
       // Survol prioritaire, sinon la sélection : le voisinage reste net, le reste s'estompe.
       // En vue locale, l'opacité par profondeur suffit : la sélection (le centre) n'estompe pas
       // en plus le reste, seul le survol met un voisinage en avant.
+      const searching = Boolean(propsRef.current.search && propsRef.current.search.size > 0)
       const activeId =
-        hoverRef.current ?? (propsRef.current.local ? null : (Array.from(selectedIds)[0] ?? null))
+        hoverRef.current ??
+        (propsRef.current.local || searching ? null : (Array.from(selectedIds)[0] ?? null))
       const highlight =
         activeId && meta.has(activeId) ? { activeId, ...neighborhood(graph, activeId) } : null
       drawConstellation(ctx, {
@@ -163,6 +170,7 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
         nodeScale: propsRef.current.nodeScale,
         showArrows: propsRef.current.showArrows,
         local: propsRef.current.local,
+        search: propsRef.current.search,
         highlight,
         selectedIds,
         selectedEdgeId,
@@ -266,6 +274,11 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
           viewRef.current = zoomAt(viewRef.current, width / 2, height / 2, factor)
           requestFrame()
         },
+        focusOn: (worldX: number, worldY: number, minZoom: number) => {
+          const { width, height } = sizeRef.current
+          const k = Math.min(MAX_ZOOM, Math.max(viewRef.current.k, minZoom))
+          animateTo({ k, x: width / 2 - worldX * k, y: height / 2 - worldY * k })
+        },
         centerOn: (worldX: number, worldY: number) => {
           const { width, height } = sizeRef.current
           const k = viewRef.current.k
@@ -273,7 +286,7 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
           requestFrame()
         },
       }),
-      [recenter, requestFrame],
+      [recenter, requestFrame, animateTo],
     )
 
     // (Re)construit la simulation quand le graphe change ; les positions viennent du parent.
@@ -302,6 +315,7 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
       props.labels,
       props.nodeScale,
       props.showArrows,
+      props.search,
       requestFrame,
     ])
 

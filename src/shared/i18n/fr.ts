@@ -458,6 +458,20 @@ export const fr = {
       groupOf: (count: number) => `${count} tâches terminées regroupées`,
       subtasks: (count: number) => `${count} sous-tâche${count > 1 ? 's' : ''}`,
     },
+    a11y: {
+      listLabel: 'Tâches de la constellation',
+      item: (title: string, pillar: string, status: string) => `${title}, ${pillar}, ${status}`,
+    },
+    search: {
+      open: 'Rechercher une tâche',
+      placeholder: 'Rechercher une tâche',
+      shortcutHint: '/',
+      close: 'Fermer la recherche',
+      resultsLabel: 'Résultats de la recherche',
+      empty: 'Aucune tâche trouvée',
+      statusDone: 'terminée',
+      statusTodo: 'à faire',
+    },
     local: {
       viewGroup: 'Vue',
       global: 'Globale',

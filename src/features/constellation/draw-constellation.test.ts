@@ -279,6 +279,37 @@ describe('drawConstellation — vue locale', () => {
   })
 })
 
+describe('drawConstellation — recherche', () => {
+  const nodes = [node({ id: 'm1' }), node({ id: 'm2', x: 40 }), node({ id: 'other', x: 80 })]
+
+  it('garde les correspondances pleines et estompe les autres à 28 %', () => {
+    const fills = render({ nodes, search: new Set(['m1', 'm2']) }).filter(
+      (call) => call.op === 'fill',
+    )
+    expect(fills.map((call) => call.alpha)).toEqual([1, 1, DIM_OPACITY])
+  })
+
+  it('un lien reste net seulement si ses deux extrémités correspondent', () => {
+    const calls = render({
+      nodes,
+      search: new Set(['m1', 'm2']),
+      edges: [
+        edge({ id: 'both', sourceId: 'm1', targetId: 'm2' }),
+        edge({ id: 'half', sourceId: 'm2', targetId: 'other' }),
+      ],
+    })
+    const links = calls.filter(
+      (call) => call.op === 'stroke' && call.lineWidth > 1 && call.lineWidth < 1.4,
+    )
+    expect(links.map((call) => call.alpha)).toEqual([1, DIM_OPACITY])
+  })
+
+  it('recherche vide : aucun estompage', () => {
+    const fills = render({ nodes, search: new Set() }).filter((call) => call.op === 'fill')
+    expect(fills.every((call) => call.alpha === 1)).toBe(true)
+  })
+})
+
 describe('readPalette', () => {
   it('lit les jetons --cst-* et retombe sur des valeurs de secours', () => {
     expect(readPalette().background).toBe('#0e0c14')

@@ -1,9 +1,10 @@
 import {
   Link2,
-  Lock,
   LocateFixed,
+  Lock,
   Minus,
   Plus,
+  Search,
   SlidersHorizontal,
   Trash2,
   Unlock,
@@ -35,6 +36,7 @@ import {
 import type { ConstellationSettings } from './constellation-settings'
 import { ConstellationInspector } from './ConstellationInspector'
 import { ConstellationMinimap } from './ConstellationMinimap'
+import { ConstellationSearch } from './ConstellationSearch'
 import { ConstellationSettingsPopover } from './ConstellationSettingsPopover'
 import { applyDisplayFilters } from './display-filters'
 import { settleLayout } from './force-layout'
@@ -124,6 +126,8 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
   const [localDepth, setLocalDepth] = useState<LocalDepth>(2)
   const [includePillars, setIncludePillars] = useState(true)
   const [linksOnly, setLinksOnly] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchMatches, setSearchMatches] = useState<ReadonlySet<string>>(new Set())
   const [now] = useState(() => Date.now())
 
   const updateSettings = useCallback((next: ConstellationSettings) => {
@@ -224,6 +228,24 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [onClose, isLocal, leaveLocal])
 
+  // Raccourci « / » : ouvre la recherche (sauf pendant la saisie dans un champ).
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return
+      const target = event.target as HTMLElement | null
+      if (
+        target &&
+        (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)
+      ) {
+        return
+      }
+      event.preventDefault()
+      setSearchOpen(true)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   const toggleLocked = () => {
     const next = !locked
     setLocked(next)
@@ -281,6 +303,19 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
     // En vue locale, sélectionner un voisin le recentre (animation douce côté canvas).
     if (id && isLocal && id !== localCenterId && nodeById.has(id)) setLocalCenterId(id)
     setSelectedId(id)
+  }
+
+  // Résultat de recherche : sélection, centrage (zoom ≥ 1,2) et inspecteur ; en vue locale, le
+  // nœud devient le nouveau centre (le recadrage doux s'en charge).
+  const chooseSearchResult = (id: string) => {
+    setSelectedEdgeId(null)
+    if (isLocal && id !== localCenterId && nodeById.has(id)) setLocalCenterId(id)
+    setSelectedId(id)
+    if (!isLocal) {
+      const position = shownPositions?.[id]
+      if (position) canvasRef.current?.focusOn(position.x, position.y, 1.2)
+    }
+    setSearchOpen(false)
   }
 
   const handleRemoveLink = (linkId: string) => {
@@ -360,6 +395,7 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
               showArrows={settings.showArrows}
               layoutKey={canvasLayoutKey}
               local={localDraw}
+              search={searchMatches}
               onViewChange={setView}
               ariaLabel={s.canvasLabel(shownGraph.nodes.length, links.length)}
               onSelectNode={handleSelectNode}
@@ -374,6 +410,26 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
             <p className="p-4 pt-24 text-sm text-[var(--cst-label)]">{s.loading}</p>
           )}
         </div>
+
+        {/* Équivalent texte du canvas : la liste des tâches visibles, atteignable au clavier
+            (Entrée = sélectionner), masquée visuellement. */}
+        <ul aria-label={s.a11y.listLabel} className="sr-only">
+          {shownGraph.nodes
+            .filter((node) => node.kind === 'task')
+            .map((node) => (
+              <li key={node.id}>
+                <button type="button" onClick={() => handleSelectNode(node.id)}>
+                  {s.a11y.item(
+                    node.label,
+                    node.pillarId
+                      ? (pillars.find((pillar) => pillar.id === node.pillarId)?.name ?? '')
+                      : s.filters.noPillar,
+                    node.done ? s.search.statusDone : s.search.statusTodo,
+                  )}
+                </button>
+              </li>
+            ))}
+        </ul>
 
         {!hasTasks && positions ? (
           <p className="pointer-events-none absolute inset-x-6 top-28 text-center text-sm text-[var(--cst-label)]">
@@ -432,7 +488,21 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
-          {local && localCenter ? (
+          {searchOpen ? (
+            <div className="pointer-events-none order-3 flex w-full min-w-0 justify-center sm:order-none sm:flex-1">
+              <ConstellationSearch
+                nodes={shownGraph.nodes}
+                pillarName={(pillarId) =>
+                  pillarId
+                    ? (pillars.find((pillar) => pillar.id === pillarId)?.name ?? '')
+                    : s.filters.noPillar
+                }
+                onClose={() => setSearchOpen(false)}
+                onChoose={chooseSearchResult}
+                onMatchesChange={setSearchMatches}
+              />
+            </div>
+          ) : local && localCenter ? (
             <nav
               aria-label={s.local.breadcrumb}
               className="pointer-events-none order-3 flex w-full min-w-0 justify-center sm:order-none sm:flex-1"
@@ -552,6 +622,16 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
           )}
 
           <div className="pointer-events-auto flex shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={() => setSearchOpen((open) => !open)}
+              aria-pressed={searchOpen}
+              aria-label={s.search.open}
+              title={`${s.search.open} (${s.search.shortcutHint})`}
+              className={chromeButton}
+            >
+              <Search size={18} strokeWidth={1.75} aria-hidden="true" />
+            </button>
             <button
               type="button"
               data-settings-toggle
