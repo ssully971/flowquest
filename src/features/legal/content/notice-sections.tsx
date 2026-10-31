@@ -1,6 +1,6 @@
 import type { LegalSection } from '../components/LegalLayout'
 
-export const NOTICE_LAST_UPDATED = '26 octobre 2026'
+export const NOTICE_LAST_UPDATED = '31 octobre 2026'
 
 export const NOTICE_SECTIONS: LegalSection[] = [
   { id: 'editeur', title: 'Éditeur' },

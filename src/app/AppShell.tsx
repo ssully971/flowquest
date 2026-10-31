@@ -47,6 +47,7 @@ import { useSessionSync } from '@/features/stats/useSessionSync'
 import { NotesPanel } from '@/features/notes/components/NotesPanel'
 import { useActiveTask } from '@/features/tasks/active-task-context'
 import { TasksPanel } from '@/features/tasks/components/TasksPanel'
+import { onFocusRequested, onOpenTasksRequested } from '@/features/tasks/panel-requests'
 import { useConstellationSync } from '@/features/constellation/useConstellationSync'
 import { useTaskSync } from '@/features/tasks/useTaskSync'
 import { useTimerSettings } from '@/features/timer/timer-settings-context'
@@ -99,6 +100,21 @@ export function AppShell({ mode, onModeChange, children }: AppShellProps) {
   const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [isSocialOpen, setIsSocialOpen] = useState(false)
   const [isStreakOpen, setIsStreakOpen] = useState(false)
+  // Demandes venues de la constellation : ouvrir les tâches, ou lancer un focus sur une tâche
+  // (tâche active choisie ici, pilier et démarrage du minuteur par FocusScreen).
+  useEffect(() => {
+    const offTasks = onOpenTasksRequested(() => setIsTasksOpen(true))
+    const offFocus = onFocusRequested((taskId) => {
+      setActiveTaskId(taskId)
+      setIsTasksOpen(false)
+      onModeChange('focus')
+    })
+    return () => {
+      offTasks()
+      offFocus()
+    }
+  }, [setActiveTaskId, onModeChange])
+
   const [previousMode, setPreviousMode] = useState(mode)
 
   // §5.3 : en mode Ambiant, le reste de l'écran doit rester libre (tâches/notes masquées).

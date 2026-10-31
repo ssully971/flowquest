@@ -1,12 +1,14 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react'
 
 import type { Graph } from './build-graph'
-import { drawConstellation } from './draw-constellation'
-import type { DrawEdge, DrawNode } from './draw-constellation'
+import { displayRadius, drawConstellation, readPalette } from './draw-constellation'
+import type { DrawEdge, DrawNode, LabelMode } from './draw-constellation'
 import { createSimulation, positionsOf } from './force-layout'
+import { neighborhood } from './neighborhood'
 import type { LayoutSimulation, Positions } from './force-layout'
 import {
   boundsOf,
+  MAX_ZOOM,
   distanceToSegment,
   fitView,
   hitTestNode,
@@ -15,9 +17,18 @@ import {
 } from './view-transform'
 import type { ViewTransform } from './view-transform'
 
+export interface CanvasViewState extends ViewTransform {
+  width: number
+  height: number
+}
+
 export interface ConstellationCanvasHandle {
   recenter: () => void
   zoomBy: (factor: number) => void
+  /** Centre la vue sur un point du monde, sans changer le zoom (mini-carte). */
+  centerOn: (worldX: number, worldY: number) => void
+  /** Centre la vue sur un point du monde en douceur, avec un zoom d'au moins `minZoom`. */
+  focusOn: (worldX: number, worldY: number, minZoom: number) => void
 }
 
 interface ConstellationCanvasProps {
@@ -30,6 +41,20 @@ interface ConstellationCanvasProps {
   linkMode: boolean
   selectedIds: ReadonlySet<string>
   selectedEdgeId: string | null
+  /** Étiquettes : auto (défaut), toujours ou jamais. */
+  labels?: LabelMode
+  /** Multiplicateur de la taille des nœuds. */
+  nodeScale?: number
+  /** Faux : dépendances sans flèche. */
+  showArrows?: boolean
+  /** Recherche : ids des tâches qui correspondent (le reste est estompé) ; vide ou absent = aucun effet. */
+  search?: ReadonlySet<string> | null
+  /** Vue locale : nœud central et opacité par profondeur. */
+  local?: { centerId: string; opacityById: ReadonlyMap<string, number> } | null
+  /** Change pour reconstruire la simulation et recadrer la vue (réorganiser, changer de centre). */
+  layoutKey?: number | string
+  /** Vue courante (zoom, décalage, taille) : pourcentage de zoom et mini-carte. */
+  onViewChange?: (view: CanvasViewState) => void
   ariaLabel: string
   onSelectNode: (id: string | null) => void
   onSelectEdge: (edgeId: string | null) => void
@@ -81,6 +106,9 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
     const rafRef = useRef<number | null>(null)
     const persistPendingRef = useRef(false)
     const fittedRef = useRef(false)
+    const animRef = useRef<number | null>(null)
+    const lastLayoutKeyRef = useRef(props.layoutKey)
+    const lastEmittedRef = useRef<CanvasViewState | null>(null)
 
     const draw = useCallback(() => {
       const canvas = canvasRef.current
@@ -106,9 +134,6 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
           brightness: node.brightness,
           done: node.done,
           archived: node.archived,
-          star: node.tier
-            ? { points: node.tier.star.points, halo: node.tier.star.halo }
-            : undefined,
           groupCount: node.groupCount,
         })
       }
@@ -120,27 +145,51 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
         drawEdges.push({
           id: edge.id,
           kind: edge.kind,
-          from: { x: a.x ?? 0, y: a.y ?? 0, r: a.r },
-          to: { x: b.x ?? 0, y: b.y ?? 0, r: b.r },
+          sourceId: edge.source,
+          targetId: edge.target,
+          from: { x: a.x ?? 0, y: a.y ?? 0, r: a.r, kind: a.kind },
+          to: { x: b.x ?? 0, y: b.y ?? 0, r: b.r, kind: b.kind },
         })
       }
-      const rootStyle = getComputedStyle(document.documentElement)
+      // Survol prioritaire, sinon la sélection : le voisinage reste net, le reste s'estompe.
+      // En vue locale, l'opacité par profondeur suffit : la sélection (le centre) n'estompe pas
+      // en plus le reste, seul le survol met un voisinage en avant.
+      const searching = Boolean(propsRef.current.search && propsRef.current.search.size > 0)
+      const activeId =
+        hoverRef.current ??
+        (propsRef.current.local || searching ? null : (Array.from(selectedIds)[0] ?? null))
+      const highlight =
+        activeId && meta.has(activeId) ? { activeId, ...neighborhood(graph, activeId) } : null
       drawConstellation(ctx, {
         ...sizeRef.current,
         view: viewRef.current,
         nodes: drawNodes,
         edges: drawEdges,
-        palette: {
-          text: rootStyle.getPropertyValue('--text').trim() || '#ffffff',
-          background: /^#[0-9a-f]{6}$/i.test(rootStyle.getPropertyValue('--bg').trim())
-            ? rootStyle.getPropertyValue('--bg').trim()
-            : '#000000',
-        },
+        palette: readPalette(),
+        labels: propsRef.current.labels,
+        nodeScale: propsRef.current.nodeScale,
+        showArrows: propsRef.current.showArrows,
+        local: propsRef.current.local,
+        search: propsRef.current.search,
+        highlight,
         selectedIds,
         selectedEdgeId,
-        hoverId: hoverRef.current,
         linkDraft: draftRef.current,
       })
+      // Émet la vue seulement si elle a changé (évite un rendu React par image au repos).
+      const emitted = { ...viewRef.current, ...sizeRef.current }
+      const last = lastEmittedRef.current
+      if (
+        !last ||
+        last.x !== emitted.x ||
+        last.y !== emitted.y ||
+        last.k !== emitted.k ||
+        last.width !== emitted.width ||
+        last.height !== emitted.height
+      ) {
+        lastEmittedRef.current = emitted
+        propsRef.current.onViewChange?.(emitted)
+      }
     }, [])
 
     const loop = useCallback(() => {
@@ -163,28 +212,81 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
       if (rafRef.current === null) rafRef.current = requestAnimationFrame(loop)
     }, [loop])
 
-    const recenter = useCallback(() => {
-      const layout = layoutRef.current
-      const { width, height } = sizeRef.current
-      if (!layout) return
-      const bounds = boundsOf(
-        layout.nodes.map((node) => ({ x: node.x ?? 0, y: node.y ?? 0, r: node.r + 14 })),
-      )
-      viewRef.current = fitView(bounds, width, height)
-      requestFrame()
-    }, [requestFrame])
+    /** Déplacement doux de la vue (250 ms) ; immédiat si l'utilisateur préfère moins d'animations. */
+    const animateTo = useCallback(
+      (target: ViewTransform, duration = 250) => {
+        if (animRef.current !== null) cancelAnimationFrame(animRef.current)
+        animRef.current = null
+        const reduce =
+          typeof window.matchMedia === 'function' &&
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        if (reduce || duration <= 0) {
+          viewRef.current = target
+          requestFrame()
+          return
+        }
+        const from = viewRef.current
+        const start = performance.now()
+        const step = (now: number) => {
+          const progress = Math.min(1, (now - start) / duration)
+          const eased = 1 - Math.pow(1 - progress, 3)
+          viewRef.current = {
+            x: from.x + (target.x - from.x) * eased,
+            y: from.y + (target.y - from.y) * eased,
+            k: from.k + (target.k - from.k) * eased,
+          }
+          draw()
+          animRef.current = progress < 1 ? requestAnimationFrame(step) : null
+        }
+        animRef.current = requestAnimationFrame(step)
+      },
+      [draw, requestFrame],
+    )
+
+    const recenter = useCallback(
+      (animated = false) => {
+        const layout = layoutRef.current
+        const { width, height } = sizeRef.current
+        if (!layout) return
+        const bounds = boundsOf(
+          layout.nodes.map((node) => ({
+            x: node.x ?? 0,
+            y: node.y ?? 0,
+            r: displayRadius(node, propsRef.current.nodeScale ?? 1) + 14,
+          })),
+        )
+        const target = fitView(bounds, width, height)
+        if (animated) animateTo(target)
+        else {
+          viewRef.current = target
+          requestFrame()
+        }
+      },
+      [animateTo, requestFrame],
+    )
 
     useImperativeHandle(
       ref,
       () => ({
-        recenter,
+        recenter: () => recenter(false),
         zoomBy: (factor: number) => {
           const { width, height } = sizeRef.current
           viewRef.current = zoomAt(viewRef.current, width / 2, height / 2, factor)
           requestFrame()
         },
+        focusOn: (worldX: number, worldY: number, minZoom: number) => {
+          const { width, height } = sizeRef.current
+          const k = Math.min(MAX_ZOOM, Math.max(viewRef.current.k, minZoom))
+          animateTo({ k, x: width / 2 - worldX * k, y: height / 2 - worldY * k })
+        },
+        centerOn: (worldX: number, worldY: number) => {
+          const { width, height } = sizeRef.current
+          const k = viewRef.current.k
+          viewRef.current = { k, x: width / 2 - worldX * k, y: height / 2 - worldY * k }
+          requestFrame()
+        },
       }),
-      [recenter, requestFrame],
+      [recenter, requestFrame, animateTo],
     )
 
     // (Re)construit la simulation quand le graphe change ; les positions viennent du parent.
@@ -193,16 +295,29 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
       layoutRef.current.simulation.alpha(0)
       if (!fittedRef.current && sizeRef.current.width > 0) {
         fittedRef.current = true
+        lastLayoutKeyRef.current = props.layoutKey
         recenter()
+      } else if (lastLayoutKeyRef.current !== props.layoutKey) {
+        // Nouveau centre, nouvelle profondeur, réorganisation : on recadre en douceur.
+        lastLayoutKeyRef.current = props.layoutKey
+        recenter(true)
       } else {
         requestFrame()
       }
-    }, [props.graph, recenter, requestFrame])
+    }, [props.graph, props.layoutKey, recenter, requestFrame])
 
     // Redessine quand la sélection change (sans simulation).
     useEffect(() => {
       requestFrame()
-    }, [props.selectedIds, props.selectedEdgeId, requestFrame])
+    }, [
+      props.selectedIds,
+      props.selectedEdgeId,
+      props.labels,
+      props.nodeScale,
+      props.showArrows,
+      props.search,
+      requestFrame,
+    ])
 
     // Taille du canvas (ratio de pixels plafonné à 2 pour rester léger sur mobile).
     useEffect(() => {
@@ -229,6 +344,8 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
         observer?.disconnect()
         if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
         rafRef.current = null
+        if (animRef.current !== null) cancelAnimationFrame(animRef.current)
+        animRef.current = null
       }
     }, [recenter, requestFrame])
 
@@ -263,7 +380,12 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
       if (!layout) return null
       const world = screenToWorld(viewRef.current, sx, sy)
       return hitTestNode(
-        layout.nodes.map((node) => ({ id: node.id, x: node.x ?? 0, y: node.y ?? 0, r: node.r })),
+        layout.nodes.map((node) => ({
+          id: node.id,
+          x: node.x ?? 0,
+          y: node.y ?? 0,
+          r: displayRadius(node, propsRef.current.nodeScale ?? 1),
+        })),
         world.x,
         world.y,
         viewRef.current.k,

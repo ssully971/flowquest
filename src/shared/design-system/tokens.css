@@ -23,6 +23,19 @@
   --streak-ice: #17688f;
   --streak-ice-soft: rgba(23, 104, 143, 0.14);
 
+  /* Constellation v2 « graphe sobre » (docs/CONSTELLATION_V2.md) : aucune lueur, un seul accent
+   * (--accent) pour la sélection ; lus aussi par le canvas via getComputedStyle. */
+  --cst-bg: #f4effc;
+  --cst-chrome: rgba(255, 255, 255, 0.82);
+  --cst-chrome-line: rgba(40, 20, 80, 0.12);
+  --cst-edge: #d6cde8;
+  --cst-edge-user: #665f7c;
+  --cst-label: #4f4866;
+  --cst-label-strong: #1e1830;
+  --cst-highlight: #5a1fd1;
+  --cst-ok: #17683a;
+  --cst-ok-soft: rgba(23, 104, 58, 0.12);
+
   --panel-surface: #fbfafd;
   --panel-surface-2: #eeeaf6;
   --panel-line: rgba(40, 20, 80, 0.12);
@@ -57,6 +70,16 @@
     --text: #f2ecfc;
     --muted: #a99bc8;
     --accent: #a35cff;
+    --cst-bg: #0e0c14;
+    --cst-chrome: rgba(22, 20, 27, 0.78);
+    --cst-chrome-line: rgba(255, 255, 255, 0.08);
+    --cst-edge: #3a3647;
+    --cst-edge-user: #8a8499;
+    --cst-label: #8a8499;
+    --cst-label-strong: #eeeaf4;
+    --cst-highlight: #c9a7ff;
+    --cst-ok: #7ad39a;
+    --cst-ok-soft: rgba(122, 211, 154, 0.14);
     --streak-flame: #ff9a4d;
     --streak-flame-soft: rgba(255, 154, 77, 0.18);
     --streak-ice: #7cc8ee;
@@ -90,6 +113,16 @@
   --text: #f2ecfc;
   --muted: #a99bc8;
   --accent: #a35cff;
+  --cst-bg: #0e0c14;
+  --cst-chrome: rgba(22, 20, 27, 0.78);
+  --cst-chrome-line: rgba(255, 255, 255, 0.08);
+  --cst-edge: #3a3647;
+  --cst-edge-user: #8a8499;
+  --cst-label: #8a8499;
+  --cst-label-strong: #eeeaf4;
+  --cst-highlight: #c9a7ff;
+  --cst-ok: #7ad39a;
+  --cst-ok-soft: rgba(122, 211, 154, 0.14);
   --streak-flame: #ff9a4d;
   --streak-flame-soft: rgba(255, 154, 77, 0.18);
   --streak-ice: #7cc8ee;

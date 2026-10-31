@@ -17,6 +17,8 @@ export interface UseConstellationLayoutResult {
   positions: Positions | null
   /** Nouvelles positions (après stabilisation ou déplacement manuel) : fusionnées, enregistrées. */
   onPositionsChange: (positions: Positions) => void
+  /** « Réorganiser le graphe » : oublie toutes les positions (et les épingles), recalcule. */
+  reset: () => void
 }
 
 /**
@@ -89,5 +91,10 @@ export function useConstellationLayout(graph: Graph): UseConstellationLayoutResu
     [persist],
   )
 
-  return { positions, onPositionsChange }
+  const reset = useCallback(() => {
+    savedRef.current = {}
+    setSaved({})
+  }, [])
+
+  return { positions, onPositionsChange, reset }
 }

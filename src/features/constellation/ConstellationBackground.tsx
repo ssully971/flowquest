@@ -6,7 +6,7 @@ import { onSessionRecorded } from '@/features/stats/session-events'
 import { onConstellationChanged } from './constellation-events'
 import { loadConstellationSnapshot } from './constellation-snapshot'
 import type { ConstellationSnapshot } from './constellation-snapshot'
-import { drawConstellation } from './draw-constellation'
+import { displayRadius, drawConstellation, readPalette } from './draw-constellation'
 import type { DrawEdge, DrawNode } from './draw-constellation'
 import { boundsOf, fitView } from './view-transform'
 
@@ -23,7 +23,6 @@ function toDrawData(snapshot: ConstellationSnapshot): { nodes: DrawNode[]; edges
     brightness: node.brightness,
     done: node.done,
     archived: node.archived,
-    star: node.tier ? { points: node.tier.star.points, halo: node.tier.star.halo } : undefined,
     groupCount: node.groupCount,
   }))
   const byId = new Map(nodes.map((node) => [node.id, node]))
@@ -32,7 +31,14 @@ function toDrawData(snapshot: ConstellationSnapshot): { nodes: DrawNode[]; edges
     const a = byId.get(edge.source)
     const b = byId.get(edge.target)
     if (!a || !b) continue
-    edges.push({ id: edge.id, kind: edge.kind, from: a, to: b })
+    edges.push({
+      id: edge.id,
+      kind: edge.kind,
+      sourceId: edge.source,
+      targetId: edge.target,
+      from: { x: a.x, y: a.y, r: a.r, kind: a.kind },
+      to: { x: b.x, y: b.y, r: b.r, kind: b.kind },
+    })
   }
   return { nodes, edges }
 }
@@ -62,12 +68,11 @@ export function ConstellationBackground() {
       canvas.height = Math.max(1, Math.round(rect.height * dpr))
       const { nodes, edges } = toDrawData(snapshot)
       const view = fitView(
-        boundsOf(nodes.map((node) => ({ x: node.x, y: node.y, r: node.r + 20 }))),
+        boundsOf(nodes.map((node) => ({ x: node.x, y: node.y, r: displayRadius(node) + 20 }))),
         rect.width,
         rect.height,
         24,
       )
-      const root = getComputedStyle(document.documentElement)
       drawConstellation(ctx, {
         width: rect.width,
         height: rect.height,
@@ -76,11 +81,8 @@ export function ConstellationBackground() {
         view: { ...view, k: Math.max(view.k, 0.35) },
         nodes,
         edges,
-        palette: {
-          text: root.getPropertyValue('--text').trim() || '#ffffff',
-          background: '#000000',
-        },
-        labels: 'none',
+        palette: readPalette(),
+        labels: 'never',
       })
     }
 

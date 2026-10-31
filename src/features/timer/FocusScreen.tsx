@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import {
@@ -14,7 +14,10 @@ import { useFeatureFlag } from '@/features/feature-flags/useFeatureFlag'
 import { useClockSettings } from '@/features/home/clock-settings-context'
 import { useQuotesSettings } from '@/features/home/quotes-settings-context'
 import { useQuotePool } from '@/features/home/useQuotePool'
+import { ActivePillarContext } from '@/features/pillars/active-pillar-context'
 import { PillarSelector } from '@/features/pillars/components/PillarSelector'
+import { onFocusRequestPending, takePendingFocusRequest } from '@/features/tasks/panel-requests'
+import { getDb } from '@/shared/storage/db'
 import { useActiveGroupRoom } from '@/features/rooms/active-room-context'
 import { GroupConnecting } from '@/features/rooms/components/GroupConnecting'
 import { GroupEndedPanel } from '@/features/rooms/components/GroupEndedPanel'
@@ -177,6 +180,28 @@ export function FocusScreen() {
   )
 
   const handlePrimary = source.onPrimary
+
+  // « Lancer un focus » depuis la constellation : la tâche est déjà active (AppShell) ; on prend
+  // son pilier puis on démarre, une fois le minuteur prêt et au repos. Hors repos, la demande est
+  // simplement abandonnée (on ne touche jamais à une session en cours).
+  const activePillarContext = useContext(ActivePillarContext)
+  const { isReady: sourceReady, status: sourceStatus, onPrimary: sourcePrimary } = source
+  const setActivePillarId = activePillarContext?.setActivePillarId
+  useEffect(() => {
+    const tryStart = () => {
+      if (isGroup || !sourceReady) return
+      const taskId = takePendingFocusRequest()
+      if (!taskId || sourceStatus !== 'idle') return
+      void getDb()
+        .then((db) => db.get('tasks', taskId))
+        .then((task) => {
+          if (task?.pillarId) setActivePillarId?.(task.pillarId)
+          sourcePrimary()
+        })
+    }
+    tryStart()
+    return onFocusRequestPending(tryStart)
+  }, [isGroup, sourceReady, sourceStatus, sourcePrimary, setActivePillarId])
 
   // Terminer à la main : sous une minute de focus rien n'est enregistré, on demande donc
   // confirmation d'abord (évite l'erreur de clic) — pour tous les modes.

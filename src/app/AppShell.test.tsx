@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -14,13 +14,23 @@ import { BackgroundDisplaySettingsProvider } from '@/features/settings/Backgroun
 import { DEFAULT_EXTRAS_SETTINGS } from '@/features/settings/extras-settings'
 import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
+import { getActiveTaskId } from '@/features/tasks/active-task-ref'
+import {
+  requestFocusOnTask,
+  requestOpenTasks,
+  takePendingFocusRequest,
+} from '@/features/tasks/panel-requests'
 import { TimerSettingsProvider } from '@/features/timer/TimerSettingsProvider'
 import { ThemeProvider } from '@/shared/design-system'
 import { ToastProvider } from '@/shared/toast'
 
 import { AppShell } from './AppShell'
 
-function renderAppShell(children: ReactNode, mode: AppMode = 'home') {
+function renderAppShell(
+  children: ReactNode,
+  mode: AppMode = 'home',
+  onModeChange: (mode: AppMode) => void = vi.fn(),
+) {
   return render(
     <ThemeProvider>
       <ToastProvider>
@@ -31,7 +41,7 @@ function renderAppShell(children: ReactNode, mode: AppMode = 'home') {
                 <QuotesSettingsProvider>
                   <ExtrasSettingsProvider>
                     <BackgroundDisplaySettingsProvider>
-                      <AppShell mode={mode} onModeChange={vi.fn()}>
+                      <AppShell mode={mode} onModeChange={onModeChange}>
                         {children}
                       </AppShell>
                     </BackgroundDisplaySettingsProvider>
@@ -218,5 +228,25 @@ describe('AppShell — invitations visibles partout et session de groupe (LOT M3
     await user.click(screen.getByRole('button', { name: 'Masquer la notification' }))
     expect(screen.queryByText(/t’invite à un salon de focus/)).not.toBeInTheDocument()
     expect(screen.getByLabelText('Notifications non lues')).toBeInTheDocument()
+  })
+})
+
+describe('AppShell — demandes venues de la constellation', () => {
+  it('« Ouvrir la tâche » ouvre le panneau des tâches', async () => {
+    renderAppShell(<div>Contenu</div>)
+    expect(screen.queryByRole('dialog', { name: 'Tâches' })).not.toBeInTheDocument()
+
+    act(() => requestOpenTasks())
+    expect(await screen.findByRole('dialog', { name: 'Tâches' })).toBeInTheDocument()
+  })
+
+  it('« Lancer un focus » choisit la tâche active et passe à l’écran Focus', async () => {
+    const onModeChange = vi.fn()
+    renderAppShell(<div>Contenu</div>, 'home', onModeChange)
+
+    act(() => requestFocusOnTask('task-42'))
+    await waitFor(() => expect(onModeChange).toHaveBeenCalledWith('focus'))
+    expect(getActiveTaskId()).toBe('task-42')
+    takePendingFocusRequest()
   })
 })

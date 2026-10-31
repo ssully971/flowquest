@@ -44,5 +44,5 @@ export const TERMS_TEXT = {
   securite: `Nous mettons en œuvre des mesures de sécurité raisonnables pour protéger tes données (voir notre politique de confidentialité pour le détail). En cas de violation de données susceptible d'engendrer un risque pour tes droits et libertés, nous t'en informerons dans les meilleurs délais, conformément au RGPD.`,
   resiliation: `Tu peux supprimer ton compte à tout moment depuis Réglages > Compte : cette action est irréversible et supprime tes données associées (voir la politique de confidentialité pour le détail de ce qui est supprimé). Nous pouvons résilier ou suspendre ton accès en cas de manquement grave à ces conditions, selon les modalités décrites à la section Modération.`,
   droit: `Les présentes conditions sont soumises au droit français. En cas de litige, et après tentative de résolution amiable, les tribunaux français seront compétents, sous réserve des règles de compétence impératives applicables aux consommateurs.`,
-  contact: `Pour toute question sur ces conditions, écris-nous à flowquestt@gmail.com.`,
+  contact: `Pour toute question sur ces conditions, écris-nous à sullivanhuriez@gmail.com.`,
 } as const

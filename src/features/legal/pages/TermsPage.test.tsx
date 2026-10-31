@@ -34,7 +34,7 @@ describe('TermsPage (lot I1, §3)', () => {
     expect(screen.getByText(/15 ans/)).toBeInTheDocument()
     expect(screen.getByText(/entièrement gratuit/)).toBeInTheDocument()
     expect(screen.getByText(/soumises au droit français/)).toBeInTheDocument()
-    expect(screen.getByText(/flowquestt@gmail\.com/)).toBeInTheDocument()
+    expect(screen.getByText(/sullivanhuriez@gmail\.com/)).toBeInTheDocument()
   })
 
   it('liste les interdictions (scraping, ingénierie inverse, DoS, partage de compte)', () => {
