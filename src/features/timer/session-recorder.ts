@@ -2,6 +2,7 @@ import { getCurrentUserId } from '@/features/auth/current-user'
 import { getActivePillarId } from '@/features/pillars/active-pillar-ref'
 import { applySessionXp, reconcilePillarFromServer } from '@/features/pillars/apply-session-xp'
 import type { PillarXpResult } from '@/features/pillars/apply-session-xp'
+import { getActiveTaskId } from '@/features/tasks/active-task-ref'
 import { getPillarsEnabled } from '@/features/settings/pillars-enabled-ref'
 import { notifySessionRecorded } from '@/features/stats/session-events'
 import type { FocusSessionRecord } from '@/shared/storage/db'
@@ -52,6 +53,9 @@ export async function recordSession(
   // rattacher un pilier à une pause. Piliers désactivés (lot 4, §5) : la session
   // s'enregistre normalement, juste sans pilier — même si un pilier était resté actif
   // dans active-pillar-ref avant la désactivation.
+  // La tâche active se rattache comme le pilier : à la fin du segment de focus, jamais à une
+  // pause. Le temps passé par tâche alimente la constellation.
+  const taskId = kind === 'focus' ? getActiveTaskId() : null
   const pillarId = kind === 'focus' && getPillarsEnabled() ? getActivePillarId() : null
   // Temps de pause (manuelles + absence après la garde de 4 h) et nombre de pauses manuelles.
   const pausedSeconds = Math.round(getPausedMs(state, endedAt) / 1000)
@@ -65,7 +69,7 @@ export async function recordSession(
     startedAt: state.startedAt,
     endedAt,
     completed,
-    taskId: null,
+    taskId,
     pillarId,
     pausedSeconds,
     pauseCount,
@@ -88,6 +92,7 @@ export async function recordSession(
       started_at: new Date(record.startedAt).toISOString(),
       ended_at: new Date(endedAt).toISOString(),
       completed: record.completed,
+      task_id: taskId,
       pillar_id: pillarId,
       paused_seconds: record.pausedSeconds,
       pause_count: record.pauseCount,
