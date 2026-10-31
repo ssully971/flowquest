@@ -37,6 +37,10 @@ import { ConstellationInspector } from './ConstellationInspector'
 import { ConstellationMinimap } from './ConstellationMinimap'
 import { ConstellationSettingsPopover } from './ConstellationSettingsPopover'
 import { applyDisplayFilters } from './display-filters'
+import { settleLayout } from './force-layout'
+import type { Positions } from './force-layout'
+import { depthOpacity, localSubgraph } from './local-subgraph'
+import type { LocalDepth } from './local-subgraph'
 import { formatShort } from './format'
 import type { TaskLinkKind } from './link-rules'
 import { useConstellationLayout } from './useConstellationLayout'
@@ -51,6 +55,8 @@ function readLocked(): boolean {
     return false
   }
 }
+
+const noopPositions = () => {}
 
 const NODE_LABELS = {
   noPillar: strings.constellation.filters.noPillar,
@@ -113,6 +119,11 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
   const [view, setView] = useState<CanvasViewState | null>(null)
   const [layoutKey, setLayoutKey] = useState(0)
   const [hintVisible, setHintVisible] = useState(() => !hasSeenConstellationHint())
+  const [viewMode, setViewMode] = useState<'global' | 'local'>('global')
+  const [localCenterId, setLocalCenterId] = useState<string | null>(null)
+  const [localDepth, setLocalDepth] = useState<LocalDepth>(2)
+  const [includePillars, setIncludePillars] = useState(true)
+  const [linksOnly, setLinksOnly] = useState(false)
   const [now] = useState(() => Date.now())
 
   const updateSettings = useCallback((next: ConstellationSettings) => {
@@ -146,7 +157,57 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
     [fullGraph, hiddenPillars, settings.showTodo],
   )
 
+  // Vue locale : sous-graphe autour d'un nœud, disposition calculée sur ce sous-graphe seulement
+  // (jamais enregistrée : la disposition globale reste intacte), centre épinglé à l'origine.
+  const local = useMemo(
+    () =>
+      viewMode === 'local' && localCenterId
+        ? localSubgraph(graph, localCenterId, localDepth, { includePillars, linksOnly })
+        : null,
+    [viewMode, localCenterId, graph, localDepth, includePillars, linksOnly],
+  )
+  const isLocal = local !== null
+  const shownGraph = local?.graph ?? graph
+  const localPositions = useMemo<Positions | null>(() => {
+    if (!local) return null
+    const settled = settleLayout(local.graph, {})
+    const center = settled[local.centerId] ?? { x: 0, y: 0 }
+    const result: Positions = {}
+    for (const [id, position] of Object.entries(settled)) {
+      result[id] = { x: position.x - center.x, y: position.y - center.y }
+    }
+    result[local.centerId] = { x: 0, y: 0, pinned: true }
+    return result
+  }, [local])
+  const shownPositions = local ? localPositions : positions
+  const localDraw = useMemo(
+    () =>
+      local
+        ? {
+            centerId: local.centerId,
+            opacityById: new Map(
+              Array.from(local.depthById, ([id, depth]) => [id, depthOpacity(depth)] as const),
+            ),
+          }
+        : null,
+    [local],
+  )
+  const canvasLayoutKey = `${layoutKey}|${
+    local ? `${local.centerId}|${localDepth}|${includePillars}|${linksOnly}` : 'global'
+  }`
+
   const nodeById = useMemo(() => new Map(graph.nodes.map((node) => [node.id, node])), [graph])
+  const localCenter = local ? (nodeById.get(local.centerId) ?? null) : null
+  const localPillarNodeId = localCenter?.pillarId ? `p:${localCenter.pillarId}` : NO_PILLAR_NODE_ID
+  const localPillarName =
+    pillars.find((pillar) => pillar.id === localCenter?.pillarId)?.name ?? s.filters.noPillar
+  const enterLocal = useCallback((id: string) => {
+    setLocalCenterId(id)
+    setViewMode('local')
+    setSelectedId(id)
+    setSelectedEdgeId(null)
+  }, [])
+  const leaveLocal = useCallback(() => setViewMode('global'), [])
   const taskTitle = useCallback(
     (id: string) => allTasks.find((task) => task.id === id)?.title ?? '',
     [allTasks],
@@ -154,11 +215,14 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key !== 'Escape') return
+      // En vue locale, Échap revient à la vue globale (même sélection) avant de fermer la page.
+      if (isLocal) leaveLocal()
+      else onClose()
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
+  }, [onClose, isLocal, leaveLocal])
 
   const toggleLocked = () => {
     const next = !locked
@@ -214,6 +278,8 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
       }
       return
     }
+    // En vue locale, sélectionner un voisin le recentre (animation douce côté canvas).
+    if (id && isLocal && id !== localCenterId && nodeById.has(id)) setLocalCenterId(id)
     setSelectedId(id)
   }
 
@@ -280,28 +346,29 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
     >
       <div className="relative min-w-0 flex-1">
         <div className="absolute inset-0">
-          {positions ? (
+          {shownPositions ? (
             <ConstellationCanvas
               ref={canvasRef}
-              graph={graph}
-              positions={positions}
+              graph={shownGraph}
+              positions={shownPositions}
               locked={locked}
               linkMode={linkMode}
               selectedIds={highlighted}
               selectedEdgeId={selectedEdgeId}
-              labels={settings.labels}
+              labels={isLocal && settings.labels !== 'never' ? 'always' : settings.labels}
               nodeScale={settings.nodeScale}
               showArrows={settings.showArrows}
-              layoutKey={layoutKey}
+              layoutKey={canvasLayoutKey}
+              local={localDraw}
               onViewChange={setView}
-              ariaLabel={s.canvasLabel(graph.nodes.length, links.length)}
+              ariaLabel={s.canvasLabel(shownGraph.nodes.length, links.length)}
               onSelectNode={handleSelectNode}
               onSelectEdge={(id) => {
                 setSelectedEdgeId(id)
                 setSelectedId(null)
               }}
               onLink={(from, to) => void createLink(from, to)}
-              onPositionsChange={onPositionsChange}
+              onPositionsChange={isLocal ? noopPositions : onPositionsChange}
             />
           ) : (
             <p className="p-4 pt-24 text-sm text-[var(--cst-label)]">{s.loading}</p>
@@ -332,74 +399,157 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
               </strong>{' '}
               {s.header.focusSuffix}
             </p>
-          </div>
-
-          <div className="pointer-events-none order-3 flex w-full min-w-0 justify-center sm:order-none sm:flex-1">
             <div
               role="group"
-              aria-label={s.pillarBar.label}
-              className={`${chromeBar} pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto p-1`}
+              aria-label={s.local.viewGroup}
+              className={`${chromeBar} mt-1.5 inline-flex gap-0.5 p-0.5`}
             >
-              {chips.map((chip) => {
-                const hidden = hiddenPillars.has(chip.key)
-                const empty = !taskCountByPillar.has(chip.key)
-                const seconds = fullGraph.stats.secondsByPillar[chip.key] ?? 0
-                return (
-                  <button
-                    key={chip.key}
-                    type="button"
-                    aria-pressed={!hidden}
-                    aria-label={s.pillarBar.toggle(chip.name, hidden)}
-                    onClick={() => togglePillar(chip.key)}
-                    className={`flex min-h-11 shrink-0 items-center gap-2 rounded-[10px] px-3 text-sm transition-colors ${
-                      hidden || empty ? 'opacity-50' : ''
-                    } ${hidden ? '' : 'bg-[var(--cst-chrome-line)]'}`}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={
-                        empty || hidden
-                          ? { border: `1.5px solid ${chip.color}` }
-                          : { background: chip.color }
-                      }
-                    />
-                    <span className="whitespace-nowrap">{chip.name}</span>
-                    {seconds > 0 ? (
-                      <span className="whitespace-nowrap tabular-nums text-[var(--cst-label)]">
-                        {formatShort(seconds)}
-                      </span>
-                    ) : null}
-                  </button>
-                )
-              })}
-              <span
-                aria-hidden="true"
-                className="mx-1 h-5 w-px shrink-0 bg-[var(--cst-chrome-line)]"
-              />
-              <div
-                role="group"
-                aria-label={s.pillarBar.periodLabel}
-                className="flex shrink-0 gap-1"
+              <button
+                type="button"
+                aria-pressed={!isLocal}
+                onClick={leaveLocal}
+                className={`min-h-11 rounded-[10px] px-3 text-sm transition-colors ${
+                  !isLocal
+                    ? 'bg-[var(--cst-chrome-line)] font-semibold text-[var(--text)]'
+                    : 'text-[var(--cst-label)] hover:text-[var(--text)]'
+                }`}
               >
-                {(['30d', '90d', 'all'] as const).map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-pressed={period === value}
-                    onClick={() => setPeriod(value)}
-                    className={`min-h-11 rounded-[10px] px-3 text-sm tabular-nums transition-colors ${
-                      period === value
-                        ? 'bg-[var(--cst-chrome-line)] font-semibold text-[var(--text)]'
-                        : 'text-[var(--cst-label)] hover:text-[var(--text)]'
-                    }`}
-                  >
-                    {s.pillarBar.periods[value]}
-                  </button>
-                ))}
-              </div>
+                {s.local.global}
+              </button>
+              <button
+                type="button"
+                aria-pressed={isLocal}
+                disabled={!isLocal && (!selectedNode || selectedNode.kind === 'group')}
+                onClick={() => selectedNode && enterLocal(selectedNode.id)}
+                className={`min-h-11 rounded-[10px] px-3 text-sm transition-colors disabled:opacity-40 ${
+                  isLocal
+                    ? 'bg-[var(--cst-chrome-line)] font-semibold text-[var(--text)]'
+                    : 'text-[var(--cst-label)] hover:text-[var(--text)]'
+                }`}
+              >
+                {s.local.local}
+              </button>
             </div>
           </div>
+
+          {local && localCenter ? (
+            <nav
+              aria-label={s.local.breadcrumb}
+              className="pointer-events-none order-3 flex w-full min-w-0 justify-center sm:order-none sm:flex-1"
+            >
+              <ol
+                className={`${chromeBar} pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto px-2 py-1 text-sm`}
+              >
+                <li>
+                  <button
+                    type="button"
+                    onClick={leaveLocal}
+                    className="min-h-11 whitespace-nowrap rounded-[10px] px-2 text-[var(--cst-label)] hover:text-[var(--text)]"
+                  >
+                    {s.local.root}
+                  </button>
+                </li>
+                {localCenter.kind === 'task' || localCenter.kind === 'group' ? (
+                  <>
+                    <li aria-hidden="true" className="text-[var(--cst-label)]">
+                      ›
+                    </li>
+                    <li>
+                      <button
+                        type="button"
+                        disabled={!nodeById.has(localPillarNodeId)}
+                        onClick={() => enterLocal(localPillarNodeId)}
+                        className="flex min-h-11 items-center gap-2 whitespace-nowrap rounded-[10px] px-2 text-[var(--cst-label)] hover:text-[var(--text)] disabled:hover:text-[var(--cst-label)]"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="h-2 w-2 rounded-full"
+                          style={{ background: localCenter.color }}
+                        />
+                        {localPillarName}
+                      </button>
+                    </li>
+                  </>
+                ) : null}
+                <li aria-hidden="true" className="text-[var(--cst-label)]">
+                  ›
+                </li>
+                <li
+                  aria-current="page"
+                  className="whitespace-nowrap px-2 font-semibold text-[var(--text)]"
+                >
+                  {localCenter.label}
+                </li>
+              </ol>
+            </nav>
+          ) : (
+            <div className="pointer-events-none order-3 flex w-full min-w-0 justify-center sm:order-none sm:flex-1">
+              <div
+                role="group"
+                aria-label={s.pillarBar.label}
+                className={`${chromeBar} pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto p-1`}
+              >
+                {chips.map((chip) => {
+                  const hidden = hiddenPillars.has(chip.key)
+                  const empty = !taskCountByPillar.has(chip.key)
+                  const seconds = fullGraph.stats.secondsByPillar[chip.key] ?? 0
+                  return (
+                    <button
+                      key={chip.key}
+                      type="button"
+                      aria-pressed={!hidden}
+                      aria-label={s.pillarBar.toggle(chip.name, hidden)}
+                      onClick={() => togglePillar(chip.key)}
+                      className={`flex min-h-11 shrink-0 items-center gap-2 rounded-[10px] px-3 text-sm transition-colors ${
+                        hidden || empty ? 'opacity-50' : ''
+                      } ${hidden ? '' : 'bg-[var(--cst-chrome-line)]'}`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={
+                          empty || hidden
+                            ? { border: `1.5px solid ${chip.color}` }
+                            : { background: chip.color }
+                        }
+                      />
+                      <span className="whitespace-nowrap">{chip.name}</span>
+                      {seconds > 0 ? (
+                        <span className="whitespace-nowrap tabular-nums text-[var(--cst-label)]">
+                          {formatShort(seconds)}
+                        </span>
+                      ) : null}
+                    </button>
+                  )
+                })}
+                <span
+                  aria-hidden="true"
+                  className="mx-1 h-5 w-px shrink-0 bg-[var(--cst-chrome-line)]"
+                />
+                <div
+                  role="group"
+                  aria-label={s.pillarBar.periodLabel}
+                  className="flex shrink-0 gap-1"
+                >
+                  {(['30d', '90d', 'all'] as const).map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={period === value}
+                      onClick={() => setPeriod(value)}
+                      className={`min-h-11 rounded-[10px] px-3 text-sm tabular-nums transition-colors ${
+                        period === value
+                          ? 'bg-[var(--cst-chrome-line)] font-semibold text-[var(--text)]'
+                          : 'text-[var(--cst-label)] hover:text-[var(--text)]'
+                      }`}
+                    >
+                      {s.pillarBar.periods[value]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="pointer-events-auto flex shrink-0 gap-2">
             <button
@@ -435,15 +585,64 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
           </div>
         ) : null}
 
+        {isLocal ? (
+          <div
+            role="group"
+            aria-label={s.local.cardLabel}
+            className={`${chromeBar} absolute left-3 top-[8.5rem] z-10 flex w-52 flex-col gap-1 p-3 text-sm sm:top-[7rem]`}
+          >
+            <p className="text-xs text-[var(--cst-label)]">{s.local.depth}</p>
+            <div
+              role="group"
+              aria-label={s.local.depth}
+              className="grid grid-cols-3 gap-1 rounded-xl bg-[var(--cst-bg)] p-1"
+            >
+              {([1, 2, 3] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={localDepth === value}
+                  onClick={() => setLocalDepth(value)}
+                  className={`min-h-11 rounded-lg tabular-nums transition-colors ${
+                    localDepth === value
+                      ? 'bg-[var(--cst-chrome-line)] font-semibold text-[var(--text)]'
+                      : 'text-[var(--cst-label)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+            <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3">
+              {s.local.includePillars}
+              <input
+                type="checkbox"
+                checked={includePillars}
+                onChange={(event) => setIncludePillars(event.target.checked)}
+                className="h-5 w-5 accent-[var(--accent)]"
+              />
+            </label>
+            <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3">
+              {s.local.linksOnly}
+              <input
+                type="checkbox"
+                checked={linksOnly}
+                onChange={(event) => setLinksOnly(event.target.checked)}
+                className="h-5 w-5 accent-[var(--accent)]"
+              />
+            </label>
+          </div>
+        ) : null}
+
         {locked ? (
-          <p className="pointer-events-none absolute left-3 top-28 max-w-[14rem] rounded-xl bg-[var(--cst-chrome)] px-3 py-2 text-xs text-[var(--cst-label)] sm:top-20">
+          <p className="pointer-events-none absolute bottom-20 left-3 max-w-[14rem] rounded-xl bg-[var(--cst-chrome)] px-3 py-2 text-xs text-[var(--cst-label)]">
             {s.toolbar.lockedHint}
           </p>
         ) : null}
 
         {linkMode ? (
           <div
-            className={`${chromeBar} absolute left-3 top-28 z-10 flex max-w-[calc(100vw-1.5rem)] flex-col gap-2 p-3 text-sm sm:top-20`}
+            className={`${chromeBar} absolute bottom-20 left-3 z-10 flex max-w-[calc(100vw-1.5rem)] flex-col gap-2 p-3 text-sm`}
           >
             <div role="radiogroup" aria-label={s.toolbar.linkKind} className="flex gap-2">
               {(['related', 'depends_on'] as const).map((kind) => (
@@ -539,18 +738,39 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {positions ? (
+        {shownPositions ? (
           <div className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-3 z-10 hidden sm:block">
             <ConstellationMinimap
-              graph={graph}
-              positions={positions}
+              graph={shownGraph}
+              positions={shownPositions ?? {}}
               view={view}
               onNavigate={(x, y) => canvasRef.current?.centerOn(x, y)}
             />
           </div>
         ) : null}
 
-        {hintVisible && hasTasks && !selectedNode ? (
+        {isLocal && local ? (
+          <p
+            data-testid="constellation-local-status"
+            className="pointer-events-none absolute bottom-5 left-[20.5rem] hidden items-center gap-3 text-xs text-[var(--cst-label)] md:flex"
+          >
+            <span className="tabular-nums">
+              {s.local.status(
+                local.graph.nodes.filter((node) => node.kind === 'task').length,
+                fullGraph.stats.tasksTotal,
+                localDepth,
+              )}
+            </span>
+            <span>
+              <kbd className="rounded border border-[var(--cst-chrome-line)] px-1.5 py-0.5 font-sans">
+                {s.local.escape}
+              </kbd>{' '}
+              {s.local.escapeHint}
+            </span>
+          </p>
+        ) : null}
+
+        {!isLocal && hintVisible && hasTasks && !selectedNode ? (
           <p className="pointer-events-none absolute bottom-4 left-1/2 hidden -translate-x-1/2 text-xs text-[var(--cst-label)] md:block">
             {s.hint}
           </p>
@@ -586,7 +806,7 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
           period={period}
           now={now}
           onClose={() => setSelectedId(null)}
-          onSelectNode={(id) => setSelectedId(id)}
+          onSelectNode={handleSelectNode}
           onStartLink={(taskId) => {
             if (locked) toggleLocked()
             setSelectedId(null)
@@ -604,6 +824,7 @@ export function ConstellationPage({ onClose }: { onClose: () => void }) {
             requestFocusOnTask(taskId)
           }}
           onExpandGroup={(key) => setExpanded(new Set([...expanded, key]))}
+          onViewLocal={enterLocal}
         />
       ) : null}
     </div>,

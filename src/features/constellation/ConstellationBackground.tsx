@@ -34,6 +34,8 @@ function toDrawData(snapshot: ConstellationSnapshot): { nodes: DrawNode[]; edges
     edges.push({
       id: edge.id,
       kind: edge.kind,
+      sourceId: edge.source,
+      targetId: edge.target,
       from: { x: a.x, y: a.y, r: a.r, kind: a.kind },
       to: { x: b.x, y: b.y, r: b.r, kind: b.kind },
     })

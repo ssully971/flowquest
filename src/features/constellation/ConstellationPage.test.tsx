@@ -23,6 +23,8 @@ vi.mock('./ConstellationCanvas', () => ({
       labels?: string
       nodeScale?: number
       showArrows?: boolean
+      local?: { centerId: string } | null
+      layoutKey?: number | string
       onViewChange?: (view: {
         x: number
         y: number
@@ -49,6 +51,8 @@ vi.mock('./ConstellationCanvas', () => ({
         data-labels={props.labels}
         data-nodescale={props.nodeScale}
         data-arrows={String(props.showArrows)}
+        data-local-center={props.local?.centerId}
+        data-layoutkey={String(props.layoutKey)}
       >
         <span>{props.ariaLabel}</span>
         {props.graph.nodes.map((node) => (
@@ -389,5 +393,168 @@ describe('ConstellationPage', () => {
     renderPage()
     await screen.findByTestId('constellation-canvas')
     expect(screen.queryByText(/Glisse un nœud pour le placer/)).not.toBeInTheDocument()
+  })
+
+  describe('vue locale', () => {
+    async function seedLocal() {
+      const db = await getDb()
+      await db.put('pillars', {
+        id: 'p1',
+        name: 'Études',
+        color: '#4A9FE8',
+        currentXp: 0,
+        level: 5,
+        createdAt: 1,
+        archivedAt: null,
+        goalLevel: null,
+        goalDeadline: null,
+      })
+      for (const [id, title] of [
+        ['la', 'Alpha'],
+        ['lb', 'Bravo'],
+        ['lc', 'Charlie'],
+      ]) {
+        await db.put('tasks', task(id, title, { pillarId: 'p1' }))
+      }
+      await db.put('taskLinks', {
+        id: 'x1',
+        fromTaskId: 'la',
+        toTaskId: 'lb',
+        kind: 'depends_on',
+        createdAt: 1,
+      })
+    }
+
+    it('« Locale » est désactivé tant que rien n’est sélectionné, puis ouvre la vue locale', async () => {
+      const user = userEvent.setup()
+      await seedLocal()
+      renderPage()
+      const group = await screen.findByRole('group', { name: 'Vue' })
+      expect(within(group).getByRole('button', { name: 'Locale' })).toBeDisabled()
+      expect(within(group).getByRole('button', { name: 'Globale' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+
+      await user.click(await screen.findByRole('button', { name: 'nœud Alpha' }))
+      await user.click(within(group).getByRole('button', { name: 'Locale' }))
+
+      expect(screen.getByTestId('constellation-canvas')).toHaveAttribute('data-local-center', 'la')
+      expect(within(group).getByRole('button', { name: 'Locale' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+      expect(screen.getByRole('navigation', { name: 'Fil d’Ariane' })).toHaveTextContent(
+        'Tous les piliers›Études›Alpha',
+      )
+      expect(screen.getByRole('group', { name: 'Réglages de la vue locale' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '2' })).toHaveAttribute('aria-pressed', 'true') // profondeur 2 par défaut
+    })
+
+    it('la profondeur et « inclure les piliers » changent les nœuds affichés', async () => {
+      const user = userEvent.setup()
+      await seedLocal()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'nœud Alpha' }))
+      await user.click(screen.getByRole('button', { name: 'Locale' }))
+
+      // Profondeur 2 : Alpha → Bravo (lien), Alpha → Études → Charlie (via le pilier).
+      expect(screen.getByRole('button', { name: 'nœud Charlie' })).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: '1' }))
+      expect(screen.queryByRole('button', { name: 'nœud Charlie' })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'nœud Bravo' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'nœud Études' })).toBeInTheDocument()
+
+      await user.click(screen.getByRole('checkbox', { name: 'Inclure les piliers' }))
+      expect(screen.queryByRole('button', { name: 'nœud Études' })).not.toBeInTheDocument()
+    })
+
+    it('sélectionner un voisin le recentre ; la fenêtre affiche « Vue locale · N tâches sur M »', async () => {
+      const user = userEvent.setup()
+      await seedLocal()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'nœud Alpha' }))
+      await user.click(screen.getByRole('button', { name: 'Locale' }))
+      const before = screen.getByTestId('constellation-canvas').getAttribute('data-layoutkey')
+
+      await user.click(screen.getByRole('button', { name: 'nœud Bravo' }))
+      expect(screen.getByTestId('constellation-canvas')).toHaveAttribute('data-local-center', 'lb')
+      expect(screen.getByTestId('constellation-canvas').getAttribute('data-layoutkey')).not.toBe(
+        before,
+      )
+      expect(screen.getByRole('navigation', { name: 'Fil d’Ariane' })).toHaveTextContent('Bravo')
+      expect(screen.getByTestId('constellation-local-status')).toHaveTextContent(
+        /Vue locale · \d+ tâches? sur \d+ · profondeur 2/,
+      )
+    })
+
+    it('Échap revient à la vue globale avec la même sélection, puis ferme la page', async () => {
+      const user = userEvent.setup()
+      await seedLocal()
+      const { onClose } = renderPage()
+      await user.click(await screen.findByRole('button', { name: 'nœud Alpha' }))
+      await user.click(screen.getByRole('button', { name: 'Locale' }))
+
+      await user.keyboard('{Escape}')
+      expect(onClose).not.toHaveBeenCalled()
+      expect(screen.getByTestId('constellation-canvas')).not.toHaveAttribute('data-local-center')
+      expect(screen.getByRole('complementary', { name: 'Alpha' })).toBeInTheDocument() // sélection gardée
+
+      await user.keyboard('{Escape}')
+      expect(onClose).toHaveBeenCalledTimes(1)
+    })
+
+    it('le fil d’Ariane : le pilier recentre sur lui, « Tous les piliers » revient au global', async () => {
+      const user = userEvent.setup()
+      await seedLocal()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'nœud Alpha' }))
+      await user.click(screen.getByRole('button', { name: 'Locale' }))
+
+      const nav = screen.getByRole('navigation', { name: 'Fil d’Ariane' })
+      await user.click(within(nav).getByRole('button', { name: 'Études' }))
+      expect(screen.getByTestId('constellation-canvas')).toHaveAttribute(
+        'data-local-center',
+        'p:p1',
+      )
+
+      await user.click(
+        within(screen.getByRole('navigation', { name: 'Fil d’Ariane' })).getByRole('button', {
+          name: 'Tous les piliers',
+        }),
+      )
+      expect(screen.getByTestId('constellation-canvas')).not.toHaveAttribute('data-local-center')
+    })
+
+    it('l’inspecteur d’un pilier propose « Voir en vue locale »', async () => {
+      const user = userEvent.setup()
+      await seedLocal()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'nœud Études' }))
+      await user.click(screen.getByRole('button', { name: 'Voir en vue locale' }))
+      expect(screen.getByTestId('constellation-canvas')).toHaveAttribute(
+        'data-local-center',
+        'p:p1',
+      )
+    })
+
+    it('les positions de la vue locale ne touchent pas la disposition enregistrée', async () => {
+      const user = userEvent.setup()
+      await seedLocal()
+      const db = await getDb()
+      await db.put(
+        'constellationLayout',
+        { positions: { la: { x: 321, y: 123 } }, updatedAt: 1 },
+        'current',
+      )
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'nœud Alpha' }))
+      await user.click(screen.getByRole('button', { name: 'Locale' }))
+      await new Promise((resolve) => setTimeout(resolve, 1200)) // laisse passer l'enregistrement différé
+      expect((await db.get('constellationLayout', 'current'))?.positions.la).toEqual({
+        x: 321,
+        y: 123,
+      })
+    })
   })
 })

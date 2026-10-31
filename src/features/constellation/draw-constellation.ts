@@ -17,6 +17,9 @@ export interface DrawNode {
 
 export interface DrawEdge {
   id: string
+  /** Ids des extrémités : nécessaires à l'opacité par profondeur de la vue locale. */
+  sourceId?: string
+  targetId?: string
   kind: 'pillar' | 'parent' | 'depends_on' | 'related'
   from: { x: number; y: number; r: number; kind?: DrawNode['kind'] }
   to: { x: number; y: number; r: number; kind?: DrawNode['kind'] }
@@ -31,6 +34,8 @@ export interface DrawPalette {
   labelStrong: string
   highlight: string
   font: string
+  /** Police d'affichage (titres) : étiquette du nœud central en vue locale. */
+  fontDisplay: string
 }
 
 export type LabelMode = 'auto' | 'always' | 'never'
@@ -63,6 +68,9 @@ export interface DrawOptions {
   nodeScale?: number
   /** Faux : les dépendances sont tracées sans flèche. */
   showArrows?: boolean
+  /** Vue locale : nœud central (anneau à rayon + 7, étiquette en police d'affichage) et opacité
+   * de chaque nœud selon sa profondeur (les liens prennent celle de leur extrémité la plus pâle). */
+  local?: { centerId: string; opacityById: ReadonlyMap<string, number> } | null
 }
 
 /** Part d'opacité des éléments hors du voisinage actif. */
@@ -79,6 +87,7 @@ const FALLBACK_PALETTE: DrawPalette = {
   labelStrong: '#eeeaf4',
   highlight: '#c9a7ff',
   font: '"Instrument Sans Variable", system-ui, sans-serif',
+  fontDisplay: '"Bricolage Grotesque Variable", system-ui, sans-serif',
 }
 
 /** Lit la palette du graphe depuis les jetons CSS (thème sombre ou clair en cours). */
@@ -93,6 +102,7 @@ export function readPalette(element: Element = document.documentElement): DrawPa
     labelStrong: read('--cst-label-strong', FALLBACK_PALETTE.labelStrong),
     highlight: read('--cst-highlight', FALLBACK_PALETTE.highlight),
     font: read('--font-sans', FALLBACK_PALETTE.font),
+    fontDisplay: read('--font-display', FALLBACK_PALETTE.fontDisplay),
   }
 }
 
@@ -149,8 +159,11 @@ export function drawConstellation(ctx: CanvasRenderingContext2D, options: DrawOp
   ctx.clearRect(0, 0, width, height)
   ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * view.x, dpr * view.y)
 
+  const local = options.local ?? null
+  const depthAlpha = (id: string | undefined): number =>
+    local && id ? (local.opacityById.get(id) ?? 1) : 1
   const nodeAlpha = (id: string): number =>
-    highlight && !highlight.nodeIds.has(id) ? DIM_OPACITY : 1
+    (highlight && !highlight.nodeIds.has(id) ? DIM_OPACITY : 1) * depthAlpha(id)
   const edgeAlpha = (id: string): number =>
     highlight && !highlight.edgeIds.has(id) ? DIM_OPACITY : 1
 
@@ -168,7 +181,9 @@ export function drawConstellation(ctx: CanvasRenderingContext2D, options: DrawOp
         : palette.edgeUser
     ctx.lineWidth = (emphasised ? 1.5 : isUserLink ? 1.3 : 1) / k
     ctx.globalAlpha =
-      (edge.kind === 'parent' && !emphasised ? 0.5 : 1) * (isSelectedEdge ? 1 : edgeAlpha(edge.id))
+      (edge.kind === 'parent' && !emphasised ? 0.5 : 1) *
+      (isSelectedEdge ? 1 : edgeAlpha(edge.id)) *
+      Math.min(depthAlpha(edge.sourceId), depthAlpha(edge.targetId))
     ctx.strokeStyle = color
     ctx.fillStyle = color
     ctx.setLineDash(edge.kind === 'related' ? [4 / k, 4 / k] : [])
@@ -255,12 +270,20 @@ export function drawConstellation(ctx: CanvasRenderingContext2D, options: DrawOp
       ctx.stroke()
     }
 
-    if (selected.has(node.id) || highlight?.activeId === node.id) {
+    if (local?.centerId === node.id) {
+      // Vue locale : le centre porte un anneau plus large (rayon + 7).
       ctx.globalAlpha = 1
       ctx.strokeStyle = palette.labelStrong
       ctx.lineWidth = 1.5 / k
       ctx.beginPath()
-      ctx.arc(node.x, node.y, r + 5 / k + 0, 0, Math.PI * 2)
+      ctx.arc(node.x, node.y, r + 7, 0, Math.PI * 2)
+      ctx.stroke()
+    } else if (selected.has(node.id) || highlight?.activeId === node.id) {
+      ctx.globalAlpha = 1
+      ctx.strokeStyle = palette.labelStrong
+      ctx.lineWidth = 1.5 / k
+      ctx.beginPath()
+      ctx.arc(node.x, node.y, r + 5, 0, Math.PI * 2)
       ctx.stroke()
     }
   }
@@ -281,12 +304,13 @@ export function drawConstellation(ctx: CanvasRenderingContext2D, options: DrawOp
         inNeighborhood ||
         k >= LABEL_ZOOM
       if (!show) continue
-      const strong = node.kind === 'pillar' || isActive
-      const fontPx = node.kind === 'pillar' ? 11.5 : 10.5
-      ctx.font = `${strong ? 600 : 400} ${fontPx / k}px ${palette.font}`
+      const isCenter = local?.centerId === node.id
+      const strong = node.kind === 'pillar' || isActive || isCenter
+      const fontPx = isCenter ? 13 : node.kind === 'pillar' ? 11.5 : 10.5
+      ctx.font = `${strong ? 600 : 400} ${fontPx / k}px ${isCenter ? palette.fontDisplay : palette.font}`
       const text = node.label.length > 28 ? `${node.label.slice(0, 27)}…` : node.label
       const r = displayRadius(node, scale)
-      const y = node.y + r + (node.kind === 'pillar' ? 8 : 4) / k
+      const y = node.y + r + (isCenter ? 12 : node.kind === 'pillar' ? 8 : 4) / k
       ctx.globalAlpha = nodeAlpha(node.id) * (node.archived ? ARCHIVED_OPACITY : 1)
       ctx.lineWidth = 3 / k
       ctx.lineJoin = 'round'

@@ -44,8 +44,10 @@ interface ConstellationCanvasProps {
   nodeScale?: number
   /** Faux : dépendances sans flèche. */
   showArrows?: boolean
-  /** Change pour forcer la reconstruction de la simulation (ex. « Réorganiser le graphe »). */
-  layoutKey?: number
+  /** Vue locale : nœud central et opacité par profondeur. */
+  local?: { centerId: string; opacityById: ReadonlyMap<string, number> } | null
+  /** Change pour reconstruire la simulation et recadrer la vue (réorganiser, changer de centre). */
+  layoutKey?: number | string
   /** Vue courante (zoom, décalage, taille) : pourcentage de zoom et mini-carte. */
   onViewChange?: (view: CanvasViewState) => void
   ariaLabel: string
@@ -99,6 +101,8 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
     const rafRef = useRef<number | null>(null)
     const persistPendingRef = useRef(false)
     const fittedRef = useRef(false)
+    const animRef = useRef<number | null>(null)
+    const lastLayoutKeyRef = useRef(props.layoutKey)
     const lastEmittedRef = useRef<CanvasViewState | null>(null)
 
     const draw = useCallback(() => {
@@ -136,12 +140,17 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
         drawEdges.push({
           id: edge.id,
           kind: edge.kind,
+          sourceId: edge.source,
+          targetId: edge.target,
           from: { x: a.x ?? 0, y: a.y ?? 0, r: a.r, kind: a.kind },
           to: { x: b.x ?? 0, y: b.y ?? 0, r: b.r, kind: b.kind },
         })
       }
       // Survol prioritaire, sinon la sélection : le voisinage reste net, le reste s'estompe.
-      const activeId = hoverRef.current ?? Array.from(selectedIds)[0] ?? null
+      // En vue locale, l'opacité par profondeur suffit : la sélection (le centre) n'estompe pas
+      // en plus le reste, seul le survol met un voisinage en avant.
+      const activeId =
+        hoverRef.current ?? (propsRef.current.local ? null : (Array.from(selectedIds)[0] ?? null))
       const highlight =
         activeId && meta.has(activeId) ? { activeId, ...neighborhood(graph, activeId) } : null
       drawConstellation(ctx, {
@@ -153,6 +162,7 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
         labels: propsRef.current.labels,
         nodeScale: propsRef.current.nodeScale,
         showArrows: propsRef.current.showArrows,
+        local: propsRef.current.local,
         highlight,
         selectedIds,
         selectedEdgeId,
@@ -194,25 +204,63 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
       if (rafRef.current === null) rafRef.current = requestAnimationFrame(loop)
     }, [loop])
 
-    const recenter = useCallback(() => {
-      const layout = layoutRef.current
-      const { width, height } = sizeRef.current
-      if (!layout) return
-      const bounds = boundsOf(
-        layout.nodes.map((node) => ({
-          x: node.x ?? 0,
-          y: node.y ?? 0,
-          r: displayRadius(node) + 14,
-        })),
-      )
-      viewRef.current = fitView(bounds, width, height)
-      requestFrame()
-    }, [requestFrame])
+    /** Déplacement doux de la vue (250 ms) ; immédiat si l'utilisateur préfère moins d'animations. */
+    const animateTo = useCallback(
+      (target: ViewTransform, duration = 250) => {
+        if (animRef.current !== null) cancelAnimationFrame(animRef.current)
+        animRef.current = null
+        const reduce =
+          typeof window.matchMedia === 'function' &&
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        if (reduce || duration <= 0) {
+          viewRef.current = target
+          requestFrame()
+          return
+        }
+        const from = viewRef.current
+        const start = performance.now()
+        const step = (now: number) => {
+          const progress = Math.min(1, (now - start) / duration)
+          const eased = 1 - Math.pow(1 - progress, 3)
+          viewRef.current = {
+            x: from.x + (target.x - from.x) * eased,
+            y: from.y + (target.y - from.y) * eased,
+            k: from.k + (target.k - from.k) * eased,
+          }
+          draw()
+          animRef.current = progress < 1 ? requestAnimationFrame(step) : null
+        }
+        animRef.current = requestAnimationFrame(step)
+      },
+      [draw, requestFrame],
+    )
+
+    const recenter = useCallback(
+      (animated = false) => {
+        const layout = layoutRef.current
+        const { width, height } = sizeRef.current
+        if (!layout) return
+        const bounds = boundsOf(
+          layout.nodes.map((node) => ({
+            x: node.x ?? 0,
+            y: node.y ?? 0,
+            r: displayRadius(node, propsRef.current.nodeScale ?? 1) + 14,
+          })),
+        )
+        const target = fitView(bounds, width, height)
+        if (animated) animateTo(target)
+        else {
+          viewRef.current = target
+          requestFrame()
+        }
+      },
+      [animateTo, requestFrame],
+    )
 
     useImperativeHandle(
       ref,
       () => ({
-        recenter,
+        recenter: () => recenter(false),
         zoomBy: (factor: number) => {
           const { width, height } = sizeRef.current
           viewRef.current = zoomAt(viewRef.current, width / 2, height / 2, factor)
@@ -234,7 +282,12 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
       layoutRef.current.simulation.alpha(0)
       if (!fittedRef.current && sizeRef.current.width > 0) {
         fittedRef.current = true
+        lastLayoutKeyRef.current = props.layoutKey
         recenter()
+      } else if (lastLayoutKeyRef.current !== props.layoutKey) {
+        // Nouveau centre, nouvelle profondeur, réorganisation : on recadre en douceur.
+        lastLayoutKeyRef.current = props.layoutKey
+        recenter(true)
       } else {
         requestFrame()
       }
@@ -277,6 +330,8 @@ export const ConstellationCanvas = forwardRef<ConstellationCanvasHandle, Constel
         observer?.disconnect()
         if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
         rafRef.current = null
+        if (animRef.current !== null) cancelAnimationFrame(animRef.current)
+        animRef.current = null
       }
     }, [recenter, requestFrame])
 

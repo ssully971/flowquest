@@ -15,13 +15,14 @@ interface Call {
   fillStyle: string
   strokeStyle: string
   lineWidth: number
+  font: string
   args: unknown[]
 }
 
 /** Contexte 2D factice qui enregistre chaque opération avec l'état courant. */
 function recorder() {
   const calls: Call[] = []
-  const state = { globalAlpha: 1, fillStyle: '', strokeStyle: '', lineWidth: 1 }
+  const state = { globalAlpha: 1, fillStyle: '', strokeStyle: '', lineWidth: 1, font: '' }
   const ctx = new Proxy(state, {
     get(target, prop: string) {
       if (prop in target) return target[prop as keyof typeof target]
@@ -32,6 +33,7 @@ function recorder() {
           fillStyle: String(target.fillStyle),
           strokeStyle: String(target.strokeStyle),
           lineWidth: target.lineWidth,
+          font: target.font,
           args,
         })
       }
@@ -52,6 +54,7 @@ const palette = {
   labelStrong: '#eeeaf4',
   highlight: '#c9a7ff',
   font: 'sans-serif',
+  fontDisplay: 'serif',
 }
 
 const node = (overrides: Partial<DrawNode>): DrawNode => ({
@@ -222,6 +225,57 @@ describe('drawConstellation — graphe sobre', () => {
     expect(ring.strokeStyle).toBe(palette.labelStrong)
     expect(ring.lineWidth).toBe(1.5)
     expect(calls.filter((c) => c.op === 'arc').at(-1)!.args[2]).toBe(7 + 5)
+  })
+})
+
+describe('drawConstellation — vue locale', () => {
+  const nodes = [node({ id: 'c', r: 7 }), node({ id: 'n1', x: 40 }), node({ id: 'n2', x: 80 })]
+  const local = {
+    centerId: 'c',
+    opacityById: new Map([
+      ['c', 1],
+      ['n1', 1],
+      ['n2', 0.45],
+    ]),
+  }
+
+  it('applique l’opacité par profondeur aux nœuds : 100 %, 100 %, 45 %', () => {
+    const fills = render({ nodes, local }).filter((call) => call.op === 'fill')
+    expect(fills.map((call) => call.alpha)).toEqual([1, 1, 0.45])
+  })
+
+  it('un lien prend l’opacité de son extrémité la plus pâle', () => {
+    const calls = render({
+      nodes,
+      local,
+      edges: [
+        edge({ id: 'near', sourceId: 'c', targetId: 'n1' }),
+        edge({ id: 'far', sourceId: 'n1', targetId: 'n2' }),
+      ],
+    })
+    const strokes = calls.filter(
+      (call) => call.op === 'stroke' && call.lineWidth > 1 && call.lineWidth < 1.4,
+    )
+    expect(strokes.map((call) => call.alpha)).toEqual([1, 0.45])
+  })
+
+  it('le centre a un anneau à rayon + 7 et une étiquette en police d’affichage, en gras', () => {
+    const calls = render({
+      nodes: [node({ id: 'c', r: 7, label: 'Centre' }), node({ id: 'n1', x: 40, label: 'Voisin' })],
+      local,
+      labels: 'always',
+    })
+    expect(calls.filter((call) => call.op === 'arc' && call.args[2] === 7 + 7)).toHaveLength(1)
+    const center = calls.find((call) => call.op === 'fillText' && call.args[0] === 'Centre')!
+    const neighbour = calls.find((call) => call.op === 'fillText' && call.args[0] === 'Voisin')!
+    expect(center.font).toContain('serif') // police d'affichage
+    expect(center.font).toContain('600')
+    expect(neighbour.font).toContain('sans-serif')
+  })
+
+  it('sans vue locale, aucun anneau à rayon + 7', () => {
+    const calls = render({ nodes })
+    expect(calls.some((call) => call.op === 'arc' && call.args[2] === 7 + 7)).toBe(false)
   })
 })
 

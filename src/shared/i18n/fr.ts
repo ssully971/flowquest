@@ -458,6 +458,21 @@ export const fr = {
       groupOf: (count: number) => `${count} tâches terminées regroupées`,
       subtasks: (count: number) => `${count} sous-tâche${count > 1 ? 's' : ''}`,
     },
+    local: {
+      viewGroup: 'Vue',
+      global: 'Globale',
+      local: 'Locale',
+      cardLabel: 'Réglages de la vue locale',
+      depth: 'Profondeur',
+      includePillars: 'Inclure les piliers',
+      linksOnly: 'Liens seulement',
+      breadcrumb: 'Fil d’Ariane',
+      root: 'Tous les piliers',
+      status: (tasks: number, total: number, depth: number) =>
+        `Vue locale · ${tasks} tâche${tasks > 1 ? 's' : ''} sur ${total} · profondeur ${depth}`,
+      escape: 'Échap',
+      escapeHint: 'revenir à la vue globale',
+    },
     inspector: {
       deselect: 'Désélectionner',
       handle: 'Fermer le panneau',
