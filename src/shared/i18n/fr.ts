@@ -883,6 +883,7 @@ export const fr = {
       tasks: 'Tâches',
       ambientSounds: 'Sons d’ambiance',
       deepFocus: 'Deep Focus',
+      constellation: 'Constellation',
     },
     upsell: {
       title: `Débloque le plein potentiel de ${APP_NAME} 🦊`,

@@ -3,7 +3,7 @@ import type { AuthStatus } from '@/features/auth/auth-context'
 /** Fonctions réservées aux comptes (mode invité = entonnoir de conversion, voir
  * docs/MODE_INVITE.md). Pour en ajouter une : l'ajouter ici, dans strings.access.features,
  * puis brancher son point d'entrée avec useFeatureAccess. */
-export type LockableFeature = 'stats' | 'tasks' | 'ambientSounds' | 'deepFocus'
+export type LockableFeature = 'stats' | 'tasks' | 'ambientSounds' | 'deepFocus' | 'constellation'
 
 /**
  * UNIQUE définition de la règle de verrouillage : verrouillé si et seulement si

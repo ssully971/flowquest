@@ -36,7 +36,10 @@ export async function enqueueWrite<T extends SyncTable>(
 }
 
 /** Supprime une ligne `tasks`/`pillars` par id, via la même file (jamais en direct). */
-export async function enqueueDelete(table: 'tasks' | 'pillars', recordId: string): Promise<void> {
+export async function enqueueDelete(
+  table: 'tasks' | 'pillars' | 'task_links',
+  recordId: string,
+): Promise<void> {
   await enqueue({
     id: generateId(),
     table,
@@ -52,7 +55,13 @@ async function sendToSupabase(entry: QueuedWrite): Promise<{ message: string } |
   if (!supabase) return null
 
   if (entry.operation === 'delete') {
-    if (entry.table !== 'tasks' && entry.table !== 'pillars') return null
+    if (
+      entry.table !== 'tasks' &&
+      entry.table !== 'pillars' &&
+      entry.table !== 'task_links'
+    ) {
+      return null
+    }
     const { error } = await supabase
       .from(entry.table)
       .delete()
@@ -95,6 +104,18 @@ async function sendToSupabase(entry: QueuedWrite): Promise<{ message: string } |
       const { error } = await supabase
         .from('pillars')
         .upsert(entry.payload as Database['public']['Tables']['pillars']['Insert'])
+      return error
+    }
+    case 'task_links': {
+      const { error } = await supabase
+        .from('task_links')
+        .upsert(entry.payload as Database['public']['Tables']['task_links']['Insert'])
+      return error
+    }
+    case 'constellation_layouts': {
+      const { error } = await supabase
+        .from('constellation_layouts')
+        .upsert(entry.payload as Database['public']['Tables']['constellation_layouts']['Insert'])
       return error
     }
     default:
