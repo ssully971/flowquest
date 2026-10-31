@@ -13,6 +13,7 @@ export interface TaskDetailsUpdate {
   emoji?: string | null
   color?: string | null
   etaMinutes?: number | null
+  pillarId?: string | null
 }
 
 export interface UseTasksResult {
@@ -21,7 +22,7 @@ export interface UseTasksResult {
   /** Tâches archivées, de la plus récemment archivée à la plus ancienne. */
   archivedTasks: TaskRecord[]
   isLoading: boolean
-  addTask: (title: string, parentId?: string | null) => Promise<void>
+  addTask: (title: string, parentId?: string | null, pillarId?: string | null) => Promise<void>
   /** Renvoie true si cette tâche était la dernière non terminée (confettis, §8). */
   toggleDone: (id: string) => Promise<boolean>
   renameTask: (id: string, title: string) => Promise<void>
@@ -78,7 +79,7 @@ export function useTasks(): UseTasksResult {
     [allTasks],
   )
 
-  const addTask = useCallback(async (title: string, parentId: string | null = null) => {
+  const addTask = useCallback(async (title: string, parentId: string | null = null, pillarId: string | null = null) => {
     const trimmed = title.trim()
     if (!trimmed) return
     const current = await repo.listAll()
@@ -90,6 +91,7 @@ export function useTasks(): UseTasksResult {
       color: null,
       etaMinutes: null,
       parentId,
+      pillarId,
       position: siblingCount,
       done: false,
       doneAt: null,

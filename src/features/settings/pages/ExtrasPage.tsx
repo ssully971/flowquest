@@ -1,6 +1,7 @@
 import type {
   ExtrasSettings,
   IconSize,
+  PanelStyle,
   SettingsPanelSide,
 } from '@/features/settings/extras-settings'
 import { SETTINGS_PAGE_IDS } from '@/features/settings/page-id'
@@ -129,6 +130,20 @@ export function ExtrasPage({ settings, onChange }: ExtrasPageProps) {
           ]}
         />
         <p className="mt-2 text-xs text-[var(--panel-muted)]">{s.settingsPanelSideHint}</p>
+      </div>
+
+      <div>
+        <p className="mb-2 text-sm font-medium text-[var(--panel-muted)]">{s.panelStyle}</p>
+        <SegmentedControl<PanelStyle>
+          ariaLabel={s.panelStyle}
+          value={settings.panelStyle}
+          onChange={(panelStyle) => onChange({ ...settings, panelStyle })}
+          options={[
+            { value: 'paper', label: s.panelStylePaper },
+            { value: 'glass', label: s.panelStyleGlass },
+          ]}
+        />
+        <p className="mt-2 text-xs text-[var(--panel-muted)]">{s.panelStyleHint}</p>
       </div>
 
       <div>

@@ -104,6 +104,18 @@ describe('ExtrasPage — nom affiché, thèmes animés, mode épuré, veille, ra
     })
   })
 
+  it('choisit le style des panneaux, « Papier & encre » par défaut', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<ExtrasPage settings={DEFAULT_EXTRAS_SETTINGS} onChange={onChange} />)
+
+    expect(DEFAULT_EXTRAS_SETTINGS.panelStyle).toBe('paper')
+    expect(screen.getByRole('radio', { name: 'Papier & encre' })).toBeChecked()
+
+    await user.click(screen.getByRole('radio', { name: 'Verre teinté' }))
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_EXTRAS_SETTINGS, panelStyle: 'glass' })
+  })
+
   it('change le mode d’affichage des tâches et des notes (LOT B11)', async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()

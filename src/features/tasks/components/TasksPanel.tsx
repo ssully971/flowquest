@@ -2,6 +2,7 @@ import { Archive, ArrowLeft, Plus } from 'lucide-react'
 import type { FormEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 
+import { usePillars } from '@/features/pillars/usePillars'
 import { useExtrasSettings } from '@/features/settings/extras-settings-context'
 import { FloatingPanel } from '@/shared/design-system'
 import { strings } from '@/shared/i18n'
@@ -34,6 +35,7 @@ export function TasksPanel({ open, onClose }: TasksPanelProps) {
     reorderTasks,
     updateTaskDetails,
   } = useTasks()
+  const { activePillars } = usePillars()
   const { activeTaskId, setActiveTaskId } = useActiveTask()
   const { settings: extrasSettings } = useExtrasSettings()
   const { showToast } = useToast()
@@ -126,13 +128,14 @@ export function TasksPanel({ open, onClose }: TasksPanelProps) {
       onClose={onClose}
       panelSizeClassName="max-h-[60vh] w-[min(22rem,calc(100vw-2rem))]"
       windowSizeClassName="h-[min(80vh,46rem)] w-[min(36rem,calc(100vw-2rem))]"
+      panelStyle={extrasSettings.panelStyle}
     >
       {showArchives ? (
         <>
           <button
             type="button"
             onClick={() => setShowArchives(false)}
-            className="inline-flex h-11 items-center gap-2 self-start text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
+            className="fq-link-btn self-start"
           >
             <ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true" />
             {strings.tasks.backToTasks}
@@ -157,20 +160,23 @@ export function TasksPanel({ open, onClose }: TasksPanelProps) {
               value={newTitle}
               onChange={(event) => setNewTitle(event.target.value)}
               placeholder={strings.tasks.addPlaceholder}
-              className="h-11 flex-1 rounded-xl border border-[var(--line)] bg-transparent px-3 text-sm text-[var(--text)] outline-none transition-colors duration-200 focus:border-[var(--accent)]"
+              className="fq-field flex-1"
             />
             <button
               type="submit"
               disabled={!newTitle.trim()}
               aria-label={strings.tasks.addButton}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--on-accent)] transition-opacity duration-200 disabled:opacity-40"
+              className="fq-primary-btn"
             >
               <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
             </button>
           </form>
 
           {isLoading ? null : tasks.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">{strings.tasks.empty}</p>
+            <div className="fq-empty">
+              <strong>{strings.tasks.emptyTitle}</strong>
+              <p className="fq-muted text-sm">{strings.tasks.emptyHint}</p>
+            </div>
           ) : (
             <TaskList
               tasks={tasks}
@@ -185,28 +191,27 @@ export function TasksPanel({ open, onClose }: TasksPanelProps) {
               onArchive={handleArchive}
               onSetActive={setActiveTaskId}
               onUpdateDetails={(id, update) => void updateTaskDetails(id, update)}
-              onAddSubtask={(parentId, title) => void addTask(title, parentId)}
+              pillars={extrasSettings.pillarsEnabled ? activePillars : []}
+              onAddSubtask={(parentId, title) =>
+                void addTask(
+                  title,
+                  parentId,
+                  tasks.find((task) => task.id === parentId)?.pillarId ?? null,
+                )
+              }
               onReorder={(ids) => void reorderTasks(ids)}
             />
           )}
 
           <div className="flex flex-wrap items-center gap-x-4">
             {hasCompleted ? (
-              <button
-                type="button"
-                onClick={handleArchiveCompleted}
-                className="inline-flex h-11 items-center gap-2 text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
-              >
+              <button type="button" onClick={handleArchiveCompleted} className="fq-link-btn">
                 <Archive size={16} strokeWidth={1.75} aria-hidden="true" />
                 {strings.tasks.archiveCompleted}
               </button>
             ) : null}
             {archivedTasks.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setShowArchives(true)}
-                className="inline-flex h-11 items-center text-sm text-[var(--muted)] transition-colors duration-200 hover:text-[var(--text)]"
-              >
+              <button type="button" onClick={() => setShowArchives(true)} className="fq-link-btn">
                 {strings.tasks.showArchives(archivedTasks.filter((task) => !task.parentId).length)}
               </button>
             ) : null}

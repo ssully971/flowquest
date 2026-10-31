@@ -1,4 +1,4 @@
-import { Bold, Heading2, Italic, List, ListChecks } from 'lucide-react'
+import { Bold, Heading2, Italic, List, ListChecks, Quote } from 'lucide-react'
 
 import { strings } from '@/shared/i18n'
 
@@ -6,6 +6,7 @@ interface NoteToolbarProps {
   onBold: () => void
   onItalic: () => void
   onHeading: () => void
+  onQuote: () => void
   onBulletList: () => void
   onChecklist: () => void
 }
@@ -28,9 +29,9 @@ function ToolbarButton({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--muted)] transition-colors duration-200 hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+      className="fq-icon-btn"
     >
-      <Icon size={16} strokeWidth={1.75} aria-hidden="true" />
+      <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
     </button>
   )
 }
@@ -39,16 +40,18 @@ export function NoteToolbar({
   onBold,
   onItalic,
   onHeading,
+  onQuote,
   onBulletList,
   onChecklist,
 }: NoteToolbarProps) {
   const s = strings.notes
 
   return (
-    <div className="flex items-center gap-0.5 border-b border-[var(--line)] pb-2">
+    <div className="fq-toolbar" role="toolbar" aria-label={s.toolbar}>
       <ToolbarButton icon={Bold} label={s.bold} onClick={onBold} />
       <ToolbarButton icon={Italic} label={s.italic} onClick={onItalic} />
       <ToolbarButton icon={Heading2} label={s.heading} onClick={onHeading} />
+      <ToolbarButton icon={Quote} label={s.quote} onClick={onQuote} />
       <ToolbarButton icon={List} label={s.bulletList} onClick={onBulletList} />
       <ToolbarButton icon={ListChecks} label={s.checklist} onClick={onChecklist} />
     </div>

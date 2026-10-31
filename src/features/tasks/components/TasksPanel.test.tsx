@@ -52,7 +52,7 @@ function disableDeleteConfirmation() {
 describe('TasksPanel', () => {
   it("affiche l'état vide quand il n'y a aucune tâche", async () => {
     renderPanel()
-    expect(await screen.findByText('Aucune tâche pour l’instant.')).toBeInTheDocument()
+    expect(await screen.findByText('Rien à faire, pour l’instant')).toBeInTheDocument()
   })
 
   it('ajoute une tâche via le formulaire et la coche', async () => {
@@ -80,6 +80,7 @@ describe('TasksPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Ajouter' }))
     await screen.findByText('À retirer')
 
+    await user.click(screen.getByRole('button', { name: 'Options de la tâche' }))
     await user.click(screen.getByRole('button', { name: 'Supprimer la tâche' }))
     expect(window.confirm).toHaveBeenCalledWith('Supprimer cette tâche ?')
     await waitFor(() => {
@@ -95,6 +96,7 @@ describe('TasksPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Ajouter' }))
     await screen.findByText('À archiver')
 
+    await user.click(screen.getByRole('button', { name: 'Options de la tâche' }))
     await user.click(screen.getByRole('button', { name: 'Archiver la tâche' }))
     await waitFor(() => expect(screen.queryByText('À archiver')).not.toBeInTheDocument())
     expect(window.confirm).not.toHaveBeenCalled()
@@ -107,6 +109,25 @@ describe('TasksPanel', () => {
     expect(await screen.findByText('À archiver')).toBeInTheDocument()
   })
 
+  it('applique le style de panneau choisi dans les réglages (papier par défaut, verre au choix)', async () => {
+    const { unmount } = renderPanel()
+    expect(await screen.findByRole('dialog', { name: 'Tâches' })).toHaveAttribute(
+      'data-panel-style',
+      'paper',
+    )
+    unmount()
+
+    window.localStorage.setItem(
+      'flowquest.extrasSettings',
+      JSON.stringify({ ...DEFAULT_EXTRAS_SETTINGS, panelStyle: 'glass' }),
+    )
+    renderPanel()
+    expect(await screen.findByRole('dialog', { name: 'Tâches' })).toHaveAttribute(
+      'data-panel-style',
+      'glass',
+    )
+  })
+
   it('ne supprime rien si on refuse la confirmation (LOT H1, §5)', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(false)
     const user = userEvent.setup()
@@ -116,6 +137,7 @@ describe('TasksPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Ajouter' }))
     await screen.findByText('À garder')
 
+    await user.click(screen.getByRole('button', { name: 'Options de la tâche' }))
     await user.click(screen.getByRole('button', { name: 'Supprimer la tâche' }))
     expect(screen.getByText('À garder')).toBeInTheDocument()
   })
@@ -129,6 +151,7 @@ describe('TasksPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Ajouter' }))
     await screen.findByText('Suppression rapide')
 
+    await user.click(screen.getByRole('button', { name: 'Options de la tâche' }))
     await user.click(screen.getByRole('button', { name: 'Supprimer la tâche' }))
     expect(window.confirm).not.toHaveBeenCalled()
     await waitFor(() => {
