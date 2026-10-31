@@ -8,6 +8,7 @@ import { ActivePillarProvider } from '@/features/pillars/ActivePillarProvider'
 import { DEFAULT_EXTRAS_SETTINGS } from '@/features/settings/extras-settings'
 import { ExtrasSettingsProvider } from '@/features/settings/ExtrasSettingsProvider'
 import { ActiveTaskProvider } from '@/features/tasks/ActiveTaskProvider'
+import { requestFocusOnTask, takePendingFocusRequest } from '@/features/tasks/panel-requests'
 import { ThemeProvider } from '@/shared/design-system'
 import { getDb } from '@/shared/storage/db'
 import { ToastProvider } from '@/shared/toast'
@@ -303,5 +304,63 @@ describe('FocusScreen — piliers de vie désactivés (lot 4, §5)', () => {
     await screen.findByText('Sur quoi veux-tu te concentrer ?')
 
     expect(await screen.findByRole('button', { name: /Pilier de la session/ })).toBeInTheDocument()
+  })
+})
+
+describe('FocusScreen — « Lancer un focus » depuis la constellation', () => {
+  beforeEach(async () => {
+    window.localStorage.clear()
+    takePendingFocusRequest()
+    await clearTimerState()
+    const db = await getDb()
+    // Pilier réel : le sélecteur remplace sinon un pilier inconnu par le premier pilier actif.
+    await db.put('pillars', {
+      id: 'pillar-c',
+      name: 'Études',
+      color: '#4A9FE8',
+      currentXp: 0,
+      level: 1,
+      createdAt: 1,
+      archivedAt: null,
+      goalLevel: null,
+      goalDeadline: null,
+    })
+    await db.put('tasks', {
+      id: 'task-c',
+      title: 'Lecture ECG',
+      emoji: null,
+      color: null,
+      etaMinutes: null,
+      parentId: null,
+      position: 0,
+      done: false,
+      doneAt: null,
+      createdAt: 1,
+      updatedAt: 1,
+      pillarId: 'pillar-c',
+    })
+  })
+
+  afterEach(async () => {
+    takePendingFocusRequest()
+    await clearTimerState()
+    const db = await getDb()
+    await db.delete('tasks', 'task-c')
+    await db.delete('pillars', 'pillar-c')
+  })
+
+  it('démarre le minuteur au repos et prend le pilier de la tâche', async () => {
+    requestFocusOnTask('task-c')
+    renderFocusScreen()
+
+    expect(await screen.findByRole('button', { name: 'Mettre en pause' })).toBeInTheDocument()
+    expect(window.localStorage.getItem('flowquest.activePillarId')).toBe('pillar-c')
+    expect(takePendingFocusRequest()).toBeNull() // consommée
+  })
+
+  it('sans demande, le minuteur reste au repos', async () => {
+    renderFocusScreen()
+    await screen.findByText('Sur quoi veux-tu te concentrer ?')
+    expect(screen.queryByRole('button', { name: 'Mettre en pause' })).not.toBeInTheDocument()
   })
 })

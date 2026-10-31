@@ -33,6 +33,8 @@
   --cst-label: #4f4866;
   --cst-label-strong: #1e1830;
   --cst-highlight: #5a1fd1;
+  --cst-ok: #17683a;
+  --cst-ok-soft: rgba(23, 104, 58, 0.12);
 
   --panel-surface: #fbfafd;
   --panel-surface-2: #eeeaf6;
@@ -76,6 +78,8 @@
     --cst-label: #8a8499;
     --cst-label-strong: #eeeaf4;
     --cst-highlight: #c9a7ff;
+    --cst-ok: #7ad39a;
+    --cst-ok-soft: rgba(122, 211, 154, 0.14);
     --streak-flame: #ff9a4d;
     --streak-flame-soft: rgba(255, 154, 77, 0.18);
     --streak-ice: #7cc8ee;
@@ -117,6 +121,8 @@
   --cst-label: #8a8499;
   --cst-label-strong: #eeeaf4;
   --cst-highlight: #c9a7ff;
+  --cst-ok: #7ad39a;
+  --cst-ok-soft: rgba(122, 211, 154, 0.14);
   --streak-flame: #ff9a4d;
   --streak-flame-soft: rgba(255, 154, 77, 0.18);
   --streak-ice: #7cc8ee;

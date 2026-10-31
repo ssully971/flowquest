@@ -184,7 +184,7 @@ describe('ConstellationPage', () => {
     expect(await screen.findByText('Seules les tâches peuvent être reliées.')).toBeInTheDocument()
   })
 
-  it('le détail d’une tâche liste ses liens et permet de les supprimer, avec annulation', async () => {
+  it('l’inspecteur d’une tâche liste ses liens (cliquables) et permet de les supprimer, avec annulation', async () => {
     const user = userEvent.setup()
     const db = await getDb()
     await db.put('taskLinks', {
@@ -197,11 +197,14 @@ describe('ConstellationPage', () => {
     renderPage()
 
     await user.click(await screen.findByRole('button', { name: 'nœud Réviser' }))
-    const detail = await screen.findByRole('region', { name: 'Réviser' })
-    expect(within(detail).getByText('À faire')).toBeInTheDocument()
-    expect(within(detail).getByText('Dépend de : Rédiger')).toBeInTheDocument()
+    const inspector = await screen.findByRole('complementary', { name: 'Réviser' })
+    expect(within(inspector).getByText('À faire')).toBeInTheDocument()
+    expect(within(inspector).getByText('Dépend de')).toBeInTheDocument()
+    expect(within(inspector).getByTestId('constellation-unlock')).toHaveTextContent(
+      'Débloquée : Rédiger est terminée, tu peux t’y mettre.',
+    )
 
-    await user.click(within(detail).getByRole('button', { name: /Supprimer le lien/ }))
+    await user.click(within(inspector).getByRole('button', { name: 'Supprimer le lien : Rédiger' }))
     expect(await screen.findByText('Lien supprimé')).toBeInTheDocument()
     await waitFor(async () => expect(await db.count('taskLinks')).toBe(0))
 
